@@ -373,7 +373,7 @@ class ContextCompressor {
       tokens,
       timestamp: Date.now(),
       hitCount: 0,
-   ]);
+    });
   }
 
   /**
