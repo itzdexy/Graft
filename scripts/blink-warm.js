@@ -92,6 +92,10 @@ export function runBlinkWarm({ force = false } = {}) {
       },
     })
     child.stdout?.on('data', () => {})
+    child.on('error', (error) => {
+      console.error(`Blink warm-up could not start Bun: ${error.message}`)
+      resolve(1)
+    })
     child.on('exit', (code) => {
       if ((code ?? 1) === 0) writeWarmStamp()
       resolve(code ?? 1)

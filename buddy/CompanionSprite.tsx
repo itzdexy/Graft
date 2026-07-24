@@ -157,7 +157,7 @@ const SPRITE_PADDING_X = 2;
 const BUBBLE_WIDTH = 36; // SpeechBubble box (34) + tail column
 const NARROW_QUIP_CAP = 24;
 export function isCompanionUiEnabled(): boolean {
-  return feature('BUDDY') || isBlinkRuntime();
+  return feature('BUDDY') ? true : isBlinkRuntime();
 }
 function spriteColWidth(nameWidth: number): number {
   return Math.max(SPRITE_BODY_WIDTH, nameWidth + NAME_ROW_PAD);

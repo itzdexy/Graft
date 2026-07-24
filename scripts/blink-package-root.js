@@ -1,5 +1,5 @@
-import { execSync } from 'node:child_process'
-import { existsSync } from 'fs'
+import { execFileSync, execSync } from 'node:child_process'
+import { existsSync, statSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { getBlinkHome } from './blink-home.js'
@@ -8,14 +8,33 @@ export { getBlinkHome, platformLabel } from './blink-home.js'
 
 /** Directory containing package.json (blinkcode npm root). */
 export function getBlinkPackageRoot() {
-  if (process.env.BLINK_PACKAGE_ROOT && existsSync(process.env.BLINK_PACKAGE_ROOT)) {
+  if (
+    process.env.BLINK_PACKAGE_ROOT &&
+    isBlinkPackageRoot(process.env.BLINK_PACKAGE_ROOT)
+  ) {
     return process.env.BLINK_PACKAGE_ROOT
   }
-  if (process.env.BLINK_SRC && existsSync(process.env.BLINK_SRC)) {
+  if (process.env.BLINK_SRC && isBlinkPackageRoot(process.env.BLINK_SRC)) {
     return process.env.BLINK_SRC
   }
   // scripts/ → package root
   return dirname(dirname(fileURLToPath(import.meta.url)))
+}
+
+function isBlinkPackageRoot(root) {
+  const isFile = (...parts) => {
+    try {
+      return statSync(join(root, ...parts)).isFile()
+    } catch {
+      return false
+    }
+  }
+  return (
+    isFile('entrypoints', 'cli.tsx') ||
+    (isFile('package.json') &&
+      isFile('bin', 'blink.js') &&
+      isFile('constants', 'blink.js'))
+  )
 }
 
 /** Blink source CLI entry (Ink UI, BlinkBuddy, etc.) — never blink.exe. */
@@ -25,11 +44,17 @@ export function resolveBlinkCliEntry(packageRoot = getBlinkPackageRoot()) {
 }
 
 export function resolveBunExecutable() {
-  if (process.env.BLINK_BUN_CMD) return process.env.BLINK_BUN_CMD
-
   const home = getBlinkHome()
   const bunName = process.platform === 'win32' ? 'bun.exe' : 'bun'
+  const override = process.env.BLINK_BUN_CMD?.trim()
+  if (override && isUsableBun(override)) {
+    return override
+  }
+
   const wellKnown = [
+    process.env.BUN_INSTALL
+      ? join(process.env.BUN_INSTALL, 'bin', bunName)
+      : null,
     home && join(home, '.bun', 'bin', bunName),
     process.platform === 'win32' && process.env.LOCALAPPDATA
       ? join(process.env.LOCALAPPDATA, 'bun', 'bin', 'bun.exe')
@@ -41,7 +66,7 @@ export function resolveBunExecutable() {
   ].filter(Boolean)
 
   for (const p of wellKnown) {
-    if (existsSync(p)) return p
+    if (isUsableBun(p)) return p
   }
 
   const lookup = process.platform === 'win32' ? 'where bun' : 'which bun'
@@ -50,12 +75,26 @@ export function resolveBunExecutable() {
       .trim()
       .split(/\r?\n/)[0]
       ?.trim()
-    if (out && existsSync(out)) return out
+    if (out && isUsableBun(out)) return out
   } catch {
     // not on PATH
   }
 
   return 'bun'
+}
+
+function isUsableBun(candidate) {
+  try {
+    if (candidate !== 'bun' && !statSync(candidate).isFile()) return false
+    execFileSync(candidate, ['--version'], {
+      stdio: 'ignore',
+      timeout: 3_000,
+      windowsHide: true,
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function printBunInstallHelp() {
@@ -82,18 +121,11 @@ export function printBunInstallHelp() {
 
 /** Resolve Bun and exit with install help if missing. */
 export function assertBunAvailable(bunCmd = resolveBunExecutable()) {
-  if (bunCmd !== 'bun' && existsSync(bunCmd)) {
+  if (isUsableBun(bunCmd)) {
     return bunCmd
   }
-
-  const lookup = process.platform === 'win32' ? 'where bun' : 'which bun'
-  try {
-    execSync(lookup, { stdio: 'ignore' })
-    return bunCmd
-  } catch {
-    printBunInstallHelp()
-    process.exit(1)
-  }
+  printBunInstallHelp()
+  process.exit(1)
 }
 
 /** @deprecated Blink runs the Bun/source CLI only and never launches Claude binaries. */

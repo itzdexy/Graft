@@ -206,10 +206,17 @@ if (-not $Node) {
 # Verify Bun is executable
 try {
   $null = & $Bun --version 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "Bun exited with code $LASTEXITCODE"
+  }
 } catch {
   Write-Host "Bun executable found but failed to run. Reinstall Bun: https://bun.sh" -ForegroundColor Red
   exit 1
 }
+
+# Child Node helpers resolve Bun independently. Replace stale user-level
+# overrides only after this executable has passed the native version probe.
+$env:BLINK_BUN_CMD = $Bun
 
 $cliEntry = Join-Path $PkgRoot 'entrypoints\cli.tsx'
 if (-not (Test-Path $cliEntry)) {
