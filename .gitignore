@@ -53,6 +53,7 @@ _blink-test-*
 build/
 .cache/
 dist/
+installer/
 *.tgz
 blinkcode-*.tgz
 
