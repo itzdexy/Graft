@@ -1,0 +1,20 @@
+{
+  "name": "qt_documentation_read",
+  "description": "Read the full content of a specific Qt documentation page. Use the filename shown in search results.",
+  "inputSchema": {
+    "properties": {
+      "file": {
+        "description": "Filename of the Qt documentation page. Use ONLY the filename from search results (e.g., 'signalsandslots.html' NOT full paths with version numbers). Module paths like 'qtcore/qobject.html' also work.",
+        "type": "string"
+      },
+      "version": {
+        "description": "Optional: Qt version to read from (e.g., '6.10.0', '6.9.0'). Defaults to latest installed version if not specified.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "file"
+    ],
+    "type": "object"
+  }
+}

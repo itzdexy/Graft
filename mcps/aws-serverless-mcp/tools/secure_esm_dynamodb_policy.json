@@ -1,0 +1,42 @@
+{
+  "name": "secure_esm_dynamodb_policy",
+  "description": "Generate security-approved IAM policy for DynamoDB Streams ESM with scoped permissions. Uses pre-approved templates, not LLM generation.",
+  "inputSchema": {
+    "properties": {
+      "region": {
+        "description": "AWS region (e.g., us-east-1)",
+        "title": "Region",
+        "type": "string"
+      },
+      "account": {
+        "description": "AWS account ID (12 digits)",
+        "title": "Account",
+        "type": "string"
+      },
+      "table_name": {
+        "description": "DynamoDB table name",
+        "title": "Table Name",
+        "type": "string"
+      },
+      "function_name": {
+        "description": "Lambda function name that will process DynamoDB stream records",
+        "title": "Function Name",
+        "type": "string"
+      },
+      "partition": {
+        "default": "aws",
+        "description": "AWS partition (aws, aws-cn, aws-us-gov)",
+        "title": "Partition",
+        "type": "string"
+      }
+    },
+    "required": [
+      "region",
+      "account",
+      "table_name",
+      "function_name"
+    ],
+    "title": "secure_esm_dynamodb_policy_toolArguments",
+    "type": "object"
+  }
+}

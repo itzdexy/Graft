@@ -1,0 +1,37 @@
+{
+  "name": "describe_schema",
+  "description": "Retrieve the schema definition for the specified schema version.\n\nREQUIREMENTS:\n- You MUST use this tool to get complete schema definitions before implementing handlers\n- You MUST use this tool when implementing Lambda functions that consume events from EventBridge\n- You MUST use the returned schema structure for type-safe event handling\n- You SHOULD use the latest schema version unless specifically required otherwise\n- You MUST validate all required fields defined in the schema\n\nUSE CASES:\n\n1. Lambda Function Handlers with EventBridge:\nYou MUST:\n- CRITICAL: Required for Lambda functions consuming events from EventBridge\n- Implement handlers using the exact event structure\n- Validate all required fields defined in schema\n- Handle optional fields appropriately\n- Ensure type safety for EventBridge-sourced events\n\nYou SHOULD:\n- Generate strongly typed code based on schema\n- Implement error handling for missing fields\n- Document any assumptions about structure\n\n2. EventBridge Rules:\nYou MUST:\n- Create patterns that exactly match schema\n- Use correct field names and value types\n- Include all required fields in patterns\n\nYou SHOULD:\n- Test patterns against sample events\n- Document pattern matching logic\n- Consider schema versions in design\n\nThe schema content provides complete event structure with all fields and types, ensuring correct event handling.\n",
+  "inputSchema": {
+    "properties": {
+      "registry_name": {
+        "description": "For AWS service events, use \"aws.events\" to access the EventBridge schema registry.",
+        "title": "Registry Name",
+        "type": "string"
+      },
+      "schema_name": {
+        "description": "The name of the schema to retrieve (e.g., \"aws.s3@ObjectCreated\" for S3 events).",
+        "title": "Schema Name",
+        "type": "string"
+      },
+      "schema_version": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Version number of the schema. For AWS service events, use latest version (default) to ensure up-to-date event handling.",
+        "title": "Schema Version"
+      }
+    },
+    "required": [
+      "registry_name",
+      "schema_name"
+    ],
+    "title": "describe_schema_implArguments",
+    "type": "object"
+  }
+}

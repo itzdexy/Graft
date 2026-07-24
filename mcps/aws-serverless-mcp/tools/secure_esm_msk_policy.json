@@ -1,0 +1,60 @@
+{
+  "name": "secure_esm_msk_policy",
+  "description": "Generate security-approved IAM policy for MSK Kafka ESM with scoped permissions. Uses pre-approved templates, not LLM generation.",
+  "inputSchema": {
+    "properties": {
+      "region": {
+        "description": "AWS region (e.g., us-east-1)",
+        "title": "Region",
+        "type": "string"
+      },
+      "account": {
+        "description": "AWS account ID (12 digits)",
+        "title": "Account",
+        "type": "string"
+      },
+      "cluster_name": {
+        "description": "MSK cluster name",
+        "title": "Cluster Name",
+        "type": "string"
+      },
+      "cluster_uuid": {
+        "description": "MSK cluster UUID",
+        "title": "Cluster Uuid",
+        "type": "string"
+      },
+      "function_name": {
+        "description": "Lambda function name that will process Kafka events",
+        "title": "Function Name",
+        "type": "string"
+      },
+      "topic_pattern": {
+        "default": "*",
+        "description": "Kafka topic pattern (default: *)",
+        "title": "Topic Pattern",
+        "type": "string"
+      },
+      "consumer_group_pattern": {
+        "default": "*",
+        "description": "Consumer group pattern (default: *)",
+        "title": "Consumer Group Pattern",
+        "type": "string"
+      },
+      "partition": {
+        "default": "aws",
+        "description": "AWS partition (aws, aws-cn, aws-us-gov)",
+        "title": "Partition",
+        "type": "string"
+      }
+    },
+    "required": [
+      "region",
+      "account",
+      "cluster_name",
+      "cluster_uuid",
+      "function_name"
+    ],
+    "title": "secure_esm_msk_policy_toolArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "get_lambda_guidance",
+  "description": "Use this tool to determine if AWS Lambda is suitable platform to deploy an application.\n\nReturns a comprehensive guide on when to choose AWS Lambda as a deployment platform.\nIt includes scenarios when to use and not use Lambda, advantages and disadvantages,\ndecision criteria, and specific guidance for various use cases (e.g. scheduled tasks, event-driven application).\n\nReturns:\n    Dict: Lambda guidance information\n",
+  "inputSchema": {
+    "properties": {
+      "use_case": {
+        "description": "Description of the use case. (e.g. scheduled tasks, event-driven application)",
+        "title": "Use Case",
+        "type": "string"
+      },
+      "include_examples": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": true,
+        "description": "Whether to include examples",
+        "title": "Include Examples"
+      }
+    },
+    "required": [
+      "use_case"
+    ],
+    "title": "get_lambda_guidanceArguments",
+    "type": "object"
+  }
+}

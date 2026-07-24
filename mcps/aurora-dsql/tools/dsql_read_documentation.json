@@ -1,0 +1,44 @@
+{
+  "name": "dsql_read_documentation",
+  "description": "Read specific DSQL documentation pages",
+  "inputSchema": {
+    "properties": {
+      "url": {
+        "description": "Specific url to read",
+        "title": "Url",
+        "type": "string"
+      },
+      "start_index": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Starting character index",
+        "title": "Start Index"
+      },
+      "max_length": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Maximum number of characters to return",
+        "title": "Max Length"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "dsql_read_documentationArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,3 @@
+# CI only — copy to .npmrc locally ONLY if you use a machine token.
+# For normal publish: delete .npmrc and use `npm login` (uses ~/.npmrc).
+//registry.npmjs.org/:_authToken=${NPM_TOKEN}

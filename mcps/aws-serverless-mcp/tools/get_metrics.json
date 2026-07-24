@@ -1,0 +1,133 @@
+{
+  "name": "get_metrics",
+  "description": "Retrieves CloudWatch metrics from a deployed web application.\n\nUse this tool get metrics on error rates, latency, throttles, etc. of Lambda functions, API Gateways, or CloudFront distributions.\nThis tool can help provide insights into anomalies and monitor operations, which can help with troubleshooting.\n\nReturns:\n    Dict: Metrics retrieval result\n",
+  "inputSchema": {
+    "properties": {
+      "project_name": {
+        "description": "Project name",
+        "title": "Project Name",
+        "type": "string"
+      },
+      "start_time": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Start time for metrics (ISO 8601 format). Example: 2025-05-30T20:00:00Z",
+        "title": "Start Time"
+      },
+      "end_time": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "End time for metrics (ISO 8601 format). Example: 2025-05-30T21:00:00Z",
+        "title": "End Time"
+      },
+      "period": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": 60,
+        "description": "Period for metrics in seconds",
+        "title": "Period"
+      },
+      "resources": {
+        "anyOf": [
+          {
+            "items": {
+              "enum": [
+                "lambda",
+                "apiGateway",
+                "cloudfront"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [
+          "lambda",
+          "apiGateway"
+        ],
+        "description": "Resources to get metrics for",
+        "title": "Resources"
+      },
+      "function_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Lambda function to get metrics for. Set this\n                        parameter if resources parameter contains 'lambda' and the function name is not same as the project_name. Typically, SAM appends a random id suffix to function names.\n                        Find the name from CFN stack output. If function_name is not specified, project_name is used as function name.",
+        "title": "Function Name"
+      },
+      "distribution_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "CloudFront distribution ID to get metrics for. Find the id from the CFN stack output.\n                distribution_id required if the resources parameter list contains cloudfront.",
+        "title": "Distribution Id"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS region to use (e.g., us-east-1)",
+        "title": "Region"
+      },
+      "stage": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "prod",
+        "description": "API Gateway stage",
+        "title": "Stage"
+      }
+    },
+    "required": [
+      "project_name"
+    ],
+    "title": "get_metricsArguments",
+    "type": "object"
+  }
+}

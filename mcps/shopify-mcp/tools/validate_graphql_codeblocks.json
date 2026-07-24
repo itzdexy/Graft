@@ -1,0 +1,81 @@
+{
+  "name": "validate_graphql_codeblocks",
+  "description": "This tool validates GraphQL code blocks against the Shopify GraphQL schema to ensure they don't contain hallucinated fields or operations. If a user asks for an LLM to generate a GraphQL operation, this tool should always be used to ensure valid code was generated.\n\n    Supports all Shopify GraphQL APIs including Admin, Storefront, Partner, Customer, Payments Apps, and Function APIs. For Shopify Functions, use this to validate the input GraphQL queries (run.graphql).\n\n\n    It returns a comprehensive validation result with details for each code block explaining why it was valid or invalid.\n    This detail is provided so LLMs know how to modify code snippets to remove errors.\n    It also returns an artifact ID and revision number for each code block. This is used to track the code block and its validation results. When validating an iteration of the same code block, use the same artifact ID and increment the revision number. Do not pass your own artifact ID to this tool, the tool will generate one for you.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "conversationId": {
+        "type": "string",
+        "description": "🔗 REQUIRED: conversationId from learn_shopify_api tool. Call learn_shopify_api first if you don't have this."
+      },
+      "api": {
+        "default": "admin",
+        "description": "The GraphQL API to use. Valid options are:\n- 'admin': Write or explain **Admin GraphQL** queries and mutations for apps and integrations that extend the Shopify admin. Use when the user wants to **understand, design, or generate** the operation itself—even before deciding how to run it. Do **not** choose `admin` first for **app or extension config validation** —use **`use-shopify-cli`**. Do **not** choose `admin` first to **execute** Admin GraphQL **now via Shopify CLI** or for CLI setup/troubleshooting on store workflows—use **`use-shopify-cli`** (store auth/execute, handle/SKU/location lookups, inventory changes).\n- 'storefront-graphql': Use for custom storefronts requiring direct GraphQL queries/mutations for data fetching and cart operations. Choose this when you need full control over data fetching and rendering your own UI. NOT for Web Components - if the prompt mentions HTML tags like <shopify-store>, <shopify-cart>, use storefront-web-components instead.\n- 'partner': The Partner API lets you programmatically access data about your Partner Dashboard, including your apps, themes, and affiliate referrals.\n- 'customer': The Customer Account API allows customers to access their own data including orders, payment methods, and addresses.\n- 'payments-apps': The Payments Apps API enables payment providers to integrate their payment solutions with Shopify's checkout.\n- 'functions_cart_checkout_validation': GraphQL schema for Cart and Checkout Validation Function input queries\n- 'functions_cart_transform': GraphQL schema for Cart Transform Function input queries\n- 'functions_delivery_customization': GraphQL schema for Delivery Customization Function input queries\n- 'functions_discount': GraphQL schema for Discount Function input queries\n- 'functions_discounts_allocator': GraphQL schema for Discounts Allocator Function input queries\n- 'functions_fulfillment_constraints': GraphQL schema for Fulfillment Constraints Function input queries\n- 'functions_local_pickup_delivery_option_generator': GraphQL schema for Local Pickup Delivery Option Generator Function input queries\n- 'functions_order_discounts': GraphQL schema for Order Discounts Function input queries\n- 'functions_order_routing_location_rule': GraphQL schema for Order Routing Location Rule Function input queries\n- 'functions_payment_customization': GraphQL schema for Payment Customization Function input queries\n- 'functions_pickup_point_delivery_option_generator': GraphQL schema for Pickup Point Delivery Option Generator Function input queries\n- 'functions_product_discounts': GraphQL schema for Product Discounts Function input queries\n- 'functions_shipping_discounts': GraphQL schema for Shipping Discounts Function input queries\nDefault is 'admin'.",
+        "type": "string",
+        "enum": [
+          "admin",
+          "storefront-graphql",
+          "partner",
+          "customer",
+          "payments-apps",
+          "functions_cart_checkout_validation",
+          "functions_cart_transform",
+          "functions_delivery_customization",
+          "functions_discount",
+          "functions_discounts_allocator",
+          "functions_fulfillment_constraints",
+          "functions_local_pickup_delivery_option_generator",
+          "functions_order_discounts",
+          "functions_order_routing_location_rule",
+          "functions_payment_customization",
+          "functions_pickup_point_delivery_option_generator",
+          "functions_product_discounts",
+          "functions_shipping_discounts"
+        ]
+      },
+      "version": {
+        "description": "Optional API version to validate against. When omitted, the latest stable version for the selected API is used.",
+        "type": "string",
+        "enum": [
+          "unstable",
+          "2026-07",
+          "2026-04",
+          "2026-01",
+          "2025-10",
+          "2025-07"
+        ]
+      },
+      "codeblocks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The GraphQL code block content which should contain raw GraphQL code (e.g., 'query { shop { name } }'), NOT markdown-formatted code blocks with backticks"
+            },
+            "artifactId": {
+              "description": "Stable id assigned to the generated code artifact. Use the same artifactId when retrying validation on modified code to track iterations.",
+              "type": "string"
+            },
+            "revision": {
+              "description": "Monotonic revision number for the artifact. Start with 1 for new code, increment for each retry/iteration on the same artifactId. This helps track validation retries vs new validations.",
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "content"
+          ]
+        },
+        "description": "Array of GraphQL code blocks with content and optional artifact metadata"
+      }
+    },
+    "required": [
+      "conversationId",
+      "codeblocks"
+    ]
+  }
+}

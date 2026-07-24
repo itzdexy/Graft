@@ -1,0 +1,36 @@
+{
+  "name": "aikido_full_scan",
+  "description": "\nRuns an Aikido SAST and Secrets scan locally on provided code files returns the findings in JSON format.\nFiles should be provided as paths relative to the root of the workspace or repository (Unix-style paths).\nIf this is not possible, just the filename should be given.\n\nThere is a limit of 50 files that can be scanned in a single request. If you need to scan more files, you can do multiple requests.\n\nIf a repository name is provided, it will be used to identify the repository in the Aikido platform. \nOnly pass a repository name if the files are actually coming from a repository - do not provide a repository name for standalone files or files from a local workspace that is not part of a repository.\n\nUse this tool when you need to:\n- scan code files for SAST vulnerabilities\n- scan code files for Secrets vulnerabilities\n",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repository_name": {
+        "type": "string"
+      },
+      "files_to_scan": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "relativeFilePath": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "relativeFilePath",
+            "content"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "files_to_scan"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

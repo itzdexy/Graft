@@ -1,0 +1,30 @@
+{
+  "name": "webapp_deployment_help",
+  "description": "Get help information about using the deploy_webapp_tool to perform web application deployments.\n\nIf deployment_type is provided, returns help information for that deployment type.\nOtherwise, returns general help information.\n\nReturns:\n    Dict: Deployment help information\n",
+  "inputSchema": {
+    "properties": {
+      "deployment_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "backend",
+              "frontend",
+              "fullstack"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Type of deployment to get help information for",
+        "title": "Deployment Type"
+      }
+    },
+    "required": [
+      "deployment_type"
+    ],
+    "title": "webapp_deployment_help_toolArguments",
+    "type": "object"
+  }
+}

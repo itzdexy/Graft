@@ -1,0 +1,64 @@
+{
+  "name": "list_registries",
+  "description": "Lists the registries in your account.\n\nREQUIREMENTS:\n- For AWS service events, you MUST use the aws.events registry directly\n- For custom schemas, you MAY use LOCAL scope to manage your own registries\n- When searching AWS service events, you SHOULD use the AWS scope\n\nUSAGE PATTERNS:\n1. Finding AWS Service Event Schemas:\n- Use aws.events registry directly instead of searching\n- Filter by AWS scope to see only AWS-provided schemas\n\n2. Managing Custom Schemas:\n- Use LOCAL scope to view your custom registries\n- Apply registry_name_prefix to find specific registry groups\n",
+  "inputSchema": {
+    "properties": {
+      "registry_name_prefix": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Specifying this limits the results to only those registry names that start with the specified prefix. For EventBridge events, use aws.events registry directly instead of searching.",
+        "title": "Registry Name Prefix"
+      },
+      "scope": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Can be set to Local or AWS to limit responses to your custom registries, or the ones provided by AWS.\n            LOCAL: The registry is created in your account.\n            AWS: The registry is created by AWS.\n\n            For EventBridge events, use aws.events registry which is an AWS-managed registry containing all AWS service event schemas.",
+        "title": "Scope"
+      },
+      "limit": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Maximum number of results to return. If you specify 0, the operation returns up to 10 results.",
+        "title": "Limit"
+      },
+      "next_token": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Next token returned by the previous operation.",
+        "title": "Next Token"
+      }
+    },
+    "title": "list_registries_implArguments",
+    "type": "object"
+  }
+}

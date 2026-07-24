@@ -1,0 +1,17 @@
+{
+  "name": "run_manifest_validation",
+  "description": "Validates UI5 manifest file. After making changes, you should always run the validation again to verify that no new problems have been introduced.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "manifestPath": {
+        "type": "string",
+        "description": "Absolute path to the manifest file to validate."
+      }
+    },
+    "required": [
+      "manifestPath"
+    ]
+  }
+}

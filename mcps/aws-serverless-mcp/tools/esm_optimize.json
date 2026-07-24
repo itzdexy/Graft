@@ -1,0 +1,115 @@
+{
+  "name": "esm_optimize",
+  "description": "Optimize streaming data processing performance and costs. Analyzes Lambda function configurations for Kafka, Kinesis, DynamoDB, and SQS event sources. Provides recommendations for batch sizes, concurrency, throughput, and cost optimization. Validates configurations and generates deployment templates.",
+  "inputSchema": {
+    "properties": {
+      "action": {
+        "default": "analyze",
+        "description": "Optimization action: \"analyze\" for tradeoff analysis, \"validate\" for config validation, \"generate_template\" for SAM template generation",
+        "enum": [
+          "analyze",
+          "validate",
+          "generate_template"
+        ],
+        "title": "Action",
+        "type": "string"
+      },
+      "optimization_targets": {
+        "anyOf": [
+          {
+            "items": {
+              "enum": [
+                "failure_rate",
+                "latency",
+                "throughput",
+                "cost"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Optimization goals for analysis (required for analyze action)",
+        "title": "Optimization Targets"
+      },
+      "event_source": {
+        "anyOf": [
+          {
+            "enum": [
+              "kinesis",
+              "dynamodb",
+              "kafka",
+              "sqs"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Event source type for validation (required for validate action)",
+        "title": "Event Source"
+      },
+      "configs": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "ESM configuration to validate (required for validate action)",
+        "title": "Configs"
+      },
+      "esm_uuid": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "ESM UUID for template generation (required for generate_template action)",
+        "title": "Esm Uuid"
+      },
+      "optimized_configs": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Optimized configuration for template generation (required for generate_template action)",
+        "title": "Optimized Configs"
+      },
+      "region": {
+        "default": "us-east-1",
+        "description": "AWS region",
+        "title": "Region",
+        "type": "string"
+      },
+      "project_name": {
+        "default": "esm-optimization",
+        "description": "Project name for template generation",
+        "title": "Project Name",
+        "type": "string"
+      }
+    },
+    "title": "esm_optimize_toolArguments",
+    "type": "object"
+  }
+}

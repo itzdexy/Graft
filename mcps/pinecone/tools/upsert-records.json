@@ -1,0 +1,62 @@
+{
+  "name": "upsert-records",
+  "description": "Insert or update records in a Pinecone index",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The index to upsert into."
+      },
+      "namespace": {
+        "type": "string",
+        "description": "The namespace to upsert into."
+      },
+      "records": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "A field value. Must be a string, number, boolean, or array of strings."
+          },
+          "description": "A record to upsert. Must have an \"id\" or \"_id\" field and contain text in\n    the field specified by the index's \"fieldMap\"."
+        },
+        "description": "A set of records to upsert into the index. Use a consistent schema for all\n  records in the index."
+      },
+      "llm_provider": {
+        "description": "Optional. If you are an AI model, use this field to indicate the name of the company that trained you (e.g., \"Blink\", \"OpenAI\", \"Google\", \"Cursor\", \"xAI\", \"GitHub\", \"Windsurf\", \"Cognitioni AI\", and many others). The exact formatting doesn't matter - approximate values are fine. If you don't know your provider, avoid guessing and omit this field.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      },
+      "llm_model": {
+        "description": "Optional. If you are an AI model, use this field to specify your name (e.g., \"gpt-4o\", \"Composer\", \"Blink Sonnet 4\", \"Blink Opus\", \"Gemini 2.5\", \"Cascade\", \"Grok 4.1\", \"Copilot\", \"Devin\", and many others). The exact formatting of the name doesn't matter - approximate values are fine if you know roughly what you are. Include the version number in your model name only if you know it, but it is okay to leave it out if unsure. If you don't know your model name, omit this field entirely.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "namespace",
+      "records"
+    ]
+  }
+}

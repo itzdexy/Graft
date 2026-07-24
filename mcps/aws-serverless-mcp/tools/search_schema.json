@@ -1,0 +1,52 @@
+{
+  "name": "search_schema",
+  "description": "Search for schemas in a registry using keywords.\n\nREQUIREMENTS:\n- You MUST use this tool to find schemas for AWS service events\n- You MUST search in the \"aws.events\" registry for AWS service events\n- You MUST use this tool when implementing Lambda functions that consume events from EventBridge\n- You SHOULD prefix search keywords with \"aws.\" for optimal results (e.g., \"aws.s3\", \"aws.ec2\")\n- You MAY filter results using additional keywords for specific event types\n\nUSE CASES:\n\n1. Lambda Function Development with EventBridge:\n- CRITICAL: Required for Lambda functions consuming events from EventBridge\n- Search for event schemas your function needs to process\n- Example: \"aws.s3\" for S3 events, \"aws.dynamodb\" for DynamoDB streams\n- Use results with describe_schema to get complete event structure\n\n2. EventBridge Rule Creation:\n- Find schemas to create properly structured event patterns\n- Example: \"aws.ec2\" for EC2 instance state changes\n- Ensure exact field names and types in rule patterns\n\nIMPLEMENTATION FLOW:\n1. Search aws.events registry for service schemas\n2. Note relevant schema names from results\n3. Use describe_schema to get complete definitions\n4. Implement handlers using exact schema structure\n",
+  "inputSchema": {
+    "properties": {
+      "keywords": {
+        "description": "Keywords to search for. Prefix service names with \"aws.\" for better results (e.g., \"aws.s3\" for S3 events, \"aws.ec2\" for EC2 events).",
+        "title": "Keywords",
+        "type": "string"
+      },
+      "registry_name": {
+        "description": "For AWS service events, use \"aws.events\" to search the EventBridge schema registry.",
+        "title": "Registry Name",
+        "type": "string"
+      },
+      "limit": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Maximum number of results to return. If you specify 0, the operation returns up to 10 results.",
+        "title": "Limit"
+      },
+      "next_token": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Next token returned by the previous operation.",
+        "title": "Next Token"
+      }
+    },
+    "required": [
+      "keywords",
+      "registry_name"
+    ],
+    "title": "search_schema_implArguments",
+    "type": "object"
+  }
+}

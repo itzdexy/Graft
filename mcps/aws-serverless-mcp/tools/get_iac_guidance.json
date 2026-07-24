@@ -1,0 +1,42 @@
+{
+  "name": "get_iac_guidance",
+  "description": "Returns guidance on selecting an infrastructure as code (IaC) platform to deploy Serverless applications to AWS.\n\nUsing IaC is a best practice when managing AWS resources. IaC platform choices include AWS SAM, CDK, and CloudFormation.\nUse this tool to decide which IaC tool to use for your Serverless deployments based on your specific use case and requirements.\nBy default, SAM is the recomended framework.\n\nReturns:\n    Dict: IaC guidance information\n",
+  "inputSchema": {
+    "properties": {
+      "iac_tool": {
+        "anyOf": [
+          {
+            "enum": [
+              "CloudFormation",
+              "SAM",
+              "CDK",
+              "Terraform"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "CloudFormation",
+        "description": "IaC tool to use",
+        "title": "Iac Tool"
+      },
+      "include_examples": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": true,
+        "description": "Whether to include examples",
+        "title": "Include Examples"
+      }
+    },
+    "title": "get_iac_guidance_toolArguments",
+    "type": "object"
+  }
+}

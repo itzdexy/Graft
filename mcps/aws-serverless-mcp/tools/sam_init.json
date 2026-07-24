@@ -1,0 +1,226 @@
+{
+  "name": "sam_init",
+  "description": "Initializes a serverless application using AWS SAM (Serverless Application Model) CLI.\n\nRequirements:\n- AWS SAM CLI MUST be installed and configured in your environment\n\nThis tool creates a new SAM project that consists of:\n- An AWS SAM template to define your infrastructure code\n- A folder structure that organizes your application\n- Configuration for your AWS Lambda functions\n\nUse this tool to initialize a new project when building a serverless application.\nThis tool generates a project based on a pre-defined template. After calling this tool,\nmodify the code and infrastructure templates to fit the requirements of your application.\n\nUsage tips:\n- Do not use this tool on existing projects as it creates brand new directory. Instead manually create SAM templates in the existing application's directory.\n- Either select from one of predefined templates, or from the SAM GitHub repo (https://github.com/aws/aws-sam-cli-app-templates)\n\nReturns:\n    Dict[str, Any]: Result of the initialization\n",
+  "inputSchema": {
+    "properties": {
+      "project_name": {
+        "description": "Name of the SAM project to create",
+        "title": "Project Name",
+        "type": "string"
+      },
+      "runtime": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Runtime environment for the Lambda function.\n                             This option applies only when the package type is Zip.",
+        "title": "Runtime"
+      },
+      "project_directory": {
+        "description": "Absolute path to directory where the SAM application will be initialized",
+        "title": "Project Directory",
+        "type": "string"
+      },
+      "dependency_manager": {
+        "description": "Dependency manager for the Lambda function (e.g. npm, pip)",
+        "title": "Dependency Manager",
+        "type": "string"
+      },
+      "architecture": {
+        "anyOf": [
+          {
+            "enum": [
+              "x86_64",
+              "arm64"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "x86_64",
+        "description": "Architecture for the Lambda function.",
+        "title": "Architecture"
+      },
+      "package_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "Zip",
+              "Image"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "Zip",
+        "description": "Package type for the Lambda function. Zip creates a .zip file archive, and Image creates a container image.",
+        "title": "Package Type"
+      },
+      "application_template": {
+        "default": "hello-world",
+        "description": "Template for the SAM application, e.g., hello-world, quick-start, etc.\n             This parameter is required if location is not specified.",
+        "title": "Application Template",
+        "type": "string"
+      },
+      "application_insights": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Activate Amazon CloudWatch Application Insights monitoring.\n                Helps you monitor the AWS resources in your applications to help identify potential issues.\n                It can analyze AWS resource data for signs of problems and build automated CloudWatch dashboards to visualize them.\n                ",
+        "title": "Application Insights"
+      },
+      "no_application_insights": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Deactivate Amazon CloudWatch Application Insights monitoring",
+        "title": "No Application Insights"
+      },
+      "base_image": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Base image for the application when package type is Image.\n                The AWS base images are preloaded with a language runtime, a runtime interface client to manage the\n                interaction between Lambda and your function code, and a runtime interface emulator for local testing.",
+        "title": "Base Image"
+      },
+      "config_env": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Environment name specifying default parameter values in the configuration file",
+        "title": "Config Env"
+      },
+      "config_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to configuration file containing default parameter values",
+        "title": "Config File"
+      },
+      "debug": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Turn on debug logging",
+        "title": "Debug"
+      },
+      "extra_content": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Override custom parameters in the template's cookiecutter.json",
+        "title": "Extra Content"
+      },
+      "location": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Template or application location (Git, HTTP/HTTPS, zip file path).\n                This GitHub repo https://github.com/aws/aws-sam-cli-app-templates contains a collection of templates.\n                This parameter is required if app_template is not specified.",
+        "title": "Location"
+      },
+      "save_params": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Save parameters to the SAM configuration file",
+        "title": "Save Params"
+      },
+      "tracing": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Activate AWS X-Ray tracing for Lambda functions. X-ray collects data about requests\n            that your application serves and provides tools that you can use to view, filter, and gain insights into that data to identify issues\n            and opportunities for optimization.",
+        "title": "Tracing"
+      },
+      "no_tracing": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": false,
+        "description": "Deactivate AWS X-Ray tracing for Lambda functions",
+        "title": "No Tracing"
+      }
+    },
+    "required": [
+      "project_name",
+      "runtime",
+      "project_directory",
+      "dependency_manager"
+    ],
+    "title": "handle_sam_initArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "search_docs_chunks",
+  "description": "This tool will take in the user prompt, search shopify.dev, and return relevant documentation and code examples that will help answer the user's question.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "conversationId": {
+        "type": "string",
+        "description": "🔗 REQUIRED: conversationId from learn_shopify_api tool. Call learn_shopify_api first if you don't have this."
+      },
+      "prompt": {
+        "type": "string",
+        "description": "The search query for Shopify documentation"
+      },
+      "max_num_results": {
+        "description": "Maximum number of results to return from the search. Do not pass this when calling the tool for the first time, only use this when you want to limit the number of results deal with small context window issues.",
+        "type": "number"
+      },
+      "api_name": {
+        "description": "The API name to filter search results by. Pass the same API name you used with learn_shopify_api (e.g., 'polaris-admin-extensions', 'pos-ui', 'admin'). This filters results to only return documentation for that specific API surface.",
+        "type": "string"
+      },
+      "version": {
+        "description": "The API version to scope search results to (e.g., '2025-04', '2026-01'). Pass the version you detected or received from learn_shopify_api. When omitted, search returns results for the latest version.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "conversationId",
+      "prompt"
+    ]
+  }
+}

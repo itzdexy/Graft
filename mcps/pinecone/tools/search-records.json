@@ -1,0 +1,97 @@
+{
+  "name": "search-records",
+  "description": "Search an index for records that are similar to the query text",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The index to search."
+      },
+      "namespace": {
+        "type": "string",
+        "description": "The namespace to search."
+      },
+      "query": {
+        "type": "object",
+        "properties": {
+          "topK": {
+            "type": "number",
+            "description": "The number of results to return."
+          },
+          "inputs": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The text to search for."
+              }
+            },
+            "required": [
+              "text"
+            ]
+          },
+          "filter": {
+            "description": "A filter can be used to narrow down results. Use the syntax of\n        MongoDB's query and projection operators: $eq, $ne, $gt, $gte, $lt,\n        $lte, $in, $nin, $exists, $and, $or. Make sure the records in the index\n        contain the fields that you are filtering on.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "topK",
+          "inputs"
+        ],
+        "description": "A query to search for records."
+      },
+      "rerank": {
+        "description": "Reranking can help determine which of the returned records are most\n    relevant. When reranking, use a \"query\" with a \"topK\" that returns more\n    results than you need; then use \"rerank\" to select the most relevant\n    \"topN\" results.",
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "cohere-rerank-3.5",
+              "bge-reranker-v2-m3",
+              "pinecone-rerank-v0"
+            ],
+            "description": "Choose a reranking model:\n- \"cohere-rerank-3.5\" is Cohere's leading reranking model, balancing performance\nand latency for a wide range of enterprise search applications.\n- \"bge-reranker-v2-m3\" is a high-performance, multilingual reranking model that\nworks well on messy data and short queries expected to return medium-length\npassages of text (1-2 paragraphs).\n- \"pinecone-rerank-v0\" is a state of the art reranking model that out-performs\ncompetitors on widely accepted benchmarks. It can handle chunks up to 512 tokens\n(1-2 paragraphs)."
+          },
+          "topN": {
+            "description": "The number of results to return after reranking. Must be less than or\n        equal to the value of \"query.topK\".",
+            "type": "number"
+          },
+          "rankFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The fields to rerank on. This should include the field name specified\n      in the index's \"fieldMap\". The \"bge-reranker-v2-m3\" and\n      \"pinecone-rerank-v0\" models support only a single rerank field.\n      \"cohere-rerank-3.5\" supports multiple rerank fields."
+          },
+          "query": {
+            "description": "An optional query to rerank documents against. If not specified, the\n        same query will be used for both the initial search and the reranking.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "rankFields"
+        ]
+      },
+      "llm_provider": {
+        "description": "Optional. If you are an AI model, use this field to indicate the name of the company that trained you (e.g., \"Blink\", \"OpenAI\", \"Google\", \"Cursor\", \"xAI\", \"GitHub\", \"Windsurf\", \"Cognitioni AI\", and many others). The exact formatting doesn't matter - approximate values are fine. If you don't know your provider, avoid guessing and omit this field.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      },
+      "llm_model": {
+        "description": "Optional. If you are an AI model, use this field to specify your name (e.g., \"gpt-4o\", \"Composer\", \"Blink Sonnet 4\", \"Blink Opus\", \"Gemini 2.5\", \"Cascade\", \"Grok 4.1\", \"Copilot\", \"Devin\", and many others). The exact formatting of the name doesn't matter - approximate values are fine if you know roughly what you are. Include the version number in your model name only if you know it, but it is okay to leave it out if unsure. If you don't know your model name, omit this field entirely.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "namespace",
+      "query"
+    ]
+  }
+}

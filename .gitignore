@@ -1,0 +1,72 @@
+﻿# Dependencies
+node_modules/
+
+# Local npm auth (may contain tokens)
+.npmrc
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Blink user data (keys live in ~/.blink/, never in repo)
+.blink/
+**/.blink/api-key
+**/providers.json
+**/active.json
+
+# IDE / agent session logs (can contain usernames & local paths)
+.remember/
+**/.remember/
+.cursor/
+.claude/
+terminals/
+
+# Local agent preferences (Cursor / dev machine)
+AGENTS.md
+
+# Private planning docs (not for public repo)
+docs/ROADMAP.md
+docs/WORLD_CLASS_EXPANSION.md
+docs/RESEARCH_FINDINGS.md
+docs/INTEGRATION_PLAN.md
+docs/ENHANCEMENTS.md
+docs/ARCHITECTURE_ANALYSIS.md
+
+# Unwired experimental scaffolds (keep local until productized)
+agents/
+adversary/
+autonomous/
+graph/
+events/
+crew/
+cloning/
+codemode/
+
+# Local test / debug artifacts
+.blink-patched
+.blink-test-*
+_blink-test-*
+*.log
+
+# Build outputs
+build/
+.cache/
+dist/
+*.tgz
+blinkcode-*.tgz
+
+# Internal agent / upgrade notes (not for public repo)
+blinkcode-build-prompt.md
+blinkcode-upgrade-pack.md
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Test / cache
+coverage/
+.vite/
+*.tsbuildinfo
+.package.dev.json.bak
+.README.dev.md.bak

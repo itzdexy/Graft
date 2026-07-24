@@ -1,0 +1,63 @@
+{
+  "name": "configure_domain",
+  "description": "Configures a custom domain for a deployed web application on AWS Serverless.\n\nBefore using this tool, you must already own the domain name and have a Route53 hosted zone in your account.\nThis tool does not register domain names.\nThis tool sets up Route 53 DNS records, ACM certificates, and CloudFront custom domain mappings as needed.\nUse this tool after deploying your web application to associate it with your own domain name.\n\nReturns:\n    Dict: Domain configuration result\n",
+  "inputSchema": {
+    "properties": {
+      "project_name": {
+        "description": "Project name",
+        "title": "Project Name",
+        "type": "string"
+      },
+      "domain_name": {
+        "description": "Custom domain name to use for the CloudFront distribution . You must already own the domain name\n            and have a Route 53 hosted zone in your account. This tool does not register domain names.",
+        "title": "Domain Name",
+        "type": "string"
+      },
+      "create_certificate": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": true,
+        "description": "Whether to create a ACM certificate",
+        "title": "Create Certificate"
+      },
+      "create_route53_record": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": true,
+        "description": "Whether to create a Route 53 record. When set to True, this tool creates a DNS A record\n                that points to the CloudFront distribution associated with this project",
+        "title": "Create Route53 Record"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS region to use (e.g., us-east-1)",
+        "title": "Region"
+      }
+    },
+    "required": [
+      "project_name",
+      "domain_name"
+    ],
+    "title": "configure_domainArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "update_webapp_frontend",
+  "description": "Update the frontend assets of a deployed web application.\n\nThis tool uploads new frontend assets to S3 and optionally invalidates the CloudFront cache.\n",
+  "inputSchema": {
+    "properties": {
+      "project_name": {
+        "description": "Project name",
+        "title": "Project Name",
+        "type": "string"
+      },
+      "project_root": {
+        "description": "Project root",
+        "title": "Project Root",
+        "type": "string"
+      },
+      "built_assets_path": {
+        "description": "Absolute path to pre-built frontend assets",
+        "title": "Built Assets Path",
+        "type": "string"
+      },
+      "invalidate_cache": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": true,
+        "description": "Whether to invalidate the CloudFront cache",
+        "title": "Invalidate Cache"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS region to use (e.g., us-east-1)",
+        "title": "Region"
+      }
+    },
+    "required": [
+      "project_name",
+      "project_root",
+      "built_assets_path"
+    ],
+    "title": "update_webapp_frontend_toolArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "create_integration_card",
+  "description": "Create a new Integration Card, UI Integration Card, or UI5 Integration Card",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "basePath": {
+        "type": "string",
+        "description": "Absolute base path for the creation."
+      },
+      "cardFolderName": {
+        "default": "card",
+        "type": "string",
+        "description": "Name of the folder to create the card in, inside the base path."
+      },
+      "cardType": {
+        "default": "List",
+        "type": "string",
+        "enum": [
+          "Analytical",
+          "Calendar",
+          "List",
+          "Object",
+          "Table",
+          "Timeline"
+        ],
+        "description": "Type of the Integration Card to create."
+      },
+      "destinations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9 .,'@_-]+$",
+              "description": "Name of the destination."
+            },
+            "defaultUrl": {
+              "type": "string",
+              "description": "Default URL of the destination."
+            }
+          },
+          "required": [
+            "name",
+            "defaultUrl"
+          ]
+        },
+        "description": "List of destinations to be included in the card configuration."
+      }
+    },
+    "required": [
+      "basePath"
+    ]
+  }
+}

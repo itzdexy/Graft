@@ -1,0 +1,24 @@
+{
+  "name": "get_lambda_event_schemas",
+  "description": "Returns AWS Lambda event schemas for different event sources (e.g. s3, sns, apigw) and programming languages.\n\nWhen a event source triggers a Lambda function, the request payload comes in a specific format.\nEach Lambda event source defines its own schema and language-specific types, which should be used in\nthe Lambda function handler to correctly parse the event data. If you cannot find a schema for your event source, you can directly parse\nthe event data as a JSON object. For EventBridge events, you must use the list_registries, search_schema, and describe_schema\ntools to access the schema registry directly, get schema definitions, and generate code processing logic.\n\nReturns:\n    Dict: Lambda event schema source code file for the request runtime and event source\n",
+  "inputSchema": {
+    "properties": {
+      "event_source": {
+        "description": "Event source (e.g., api-gw, s3, sqs, sns, kinesis, eventbridge, dynamodb)",
+        "title": "Event Source",
+        "type": "string"
+      },
+      "runtime": {
+        "description": "Programming language for the schema references (e.g., go, nodejs, python, java)",
+        "title": "Runtime",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_source",
+      "runtime"
+    ],
+    "title": "get_lambda_event_schemasArguments",
+    "type": "object"
+  }
+}

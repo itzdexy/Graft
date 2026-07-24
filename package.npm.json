@@ -1,0 +1,67 @@
+{
+  "name": "blinkcode",
+  "version": "1.0.0",
+  "description": "Blink — a fast, polished AI coding agent for your terminal",
+  "type": "module",
+  "license": "MIT",
+  "author": "itsdexy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsdexy/BlinkCode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itsdexy/BlinkCode/issues"
+  },
+  "homepage": "https://github.com/itsdexy/BlinkCode#readme",
+  "keywords": [
+    "blink",
+    "blinkcode",
+    "ai",
+    "coding-agent",
+    "cli",
+    "freemodel",
+    "assistant"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "blink": "./bin/blink.js"
+  },
+  "files": [
+    "bin/blink.js",
+    "bin/blink.cmd",
+    "bin/blink.ps1",
+    "constants/blink.js",
+    "scripts/blink-doctor.js",
+    "scripts/blink-home.js",
+    "scripts/blink-install-checks.js",
+    "scripts/blink-launch-hints.js",
+    "scripts/blink-model-compat.js",
+    "scripts/blink-warm.js",
+    "scripts/blink-package-root.js",
+    "scripts/blink-patch-binary.js",
+    "scripts/blink-postinstall.js",
+    "scripts/blink-prep-auth.js",
+    "scripts/blink-provider-catalog-extra.js",
+    "scripts/blink-provider-models-expanded.js",
+    "scripts/blink-provider-catalog.js",
+    "scripts/blink-provider-cli.js",
+    "scripts/blink-providers.js",
+    "scripts/blink-run-claude.js",
+    "scripts/blink-save-api-key.js",
+    "scripts/blink-sync-freemodel-settings.js",
+    "scripts/blink-tune-settings.js",
+    "scripts/blink-windows-launcher.js",
+    "docs/GUIDE.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/blink-postinstall.js",
+    "prepublishOnly": "node -e \"const fs=require('fs');['bin/blink.js','docs/GUIDE.md'].forEach(p=>fs.accessSync(p));\""
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.185"
+  }
+}

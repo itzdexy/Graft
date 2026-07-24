@@ -1,0 +1,19 @@
+{
+  "name": "edit_message",
+  "description": "Edit a previously sent message.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "message_id": {
+        "type": "string"
+      },
+      "text": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "message_id",
+      "text"
+    ]
+  }
+}

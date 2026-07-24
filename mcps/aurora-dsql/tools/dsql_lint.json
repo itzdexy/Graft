@@ -1,0 +1,25 @@
+{
+  "name": "dsql_lint",
+  "description": "Validate SQL for Aurora DSQL compatibility and optionally auto-fix issues.\n\nParses SQL and reports compatibility errors (unsupported syntax) with suggested fixes.\nUse fix=True to generate DSQL-compatible SQL automatically.\n\n## When to Use\n- Before executing any externally-sourced SQL (ORM migrations, pg_dump, hand-written DDL)\n- When migrating schemas from PostgreSQL, MySQL, or other databases to DSQL\n- To validate CREATE TABLE, ALTER TABLE, CREATE INDEX, and other DDL statements\n- To check transaction structure (DSQL requires one DDL per transaction)\n\n## Fix Behavior\nWhen fix=True, each diagnostic carries a `fix_result.status`:\n- `fixed`: safe mechanical transformation applied\n- `fixed_with_warning`: fix applied but may require application code changes\n- unfixable diagnostics have no `fix_result` and require manual intervention\n",
+  "inputSchema": {
+    "properties": {
+      "sql": {
+        "description": "SQL string to validate for DSQL compatibility",
+        "maxLength": 1000000,
+        "title": "Sql",
+        "type": "string"
+      },
+      "fix": {
+        "default": false,
+        "description": "When true, returns DSQL-compatible fixed SQL in addition to diagnostics",
+        "title": "Fix",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "sql"
+    ],
+    "title": "dsql_lintArguments",
+    "type": "object"
+  }
+}

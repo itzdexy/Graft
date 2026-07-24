@@ -1,0 +1,79 @@
+{
+  "name": "create_ui5_app",
+  "description": "Create a new basic SAPUI5 application implemented in TypeScript or JavaScript",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "appNamespace": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_.]*$",
+        "description": "The namespace for the application, e.g. com.myorg.myapp. Only lowercase alpha-numeric characters, underscores and dots are allowed."
+      },
+      "basePath": {
+        "type": "string",
+        "description": "Absolute base path for the creation. The application will be created either immediately inside this path or in a subdirectory (its name equals the application namespace), depending on the 'createAppDirectory' parameter. This base path must be absolute, not just 'app' or '.' or './something'!"
+      },
+      "createAppDirectory": {
+        "default": true,
+        "description": "Whether to create a new directory (name equals the application namespace) inside the base path. Set this to 'false' when you want to place the 'app' directly in the given base path. In SAP CAP applications, typically give the path to the 'app' folder as basePath and set this to 'true' to create an application folder. Default: true.",
+        "type": "boolean"
+      },
+      "framework": {
+        "default": "SAPUI5",
+        "description": "Framework to use (OpenUI5 or SAPUI5), defaults to SAPUI5",
+        "type": "string",
+        "enum": [
+          "OpenUI5",
+          "SAPUI5"
+        ]
+      },
+      "frameworkVersion": {
+        "description": "Framework version, defaults to latest version. Omit this when in doubt. When provided, it must be a concrete semantic version, like e.g. 1.136.0. Versions older than 1.96.0 are not supported.",
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "author": {
+        "description": "Author of the application (auto-detected if not provided)",
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9 .,'@_-]+$"
+      },
+      "oDataV4Url": {
+        "description": "URL of an OData V4 service, if applicable. This is entirely optional, but without it, the generated app UI will have no OData Model configured. Setting an URL will configure an OData V4 model in the application. Only works for OData V4 services, not for OData V2. The URL must be either a valid complete URL starting with http:// or https:// or a server-root-relative URL like '/odata/v4/serviceName' when the OData service is running on the same server. In this case, the prefix 'http://localhost:4004/' will be assumed and used by this tool for inquiries about the service. When the port is not 4004, a complete 'http://localhost:<port>...' URL must be provided. In the generated application, any 'http://localhost:<port>' prefix will be removed. HINT: when the project is a SAP CAP project and CAP/CDS tools are available, you **MUST** use them to search for OData services and entities and properties **BEFORE** calling this tool. This will help you find the correct service URL.",
+        "type": "string"
+      },
+      "oDataEntitySet": {
+        "description": "Entity set of the OData V4 service to display. Only has an effect when 'oDataV4Url' is set as well. This is optional, but setting an entity set is beneficial, as it will configure a basic UI in the application which displays the entity set.",
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_]+$"
+      },
+      "entityProperties": {
+        "description": "Properties of the OData entity set to display. Only has an effect when 'oDataV4Url' and'oDataEntitySet' are set. This parameter is optional, but useful to display initial data, when the names of existing properties are known. If not provided and the service is active and reachable at tool execution time, some random properties will be displayed.",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_]+$"
+        }
+      },
+      "initializeGitRepository": {
+        "default": true,
+        "description": "Initialize a local git repository for the application, default is 'true'",
+        "type": "boolean"
+      },
+      "runNpmInstall": {
+        "default": true,
+        "description": "Execute npm install after creating the application, default is 'true'",
+        "type": "boolean"
+      },
+      "typescript": {
+        "default": true,
+        "description": "Whether to create a TypeScript application (true) or JavaScript application (false), default is 'true'. Although the default is preferred, the user MUST know about this option before generation, but you should not require an active decision. Also, if an overall project already exists, this should influence the language choice to keep things consistent.",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "appNamespace",
+      "basePath"
+    ]
+  }
+}

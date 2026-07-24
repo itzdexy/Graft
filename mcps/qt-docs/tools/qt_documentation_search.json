@@ -1,0 +1,61 @@
+{
+  "name": "qt_documentation_search",
+  "description": "Call qt_documentation_search when: (a) you're about to claim a signal/slot/property/default exists, (b) the API is in Qt 6.7+ or a non-core module (MQTT, OPC UA, Network Auth, etc), (c) the user used the words 'docs', 'official', 'verify', or 'check'. Skip when: the question is about basic QString/QObject/signal-slot syntax.",
+  "inputSchema": {
+    "properties": {
+      "filter": {
+        "description": "Optional: Filter by document type. Default is 'all'. Note: 'function' returns the class reference page that contains the function (there are no function-level pages); for QML, use 'qml'.",
+        "enum": [
+          "all",
+          "class",
+          "qml",
+          "function",
+          "guide"
+        ],
+        "type": "string"
+      },
+      "intent": {
+        "description": "Optional: Prioritizes (not filters) results by type. 'api'=class reference, 'tutorial'=how-to guides, 'guide'=overviews, 'concept'=explanations, 'example'=code samples, 'migration'=porting guides.",
+        "enum": [
+          "api",
+          "tutorial",
+          "guide",
+          "concept",
+          "example",
+          "migration"
+        ],
+        "type": "string"
+      },
+      "keywords": {
+        "description": "Optional: Array of keywords to search for. Results match ANY keyword. Example: [\"button\", \"signal\", \"connect\"]. Alternative to 'query' for better multi-term matching.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "max_results": {
+        "description": "Optional: Maximum number of results to return (1-10). Default is 3.",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "module": {
+        "description": "Optional: Limit search to specific Qt module (e.g., 'qtcore', 'qtwidgets', 'qtqml', 'qtquick', 'qtnetwork')",
+        "type": "string"
+      },
+      "product": {
+        "description": "Optional: Limit search to a specific documentation product (e.g. 'qt', 'qtcreator', 'pyside6'). Omit to search all products.",
+        "type": "string"
+      },
+      "query": {
+        "description": "Search query for Qt documentation (e.g., 'Animation', 'QTimer', 'signal slot'). Optional if 'keywords' is provided.",
+        "type": "string"
+      },
+      "version": {
+        "description": "Optional: Qt version to search (e.g., '6.10.0', '6.9.0'). Defaults to latest installed version if not specified.",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "esm_guidance",
+  "description": "Create and configure AWS infrastructure for streaming data processing. Handles Kafka clusters (MSK), Kinesis streams, DynamoDB streams, SQS queues with Lambda functions. Sets up VPCs, security groups, IAM roles, and Event Source Mappings. Generates complete SAM templates for deployment.",
+  "inputSchema": {
+    "properties": {
+      "event_source": {
+        "anyOf": [
+          {
+            "enum": [
+              "dynamodb",
+              "kinesis",
+              "kafka",
+              "sqs",
+              "unspecified"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "unspecified",
+        "description": "Type of event source for which to get guidance",
+        "title": "Event Source"
+      },
+      "guidance_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "setup",
+              "networking",
+              "troubleshooting"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "setup",
+        "description": "Type of guidance: \"setup\" for initial configuration, \"networking\" for VPC/connectivity, \"troubleshooting\" for issues",
+        "title": "Guidance Type"
+      },
+      "networking_question": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "general",
+        "description": "Specific networking question (used with guidance_type=\"networking\")",
+        "title": "Networking Question"
+      }
+    },
+    "title": "esm_guidance_toolArguments",
+    "type": "object"
+  }
+}

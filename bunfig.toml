@@ -1,0 +1,11 @@
+preload = ["./build/preload.ts"]
+
+[alias]
+"bun:bundle" = "./build/feature-shim.ts"
+"src/" = "./"
+"@ant/claude-for-chrome-mcp" = "./vendor/ant-stubs/claude-for-chrome-mcp/index.ts"
+"@ant/computer-use-mcp" = "./vendor/ant-stubs/computer-use-mcp/index.ts"
+"@ant/computer-use-mcp/sentinelApps" = "./vendor/ant-stubs/computer-use-mcp/sentinelApps.ts"
+"@ant/computer-use-mcp/types" = "./vendor/ant-stubs/computer-use-mcp/types.ts"
+"@ant/computer-use-swift" = "./vendor/ant-stubs/computer-use-swift/index.ts"
+"@ant/computer-use-input" = "./vendor/ant-stubs/computer-use-input/index.ts"

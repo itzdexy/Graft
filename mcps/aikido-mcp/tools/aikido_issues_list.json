@@ -1,0 +1,59 @@
+{
+  "name": "aikido_issues_list",
+  "description": "\nTool to fetch security issues from Aikido feed.\n\nWHEN TO CALL THIS TOOL\n- The user asks to list, show, count, or summarize Aikido security issues from the aikido feed.\n- The user can scope the issues to a specific cloud name, repo name, vm name, domain name, container name or workspace name.\n- The user can scope the issues of a repository to a specific branch name\n- You are about to triage or fix security issues and need the current issue set.\n\nOUTPUT FORMATTING EXAMPLE:\nIssue #1: <issue_title>\n - ID: <issue_id>\n - Issue type: <issue_type>\n - Severity: <issue_severity> (<issue_severity_label>)\n - Remediation: <issue_remediation>\n",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo_name": {
+        "type": "string"
+      },
+      "cloud_name": {
+        "type": "string"
+      },
+      "vm_name": {
+        "type": "string"
+      },
+      "domain_name": {
+        "type": "string"
+      },
+      "container_name": {
+        "type": "string"
+      },
+      "workspace_name": {
+        "type": "string",
+        "description": "The workspace name to filter the issues for. This filter can be used in combination with other filters"
+      },
+      "page": {
+        "type": "number",
+        "description": "Pagination page index, zero-based (first page is 0)."
+      },
+      "issue_types": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "open_source",
+            "leaked_secret",
+            "cloud",
+            "sast",
+            "iac",
+            "surface_monitoring",
+            "malware",
+            "eol",
+            "mobile",
+            "docker_container",
+            "cloud_instance",
+            "scm_security",
+            "license",
+            "ai_pentest"
+          ]
+        }
+      },
+      "repo_branch_name": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

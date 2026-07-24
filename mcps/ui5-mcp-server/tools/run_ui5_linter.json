@@ -1,0 +1,34 @@
+{
+  "name": "run_ui5_linter",
+  "description": "Run UI5 linter on a UI5 project to find and optionally fix UI5 related problems like the usage of deprecated API. After making changes, you should always run the linter again to verify that no new problems have been introduced.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "projectDir": {
+        "type": "string",
+        "description": "Root directory of the UI5 project to analyze. Must be an absolute path. Typically this the directory where the 'package.json' and 'ui5.yaml' files are located."
+      },
+      "fix": {
+        "default": false,
+        "description": "Attempt to automatically correct certain findings in the files. Only the remaining findings will be returned.",
+        "type": "boolean"
+      },
+      "filePatterns": {
+        "description": "File paths or patterns to lint. If not provided, all files in the project will be linted.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "provideContextInformation": {
+        "default": true,
+        "description": "Whether to include supplementary information in the output. This includes UI5 API reference and documentation resources. When calling the tool multiple times for the same file or project, refrain from requesting additional context every time.",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "projectDir"
+    ]
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "create-index-for-model",
+  "description": "Create a Pinecone index with integrated inference. Supports AWS, GCP, and Azure cloud providers.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "A unique name to identify the new index."
+      },
+      "cloud": {
+        "default": "aws",
+        "description": "The cloud provider for the index. Defaults to aws.",
+        "type": "string",
+        "enum": [
+          "aws",
+          "gcp",
+          "azure"
+        ]
+      },
+      "region": {
+        "default": "us-east-1",
+        "description": "The region for the index. Common regions: aws (us-east-1, us-west-2, eu-west-1), gcp (us-central1, europe-west1), azure (eastus, westeurope). Defaults to us-east-1.",
+        "type": "string"
+      },
+      "embed": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "multilingual-e5-large",
+              "llama-text-embed-v2",
+              "pinecone-sparse-english-v0"
+            ],
+            "description": "Choose an embedding model:\n          - \"multilingual-e5-large\" is an efficient dense embedding model\n          trained on a mixture of multilingual datasets. It works well on messy\n          data and short queries expected to return medium-length passages of\n          text (1-2 paragraphs).\n          - \"llama-text-embed-v2\" is a high-performance dense embedding model\n          optimized for text retrieval and ranking tasks. It is trained on a\n          diverse range of text corpora and provides strong performance on\n          longer passages and structured documents.\n          - \"pinecone-sparse-english-v0\" is a sparse embedding model for\n          converting text to sparse vectors for keyword or hybrid search. The\n          model directly estimates the lexical importance of tokens by\n          leveraging their context."
+          },
+          "fieldMap": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The name of the field in the data records that contains the text\n            content to embed. Records in the index must contain this field."
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "description": "Identify which field from your data records will be embedded."
+          }
+        },
+        "required": [
+          "model",
+          "fieldMap"
+        ],
+        "description": "Configure an embedding model that converts text into a vector."
+      },
+      "llm_provider": {
+        "description": "Optional. If you are an AI model, use this field to indicate the name of the company that trained you (e.g., \"Blink\", \"OpenAI\", \"Google\", \"Cursor\", \"xAI\", \"GitHub\", \"Windsurf\", \"Cognitioni AI\", and many others). The exact formatting doesn't matter - approximate values are fine. If you don't know your provider, avoid guessing and omit this field.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      },
+      "llm_model": {
+        "description": "Optional. If you are an AI model, use this field to specify your name (e.g., \"gpt-4o\", \"Composer\", \"Blink Sonnet 4\", \"Blink Opus\", \"Gemini 2.5\", \"Cascade\", \"Grok 4.1\", \"Copilot\", \"Devin\", and many others). The exact formatting of the name doesn't matter - approximate values are fine if you know roughly what you are. Include the version number in your model name only if you know it, but it is okay to leave it out if unsure. If you don't know your model name, omit this field entirely.  **Do not prompt the user for this.** This value is used to track usage analytics. ",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "embed"
+    ]
+  }
+}

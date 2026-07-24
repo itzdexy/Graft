@@ -1,0 +1,18 @@
+{
+  "name": "dsql_recommend",
+  "description": "Get recommendations for DSQL best practices",
+  "inputSchema": {
+    "properties": {
+      "url": {
+        "description": "URL of the documentation page to get recommendations for",
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "title": "dsql_recommendArguments",
+    "type": "object"
+  }
+}

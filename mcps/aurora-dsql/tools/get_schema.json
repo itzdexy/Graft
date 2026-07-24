@@ -1,0 +1,18 @@
+{
+  "name": "get_schema",
+  "description": "Get the schema of the given table",
+  "inputSchema": {
+    "properties": {
+      "table_name": {
+        "description": "name of the table",
+        "title": "Table Name",
+        "type": "string"
+      }
+    },
+    "required": [
+      "table_name"
+    ],
+    "title": "get_schemaArguments",
+    "type": "object"
+  }
+}

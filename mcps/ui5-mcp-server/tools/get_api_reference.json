@@ -1,0 +1,23 @@
+{
+  "name": "get_api_reference",
+  "description": "Search the UI5 API reference for module names and symbols",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "projectDir": {
+        "type": "string",
+        "description": "The root directory of the UI5 project, containing the 'package.json' and 'ui5.yaml' files. This is used to determine the UI5 framework version and libraries used in the project. "
+      },
+      "query": {
+        "type": "string",
+        "pattern": "^[^<>\"'()]+$",
+        "description": "Name of the UI5 module or symbol using either dot or slash notation. Examples: 'sap.m.Button', 'sap/ui/core/Core'. Individual symbols can be requested as well, e.g. 'sap.m.Button#text', 'sap.ui.core.Core#init'"
+      }
+    },
+    "required": [
+      "projectDir",
+      "query"
+    ]
+  }
+}

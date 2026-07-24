@@ -1,0 +1,23 @@
+{
+  "name": "aikido_ignore_issue",
+  "description": "\nTool to ignore a security issue from Aikido feed.\n\nWHEN TO CALL THIS TOOL\n- The user wants to ignore a security issue from the Aikido feed.\n- The user provides the issue ID and the reason for ignoring the issue.\n",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "issue_id": {
+        "type": "string",
+        "description": "The ID of the issue to ignore."
+      },
+      "reason": {
+        "type": "string",
+        "description": "The reason for ignoring the issue."
+      }
+    },
+    "required": [
+      "issue_id",
+      "reason"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

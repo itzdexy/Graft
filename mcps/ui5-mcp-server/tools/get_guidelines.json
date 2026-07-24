@@ -1,0 +1,8 @@
+{
+  "name": "get_guidelines",
+  "description": "This tool MUST be called once to retrieve UI5 guidelines before working on any UI5 (SAPUI5/OpenUI5) related task or project or creating a UI5 project. The guidelines provided by this tool MUST be followed to ensure best practices and avoid common pitfalls in UI5 development.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  }
+}

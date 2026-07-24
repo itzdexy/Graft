@@ -1,0 +1,195 @@
+{
+  "name": "sam_deploy",
+  "description": "Deploys a serverless application onto AWS Cloud using AWS SAM (Serverless Application Model) CLI and CloudFormation.\n\nRequirements:\n- AWS SAM CLI MUST be installed and configured in your environment\n- SAM project MUST be initialized using sam_init tool and built with sam_build.\n\nThis command deploys your SAM application's build artifacts located in the .aws-sam directory\nto AWS Cloud using AWS CloudFormation. The only required parameter is project_directory. SAM will automatically\ncreate a S3 bucket where build artifacts are uploaded and referenced by the SAM template.\n\nUsage tips:\n- When you make changes to your application's original files, run sam build to update the .aws-sam directory before deploying.\n\nReturns:\n    Dict: SAM deploy command output\n",
+  "inputSchema": {
+    "properties": {
+      "application_name": {
+        "description": "Name of the application to be deployed",
+        "title": "Application Name",
+        "type": "string"
+      },
+      "project_directory": {
+        "description": "Absolute path to directory containing the SAM project (defaults to current directory)",
+        "title": "Project Directory",
+        "type": "string"
+      },
+      "template_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to the template file (defaults to template.yaml)",
+        "title": "Template File"
+      },
+      "s3_bucket": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "S3 bucket to deploy artifacts to. You cannot set both s3_bucket and resolve_s3 parameters",
+        "title": "S3 Bucket"
+      },
+      "s3_prefix": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "S3 prefix for the artifacts",
+        "title": "S3 Prefix"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS region to deploy to",
+        "title": "Region"
+      },
+      "profile": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS profile to use",
+        "title": "Profile"
+      },
+      "parameter_overrides": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "CloudFormation parameter overrides encoded as key-value pairs",
+        "title": "Parameter Overrides"
+      },
+      "capabilities": {
+        "anyOf": [
+          {
+            "items": {
+              "enum": [
+                "CAPABILITY_IAM",
+                "CAPABILITY_NAMED_IAM",
+                "CAPABILITY_AUTO_EXPAND"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": [
+          "CAPABILITY_IAM"
+        ],
+        "description": "IAM capabilities required for the deployment",
+        "title": "Capabilities"
+      },
+      "config_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to the SAM configuration file",
+        "title": "Config File"
+      },
+      "config_env": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Environment name specifying default parameter values in the configuration file",
+        "title": "Config Env"
+      },
+      "metadata": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Metadata to include with the stack",
+        "title": "Metadata"
+      },
+      "tags": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Tags to apply to the stack",
+        "title": "Tags"
+      },
+      "resolve_s3": {
+        "default": false,
+        "description": "Automatically create an S3 bucket for deployment artifacts.  You cannot set both s3_bucket and resolve_s3 parameters",
+        "title": "Resolve S3",
+        "type": "boolean"
+      },
+      "debug": {
+        "default": false,
+        "description": "Turn on debug logging",
+        "title": "Debug",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "application_name",
+      "project_directory"
+    ],
+    "title": "handle_sam_deployArguments",
+    "type": "object"
+  }
+}

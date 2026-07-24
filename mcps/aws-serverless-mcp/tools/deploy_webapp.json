@@ -1,0 +1,332 @@
+{
+  "name": "deploy_webapp",
+  "description": "Deploy web applications to AWS Serverless, including Lambda as compute, DynamoDB as databases, API GW, ACM Certificates, and Route 53 DNS records.\n\nThis tool uses the Lambda Web Adapter framework so that applications can be written in a standard web framework like Express or Next.js can be easily\ndeployed to Lambda. You do not need to use integrate the code with any adapter framework before using this tool.\n\nReturns:\n    Dict: Deployment result and link to pending deployment resource\n",
+  "inputSchema": {
+    "$defs": {
+      "BackendConfiguration": {
+        "description": "Backend configuration for web application deployment.",
+        "properties": {
+          "built_artifacts_path": {
+            "description": "Absolute path to pre-built backend artifacts",
+            "title": "Built Artifacts Path",
+            "type": "string"
+          },
+          "framework": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Backend framework",
+            "title": "Framework"
+          },
+          "runtime": {
+            "description": "Lambda runtime (e.g. nodejs22.x, python3.13)",
+            "title": "Runtime",
+            "type": "string"
+          },
+          "startup_script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Startup script that must be executable in Linux environment. Relative to the built_artifacts_path directory.",
+            "title": "Startup Script"
+          },
+          "entry_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Application entry point file (e.g., app.js, app.py)",
+            "title": "Entry Point"
+          },
+          "generate_startup_script": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "description": "Whether to automatically generate a startup script. Must set this to true if startup_script is not provided.",
+            "title": "Generate Startup Script"
+          },
+          "architecture": {
+            "anyOf": [
+              {
+                "enum": [
+                  "x86_64",
+                  "arm64"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "x86_64",
+            "description": "Lambda architecture",
+            "title": "Architecture"
+          },
+          "memory_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 512,
+            "description": "Lambda memory size",
+            "title": "Memory Size"
+          },
+          "timeout": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 30,
+            "description": "Lambda timeout",
+            "title": "Timeout"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "prod",
+            "description": "API Gateway stage",
+            "title": "Stage"
+          },
+          "cors": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": true,
+            "description": "Enable CORS",
+            "title": "Cors"
+          },
+          "port": {
+            "description": "Port on which the web application runs",
+            "title": "Port",
+            "type": "integer"
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Environment variables",
+            "title": "Environment"
+          },
+          "database_configuration": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Database configuration for creating DynamoDB tables",
+            "title": "Database Configuration"
+          }
+        },
+        "required": [
+          "built_artifacts_path",
+          "runtime",
+          "port"
+        ],
+        "title": "BackendConfiguration",
+        "type": "object"
+      },
+      "FrontendConfiguration": {
+        "description": "Frontend configuration for web application deployment.",
+        "properties": {
+          "built_assets_path": {
+            "description": "Absolute path to pre-built frontend assets",
+            "title": "Built Assets Path",
+            "type": "string"
+          },
+          "framework": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Frontend framework",
+            "title": "Framework"
+          },
+          "index_document": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "index.html",
+            "description": "Index document",
+            "title": "Index Document"
+          },
+          "error_document": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Error document",
+            "title": "Error Document"
+          },
+          "custom_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Custom domain",
+            "title": "Custom Domain"
+          },
+          "certificate_arn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ACM certificate ARN",
+            "title": "Certificate Arn"
+          }
+        },
+        "required": [
+          "built_assets_path"
+        ],
+        "title": "FrontendConfiguration",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "deployment_type": {
+        "description": "Type of deployment",
+        "enum": [
+          "backend",
+          "frontend",
+          "fullstack"
+        ],
+        "title": "Deployment Type",
+        "type": "string"
+      },
+      "project_name": {
+        "description": "Project name",
+        "title": "Project Name",
+        "type": "string"
+      },
+      "project_root": {
+        "description": "Absolute path to the project root directory",
+        "title": "Project Root",
+        "type": "string"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS Region to deploy to (e.g., us-east-1)",
+        "title": "Region"
+      },
+      "backend_configuration": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/BackendConfiguration"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Backend configuration"
+      },
+      "frontend_configuration": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/FrontendConfiguration"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Frontend configuration"
+      }
+    },
+    "required": [
+      "deployment_type",
+      "project_name",
+      "project_root"
+    ],
+    "title": "deploy_webappArguments",
+    "type": "object"
+  }
+}

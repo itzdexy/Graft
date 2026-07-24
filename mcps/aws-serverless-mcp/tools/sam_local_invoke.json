@@ -1,0 +1,173 @@
+{
+  "name": "sam_local_invoke",
+  "description": "Locally invokes a Lambda function using AWS SAM CLI.\n\nRequirements:\n- AWS SAM CLI MUST be installed and configured in your environment\n- Docker must be installed and running in your environment.\n\nThis command runs your Lambda function locally in a Docker container that simulates the AWS Lambda environment.\nUse this tool to test your Lambda functions before deploying them to AWS. It allows you to test the logic of your function faster.\nTesting locally first reduces the likelihood of identifying issues when testing in the cloud or during deployment,\nwhich can help you avoid unnecessary costs. Additionally, local testing makes debugging easier to do.\n\nReturns:\n    Dict: Local invoke result and the execution logs\n",
+  "inputSchema": {
+    "properties": {
+      "project_directory": {
+        "description": "Absolute path to directory containing the SAM project",
+        "title": "Project Directory",
+        "type": "string"
+      },
+      "resource_name": {
+        "description": "Name of the Lambda function to invoke locally",
+        "title": "Resource Name",
+        "type": "string"
+      },
+      "template_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to the SAM template file (defaults to template.yaml)",
+        "title": "Template File"
+      },
+      "event_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to a JSON file containing event data",
+        "title": "Event File"
+      },
+      "event_data": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "JSON string containing event data (alternative to event_file)",
+        "title": "Event Data"
+      },
+      "environment_variables_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to a JSON file containing environment variables to pass to the function",
+        "title": "Environment Variables File"
+      },
+      "docker_network": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Docker network to run the Lambda function in",
+        "title": "Docker Network"
+      },
+      "container_env_vars": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Environment variables to pass to the container",
+        "title": "Container Env Vars"
+      },
+      "parameter": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Override parameters from the template file",
+        "title": "Parameter"
+      },
+      "log_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to a file where the function logs will be written",
+        "title": "Log File"
+      },
+      "layer_cache_basedir": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Directory where the layers will be cached",
+        "title": "Layer Cache Basedir"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS region to use (e.g., us-east-1)",
+        "title": "Region"
+      },
+      "profile": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS profile to use",
+        "title": "Profile"
+      }
+    },
+    "required": [
+      "project_directory",
+      "resource_name"
+    ],
+    "title": "handle_sam_local_invokeArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "name": "sam_build",
+  "description": "Builds a serverless application using AWS SAM (Serverless Application Model) CLI.\n\nRequirements:\n- AWS SAM CLI MUST be installed and configured in your environment\n- An application MUST already be initialized with 'sam_init' tool to create sam project structure.\n\nThis command compiles your Lambda function and layer code, creates deployment artifacts, and prepares your application for deployment and local testing.\nIt creates a .aws-sam directory that structures your application in a format and location that sam local and sam deploy require. For Zip\nfunctions, a .zip file archive is created, which contains your application code and its dependencies. For Image functions, a container image is created,\nwhich includes the base operating system, runtime, and extensions, in addition to your application code and its dependencies.\n\nBy default, the functions and layers are built in parallel for faster builds.\n\nUsage tips:\n- Don't edit any code under the .aws-sam/build directory. Instead, update your original source code in\nyour project folder and run sam build to update the .aws-sam/build directory.\n- When you modify your original files, run sam build to update the .aws-sam/build directory.\n- You may want the AWS SAM CLI to reference your project's original root directory\ninstead of the .aws-sam directory, such as when developing and testing with sam local. Delete the .aws-sam directory\nor the AWS SAM template in the .aws-sam directory to have the AWS SAM CLI recognize your original project directory as\nthe root project directory. When ready, run sam build again to create the .aws-sam directory.\n- When you run sam build, the .aws-sam/build directory gets overwritten each time.\nThe .aws-sam directory does not. If you want to store files, such as logs, store them in .aws-sam to\nprevent them from being overwritten.\n\nReturns:\n    Dict: SAM init command output\n",
+  "inputSchema": {
+    "properties": {
+      "project_directory": {
+        "description": "Absolute path to directory containing the SAM project",
+        "title": "Project Directory",
+        "type": "string"
+      },
+      "template_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to the template file (defaults to template.yaml)",
+        "title": "Template File"
+      },
+      "base_dir": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Resolve relative paths to function's source code with respect to this folder.\n             Use this option if you want to change how relative paths to source code folders are resolved.\n             By default, relative paths are resolved with respect to the AWS SAM template's location.",
+        "title": "Base Dir"
+      },
+      "build_dir": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "The absolute path to a directory where the built artifacts are stored\n                This directory and all of its content are removed with this option",
+        "title": "Build Dir"
+      },
+      "use_container": {
+        "default": false,
+        "description": "Use a Lambda-like container to build the function. Use this option if your function requires a specific\n                runtime environment or dependencies that are not available on the local machine. Docker must be installed",
+        "title": "Use Container",
+        "type": "boolean"
+      },
+      "no_use_container": {
+        "default": false,
+        "description": "Run build in local machine instead of Docker container.",
+        "title": "No Use Container",
+        "type": "boolean"
+      },
+      "parallel": {
+        "default": true,
+        "description": "Build your AWS SAM application in parallel.",
+        "title": "Parallel",
+        "type": "boolean"
+      },
+      "container_env_vars": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Environment variables to pass to the build container.\n                Each instance takes a key-value pair, where the key is the resource and environment variable, and the\n                value is the environment variable's value.\n                For example: --container-env-var Function1.GITHUB_TOKEN=TOKEN1 --container-env-var Function2.GITHUB_TOKEN=TOKEN2.",
+        "title": "Container Env Vars"
+      },
+      "container_env_var_file": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to a JSON file containing container environment variables. You can provide a single environment variable that applies to all serverless resources,\n                or different environment variables for each resource.\n                For example, for all resources:\n                {\n                    \"Parameters\": {\n                        \"GITHUB_TOKEN\": \"TOKEN_GLOBAL\"\n                    }\n                }\n                For individual resources:\n                {\n                    \"MyFunction1\": {\n                        \"GITHUB_TOKEN\": \"TOKEN1\"\n                    },\n                    \"MyFunction2\": {\n                        \"GITHUB_TOKEN\": \"TOKEN2\"\n                    }\n                }\n                ",
+        "title": "Container Env Var File"
+      },
+      "build_image": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "The URI of the container image that you want to pull for the build. By default, AWS SAM pulls the\n             container image from Amazon ECR Public. Use this option to pull the image from another location",
+        "title": "Build Image"
+      },
+      "debug": {
+        "default": false,
+        "description": "Turn on debug logging",
+        "title": "Debug",
+        "type": "boolean"
+      },
+      "manifest": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Absolute path to a custom dependency manifest file (e.g., package.json) instead of the default.\n             For example: 'ParameterKey=KeyPairName, ParameterValue=MyKey ParameterKey=InstanceType, ParameterValue=t1.micro.",
+        "title": "Manifest"
+      },
+      "parameter_overrides": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "CloudFormation parameter overrides encoded as key-value pairs.\n                For example: 'ParameterKey=KeyPairName, ParameterValue=MyKey ParameterKey=InstanceType, ParameterValue=t1.micro",
+        "title": "Parameter Overrides"
+      },
+      "region": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS Region to deploy to (e.g., us-east-1)",
+        "title": "Region"
+      },
+      "save_params": {
+        "default": false,
+        "description": "Save parameters to the SAM configuration file",
+        "title": "Save Params",
+        "type": "boolean"
+      },
+      "profile": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "AWS profile to use",
+        "title": "Profile"
+      }
+    },
+    "required": [
+      "project_directory"
+    ],
+    "title": "handle_sam_buildArguments",
+    "type": "object"
+  }
+}

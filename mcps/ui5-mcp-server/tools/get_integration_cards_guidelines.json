@@ -1,0 +1,8 @@
+{
+  "name": "get_integration_cards_guidelines",
+  "description": "This tool MUST be called once to retrieve Integration Cards guidelines before working on any Integration Card related task or creating an Integration Card. The guidelines provided by this tool MUST be followed to ensure best practices and avoid common pitfalls in Integration Cards development.Integration Cards are also called 'UI Integration Cards' or 'UI5 Integration Cards'.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "dsql_search_documentation",
+  "description": "Search Aurora DSQL documentation",
+  "inputSchema": {
+    "properties": {
+      "search_phrase": {
+        "description": "Search phrase to use",
+        "title": "Search Phrase",
+        "type": "string"
+      },
+      "limit": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Maximum number of results to return",
+        "title": "Limit"
+      }
+    },
+    "required": [
+      "search_phrase"
+    ],
+    "title": "dsql_search_documentationArguments",
+    "type": "object"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "deploy_serverless_app_help",
+  "description": "Provides instructions on how to deploy a serverless application to AWS Lambda.\n\nDeploying a Lambda application requires generating IaC templates, building the code, packaging\nthe code, selecting a deployment tool, and executing the deployment commands. This tool walks through\neach step and links to tools in this MCP server. For deploying web applications specifically, use the deploy_webapp_tool.\n\nReturns:\n    Dict[str, Any]: A dictionary containing the deployment help information.\n",
+  "inputSchema": {
+    "properties": {
+      "application_type": {
+        "description": "Type of application to deploy",
+        "enum": [
+          "event_driven",
+          "backend",
+          "fullstack"
+        ],
+        "title": "Application Type",
+        "type": "string"
+      }
+    },
+    "required": [
+      "application_type"
+    ],
+    "title": "deploy_serverless_app_help_toolArguments",
+    "type": "object"
+  }
+}

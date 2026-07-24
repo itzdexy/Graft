@@ -1,0 +1,21 @@
+{
+  "name": "get_version_info",
+  "description": "Get version information for UI5 (OpenUI5 or SAPUI5)",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "frameworkName": {
+        "type": "string",
+        "enum": [
+          "OpenUI5",
+          "SAPUI5"
+        ],
+        "description": "The UI5 framework to get version information for"
+      }
+    },
+    "required": [
+      "frameworkName"
+    ]
+  }
+}

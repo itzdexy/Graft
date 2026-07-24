@@ -1,0 +1,17 @@
+{
+  "name": "get_project_info",
+  "description": "Get general information about a local UI5 project.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "projectDir": {
+        "type": "string",
+        "description": "Root directory of the UI5 project to analyze. Must be an absolute path. If a path to a file is provided, the root directory will be determined automatically."
+      }
+    },
+    "required": [
+      "projectDir"
+    ]
+  }
+}

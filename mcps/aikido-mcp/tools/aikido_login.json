@@ -1,0 +1,19 @@
+{
+  "name": "aikido_login",
+  "description": "\nStarts the Aikido sign-in flow. Returns region-specific sign-in URLs for the user\nto open in their browser, OR confirms the user is already signed in.\n\nWHEN TO CALL THIS TOOL\n- The user explicitly asks to sign in, log in, authenticate, or connect to Aikido.\n- The user asks to switch Aikido accounts or re-authenticate. Pass\n  `force_reauth: true` so the sign-in flow starts even if a token is already cached.\n- An earlier Aikido tool returned \"ACTION REQUIRED — Aikido sign-in\" and the user\n  now wants to complete that sign-in.\n- The user pastes a token they copied from the Aikido sign-in modal (a fallback for when\n  browser couldn't deliver the token automatically). Pass the value verbatim as the `token` argument.\n\nNEVER fabricate the `token` value. Only pass it when the user supplies an\nexplicit string they copied from the Aikido UI.\n\nRESPONSE\n- If a `token` was passed: a short confirmation that the token was stored, or\n  an error if it didn't look like a valid Aikido token.\n- If already signed in and `force_reauth` is not set: a short confirmation\n  message. Continue with whatever the user actually wanted.\n- If sign-in is needed (or `force_reauth` was set): three region-specific URLs\n  (EU / US / ME) plus instructions. The URLs contain a one-time `state` token\n  and `redirect_uri` that MUST be passed through verbatim — do not strip query\n  parameters when showing them to the user.\n",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "force_reauth": {
+        "type": "boolean",
+        "description": "When true, start a new sign-in flow even if the user is already authenticated. Use ONLY when the user explicitly asks to re-authenticate, switch accounts, or sign in again. Do not set this speculatively — it will trigger a browser-based sign-in the user may not want."
+      },
+      "token": {
+        "type": "string",
+        "description": "Paste a token here as a manual fallback when the browser-based sign-in could not deliver the token automatically."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

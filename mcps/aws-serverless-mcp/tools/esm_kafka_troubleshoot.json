@@ -1,0 +1,52 @@
+{
+  "name": "esm_kafka_troubleshoot",
+  "description": "Troubleshoot Kafka streaming issues and connectivity problems. Diagnoses MSK cluster connectivity, Lambda function timeouts, authentication failures, and network configuration issues. Provides step-by-step resolution guidance for Kafka and Lambda integration problems.",
+  "inputSchema": {
+    "properties": {
+      "kafka_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "msk",
+              "self-managed",
+              "auto-detect"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "auto-detect",
+        "description": "Type of Kafka cluster: \"msk\" for Amazon MSK, \"self-managed\" for self-managed Apache Kafka, \"auto-detect\" to determine automatically",
+        "title": "Kafka Type"
+      },
+      "issue_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "diagnosis",
+              "pre-broker-timeout",
+              "post-broker-timeout",
+              "lambda-unreachable",
+              "on-failure-destination-unreachable",
+              "sts-unreachable",
+              "authentication-failed",
+              "network-connectivity",
+              "others"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": "diagnosis",
+        "description": "Type of troubleshooting: \"diagnosis\" for identifying issues, or specific issue type for resolution steps",
+        "title": "Issue Type"
+      }
+    },
+    "title": "esm_kafka_troubleshoot_toolArguments",
+    "type": "object"
+  }
+}

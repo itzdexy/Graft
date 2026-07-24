@@ -1,0 +1,24 @@
+{
+  "name": "reply",
+  "description": "Send a message to the fakechat UI. Pass reply_to for quote-reply, files for attachments.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string"
+      },
+      "reply_to": {
+        "type": "string"
+      },
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "text"
+    ]
+  }
+}
