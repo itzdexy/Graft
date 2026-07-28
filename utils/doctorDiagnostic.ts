@@ -36,8 +36,8 @@ import { SandboxManager } from './sandbox/sandbox-adapter.js'
 import { getManagedFilePath } from './settings/managedPath.js'
 import { CUSTOMIZATION_SURFACES } from './settings/types.js'
 import {
-  findBlinkAlias,
-  findValidBlinkAlias,
+  findTovyrAlias,
+  findValidTovyrAlias,
   getShellConfigPaths,
 } from './shellConfig.js'
 import { jsonParse } from './slowOperations.js'
@@ -162,7 +162,7 @@ async function getInstallationPath(): Promise<string> {
     }
 
     try {
-      const path = await which('blink')
+      const path = await which('tovyr')
       if (path) {
         return path
       }
@@ -181,8 +181,8 @@ async function getInstallationPath(): Promise<string> {
 
     // If we can't find it, check common locations
     try {
-      await getFsImplementation().stat(join(homedir(), '.local/bin/blink'))
-      return join(homedir(), '.local/bin/blink')
+      await getFsImplementation().stat(join(homedir(), '.local/bin/tovyr'))
+      return join(homedir(), '.local/bin/tovyr')
     } catch {
       // Not found
     }
@@ -230,8 +230,8 @@ async function detectMultipleInstallations(): Promise<
   }
 
   // Check for global npm installation
-  const packagesToCheck = ['blinkcode']
-  if (MACRO.PACKAGE_URL && MACRO.PACKAGE_URL !== 'blinkcode') {
+  const packagesToCheck = ['tovyrcode']
+  if (MACRO.PACKAGE_URL && MACRO.PACKAGE_URL !== 'tovyrcode') {
     packagesToCheck.push(MACRO.PACKAGE_URL)
   }
   const npmResult = await execFileNoThrow('npm', [
@@ -244,9 +244,9 @@ async function detectMultipleInstallations(): Promise<
     const npmPrefix = npmResult.stdout.trim()
     const isWindows = getPlatform() === 'windows'
 
-    // First check for active installations via bin/blink
-    // Linux / macOS have prefix/bin/blink and prefix/lib/node_modules
-    // Windows has prefix/blink and prefix/node_modules
+    // First check for active installations via bin/tovyr
+    // Linux / macOS have prefix/bin/tovyr and prefix/lib/node_modules
+    // Windows has prefix/tovyr and prefix/node_modules
     const globalBinPath = isWindows
       ? join(npmPrefix, 'claude')
       : join(npmPrefix, 'bin', 'claude')
@@ -261,7 +261,7 @@ async function detectMultipleInstallations(): Promise<
 
     if (globalBinExists) {
       // Check if this is actually a Homebrew cask installation, not npm-global
-      // When npm is installed via Homebrew, both can exist at /opt/homebrew/bin/blink
+      // When npm is installed via Homebrew, both can exist at /opt/homebrew/bin/tovyr
       // We need to resolve the symlink to see where it actually points
       let isCurrentHomebrewInstallation = false
 
@@ -282,7 +282,7 @@ async function detectMultipleInstallations(): Promise<
         installations.push({ type: 'npm-global', path: globalBinPath })
       }
     } else {
-      // If no bin/blink exists, check for orphaned packages (no bin/blink symlink)
+      // If no bin/tovyr exists, check for orphaned packages (no bin/tovyr symlink)
       for (const packageName of packagesToCheck) {
         const globalPackagePath = isWindows
           ? join(npmPrefix, 'node_modules', packageName)
@@ -450,14 +450,14 @@ async function detectConfigurationIssues(
     if (type === 'npm-local' && config.installMethod !== 'local') {
       warnings.push({
         issue: `Running from local installation but config install method is '${config.installMethod}'`,
-        fix: 'Consider using native installation: blink install',
+        fix: 'Consider using native installation: tovyr install',
       })
     }
 
     if (type === 'native' && config.installMethod !== 'native') {
       warnings.push({
         issue: `Running native installation but config install method is '${config.installMethod}'`,
-        fix: 'Run blink install to update configuration',
+        fix: 'Run tovyr install to update configuration',
       })
     }
   }
@@ -465,32 +465,32 @@ async function detectConfigurationIssues(
   if (type === 'npm-global' && (await localInstallationExists())) {
     warnings.push({
       issue: 'Local installation exists but not being used',
-      fix: 'Consider using native installation: blink install',
+      fix: 'Consider using native installation: tovyr install',
     })
   }
 
-  const existingAlias = await findBlinkAlias()
-  const validAlias = await findValidBlinkAlias()
+  const existingAlias = await findTovyrAlias()
+  const validAlias = await findValidTovyrAlias()
 
   // Check if running local installation but it's not in PATH
   if (type === 'npm-local') {
-    // Check if blink is already accessible via PATH
-    const whichResult = await which('blink')
-    const blinkInPath = !!whichResult
+    // Check if tovyr is already accessible via PATH
+    const whichResult = await which('tovyr')
+    const tovyrInPath = !!whichResult
 
-    // Only show warning if blink is NOT in PATH AND no valid alias exists
-    if (!blinkInPath && !validAlias) {
+    // Only show warning if tovyr is NOT in PATH AND no valid alias exists
+    if (!tovyrInPath && !validAlias) {
       if (existingAlias) {
         // Alias exists but points to invalid target
         warnings.push({
           issue: 'Local installation not accessible',
-          fix: `Alias exists but points to invalid target: ${existingAlias}. Update alias: alias blink="~/.blink/local/blink"`,
+          fix: `Alias exists but points to invalid target: ${existingAlias}. Update alias: alias tovyr="~/.tovyr/local/tovyr"`,
         })
       } else {
         // No alias exists and not in PATH
         warnings.push({
           issue: 'Local installation not accessible',
-          fix: 'Create alias: alias blink="~/.blink/local/blink"',
+          fix: 'Create alias: alias tovyr="~/.tovyr/local/tovyr"',
         })
       }
     }
@@ -551,10 +551,10 @@ export async function getDoctorDiagnostic(): Promise<DiagnosticInfo> {
 
     for (const install of npmInstalls) {
       if (install.type === 'npm-global') {
-        let uninstallCmd = 'npm -g uninstall blinkcode'
+        let uninstallCmd = 'npm -g uninstall tovyrcode'
         if (
           MACRO.PACKAGE_URL &&
-          MACRO.PACKAGE_URL !== 'blinkcode'
+          MACRO.PACKAGE_URL !== 'tovyrcode'
         ) {
           uninstallCmd += ` && npm -g uninstall ${MACRO.PACKAGE_URL}`
         }
@@ -595,7 +595,7 @@ export async function getDoctorDiagnostic(): Promise<DiagnosticInfo> {
     if (!hasUpdatePermissions && !getAutoUpdaterDisabledReason()) {
       warnings.push({
         issue: 'Insufficient permissions for auto-updates',
-        fix: 'Do one of: (1) Re-install node without sudo, or (2) Use `blink install` for native installation',
+        fix: 'Do one of: (1) Re-install node without sudo, or (2) Use `tovyr install` for native installation',
       })
     }
   }

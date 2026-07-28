@@ -2,7 +2,7 @@ import { statSync } from 'fs'
 import ignore from 'ignore'
 import * as path from 'path'
 import {
-  BLINK_CONFIG_DIRECTORIES,
+  TOVYR_CONFIG_DIRECTORIES,
   loadMarkdownFilesForSubdir,
 } from 'src/utils/markdownConfigLoader.js'
 import type { SuggestionItem } from '../components/PromptInput/PromptInputFooterSuggestions.js'
@@ -440,11 +440,11 @@ function collectDirectoryNames(
 }
 
 /**
- * Gets additional files from Blink config directories
+ * Gets additional files from Tovyr config directories
  */
-async function getBlinkConfigFiles(cwd: string): Promise<string[]> {
+async function getTovyrConfigFiles(cwd: string): Promise<string[]> {
   const markdownFileArrays = await Promise.all(
-    BLINK_CONFIG_DIRECTORIES.map(subdir =>
+    TOVYR_CONFIG_DIRECTORIES.map(subdir =>
       loadMarkdownFilesForSubdir(subdir, cwd),
     ),
   )
@@ -534,7 +534,7 @@ export async function getPathsForSuggestions(): Promise<FileIndex> {
     const cwd = getCwd()
     const [projectFiles, configFiles] = await Promise.all([
       getProjectFiles(signal, respectGitignore),
-      getBlinkConfigFiles(cwd),
+      getTovyrConfigFiles(cwd),
     ])
 
     // Cache for mergeUntrackedIntoNormalizedCache

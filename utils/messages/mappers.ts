@@ -11,7 +11,7 @@ import type {
   SDKMessage,
   SDKRateLimitInfo,
 } from 'src/entrypoints/agentSdkTypes.js'
-import type { BlinkWebLimits } from 'src/services/blinkWebLimits.js'
+import type { TovyrWebLimits } from 'src/services/tovyrWebLimits.js'
 import { EXIT_PLAN_MODE_V2_TOOL_NAME } from 'src/tools/ExitPlanModeTool/constants.js'
 import type {
   AssistantMessage,
@@ -189,7 +189,7 @@ export function toSDKMessages(messages: Message[]): SDKMessage[] {
  * because the system/local_command_output subtype is unknown to:
  *   - mobile-apps Android SdkMessageTypes.kt (no local_command_output handler)
  *   - api-go session-ingress convertSystemEvent (only init/compact_boundary)
- * See: https://blink.sentry.io/issues/7266299248/ (Android)
+ * See: https://tovyr.sentry.io/issues/7266299248/ (Android)
  *
  * Strips ANSI (e.g. chalk.dim() in /cost) then unwraps the XML wrapper tags.
  */
@@ -215,11 +215,11 @@ export function localCommandOutputToSDKAssistantMessage(
 }
 
 /**
- * Maps internal BlinkAILimits to the SDK-facing SDKRateLimitInfo type,
+ * Maps internal TovyrAILimits to the SDK-facing SDKRateLimitInfo type,
  * stripping internal-only fields like unifiedRateLimitFallbackAvailable.
  */
 export function toSDKRateLimitInfo(
-  limits: BlinkWebLimits | undefined,
+  limits: TovyrWebLimits | undefined,
 ): SDKRateLimitInfo | undefined {
   if (!limits) {
     return undefined

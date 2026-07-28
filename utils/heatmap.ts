@@ -177,7 +177,7 @@ function getIntensity(
   return 1
 }
 
-// Blink orange color (hex #da7756)
+// Tovyr orange color (hex #da7756)
 const claudeOrange = chalk.hex('#da7756')
 
 function getHeatmapChar(intensity: number): string {

@@ -1,0 +1,21 @@
+﻿error: Cannot find module '../../components/tovyr/TovyrWorkspaceDashboard.js' from 
+error: expect(received).toContain(expected)
+error: expect(received).toContain(expected)
+error: ENOENT: no such file or directory, open 'C:\Users\uwuuy\Downloads\src\bin\install-tovyr.ps1'
+error: expect(received).toContain(expected)
+error: expect(received).toContain(expected)
+error: Cannot find module '../../../scripts/tovyr-install-checks.js' from 
+error: Cannot find module '../../../components/tovyr/TovyrErrorTurn.js' from 
+error: Cannot find module './tovyrExamplePrompts.js' from 'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrExamplePrompts.test.ts'
+error: Cannot find module './tovyrSilentTurn.js' from 'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrSilentTurn.test.ts'
+error: Cannot find module './tovyrTranscriptCollapse.js' from 
+(fail) Tovyr invocation-directory contract > repo command shims capture and lock the caller directory [0.30ms]
+(fail) Tovyr invocation-directory contract > PowerShell launcher preserves a directory locked by an outer shim [0.13ms]
+(fail) Tovyr invocation-directory contract > installed cmd and PowerShell shims capture the caller directory [0.12ms]
+(fail) Tovyr invocation-directory contract > new-window launches explicitly forward the caller directory [0.11ms]
+(fail) Tovyr invocation-directory contract > entrypoint fails closed instead of treating the package as the project [66.91ms]
+(fail) Tovyr invocation-directory contract > repo command shims capture and lock the caller directory [0.30ms]
+(fail) Tovyr invocation-directory contract > PowerShell launcher preserves a directory locked by an outer shim [0.13ms]
+(fail) Tovyr invocation-directory contract > installed cmd and PowerShell shims capture the caller directory [0.12ms]
+(fail) Tovyr invocation-directory contract > new-window launches explicitly forward the caller directory [0.11ms]
+(fail) Tovyr invocation-directory contract > entrypoint fails closed instead of treating the package as the project [66.91ms]

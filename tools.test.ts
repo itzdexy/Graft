@@ -6,15 +6,15 @@ import { GLOB_TOOL_NAME } from './tools/GlobTool/prompt.js'
 import { WEB_SEARCH_TOOL_NAME } from './tools/WebSearchTool/prompt.js'
 
 describe('getTools simple mode', () => {
-  const prevSimple = process.env.CLAUDE_CODE_SIMPLE
+  const prevSimple = process.env.TOVYR_CODE_SIMPLE
 
   afterEach(() => {
-    if (prevSimple === undefined) delete process.env.CLAUDE_CODE_SIMPLE
-    else process.env.CLAUDE_CODE_SIMPLE = prevSimple
+    if (prevSimple === undefined) delete process.env.TOVYR_CODE_SIMPLE
+    else process.env.TOVYR_CODE_SIMPLE = prevSimple
   })
 
   test('bare mode exposes expanded built-in tools, not just Bash/Read/Edit', () => {
-    process.env.CLAUDE_CODE_SIMPLE = '1'
+    process.env.TOVYR_CODE_SIMPLE = '1'
     const names = new Set(
       getTools(getEmptyToolPermissionContext()).map(tool => tool.name),
     )

@@ -1,5 +1,5 @@
 /**
- * Blink Agent Server
+ * Tovyr Agent Server
  * Inspired by OpenHands' agent server for managing AI agents
  * Provides server-side agent lifecycle, communication, and orchestration
  */

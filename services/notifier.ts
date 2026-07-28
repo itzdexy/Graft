@@ -35,7 +35,7 @@ export async function sendNotification(
   })
 }
 
-const DEFAULT_TITLE = 'Blink'
+const DEFAULT_TITLE = 'Tovyr'
 
 async function sendToChannel(
   channel: string,

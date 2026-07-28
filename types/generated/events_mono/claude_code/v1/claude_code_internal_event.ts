@@ -2,7 +2,7 @@
 // versions:
 //   protoc-gen-ts_proto  v2.6.1
 //   protoc               unknown
-// source: events_mono/blink_code/v1/blink_code_internal_event.proto
+// source: events_mono/tovyr_code/v1/tovyr_code_internal_event.proto
 
 /* eslint-disable */
 import { Timestamp } from '../../../google/protobuf/timestamp.js'
@@ -17,7 +17,7 @@ export interface GitHubActionsMetadata {
 
 /**
  * EnvironmentMetadata contains environment and runtime information
- * See blink-cli-internal/src/services/statsig.ts for the source of these fields
+ * See tovyr-cli-internal/src/services/statsig.ts for the source of these fields
  */
 export interface EnvironmentMetadata {
   platform?: string | undefined
@@ -61,9 +61,9 @@ export interface EnvironmentMetadata {
 }
 
 /**
- * SlackContext contains context fields present on every Blink-in-Slack (CIS) event.
+ * SlackContext contains context fields present on every Tovyr-in-Slack (CIS) event.
  * Event-specific fields (errorType, durationMs, httpStatus, etc.) go in
- * BlinkCodeInternalEvent.additional_metadata as JSON.
+ * TovyrCodeInternalEvent.additional_metadata as JSON.
  */
 export interface SlackContext {
   slack_team_id?: string | undefined
@@ -73,8 +73,8 @@ export interface SlackContext {
 }
 
 /**
- * BlinkCodeInternalEvent represents events logged from Blink via Statsig
- * This schema matches the structure in blink-cli-internal/src/services/statsig.ts
+ * TovyrCodeInternalEvent represents events logged from Tovyr via Statsig
+ * This schema matches the structure in tovyr-cli-internal/src/services/statsig.ts
  * Source table: proj-product-data-nhme.raw_statsig_internal_tools.events
  */
 export interface ClaudeCodeInternalEvent {
@@ -121,7 +121,7 @@ export interface ClaudeCodeInternalEvent {
   agent_id?: string | undefined
   parent_session_id?: string | undefined
   agent_type?: string | undefined
-  /** Blink-in-Slack context (only present for cis_* events) */
+  /** Tovyr-in-Slack context (only present for cis_* events) */
   slack?: SlackContext | undefined
   team_name?: string | undefined
   skill_name?: string | undefined

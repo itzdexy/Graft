@@ -16,7 +16,7 @@ import {
 /**
  * Fields that belong in marketplace.json entries (PluginMarketplaceEntrySchema)
  * but not plugin.json (PluginManifestSchema). Plugin authors reasonably copy
- * one into the other. Surfaced as warnings by `blink plugin validate` since
+ * one into the other. Surfaced as warnings by `tovyr plugin validate` since
  * they're a known confusion point — the load path silently strips all unknown
  * keys via zod's default behavior, so they're harmless at runtime but worth
  * flagging to authors.
@@ -61,7 +61,7 @@ function detectManifestType(
   if (fileName === 'plugin.json') return 'plugin'
   if (fileName === 'marketplace.json') return 'marketplace'
 
-  // Check if it's in .blink-plugin directory
+  // Check if it's in .tovyr-plugin directory
   if (dirName === '.claude-plugin') {
     return 'plugin' // Most likely plugin.json
   }
@@ -86,7 +86,7 @@ function formatZodErrors(zodError: z.ZodError): ValidationError[] {
  * For plugin.json component paths this is a security concern (escaping the plugin dir).
  * For marketplace.json source paths it's almost always a resolution-base misunderstanding:
  * paths resolve from the marketplace repo root, not from marketplace.json itself, so the
- * '..' a user added to "climb out of .blink-plugin/" is unnecessary. Callers pass `hint`
+ * '..' a user added to "climb out of .tovyr-plugin/" is unnecessary. Callers pass `hint`
  * to attach the right explanation.
  */
 function checkPathTraversal(
@@ -106,13 +106,13 @@ function checkPathTraversal(
 }
 
 // Shown when a marketplace plugin source contains '..'. Most users hit this because
-// they expect paths to resolve relative to marketplace.json (inside .blink-plugin/),
+// they expect paths to resolve relative to marketplace.json (inside .tovyr-plugin/),
 // but resolution actually starts at the marketplace repo root — see gh-29485.
 // Computes a tailored "use X instead of Y" suggestion from the user's actual path
 // rather than a hardcoded example (review feedback on #20895).
 function marketplaceSourceHint(p: string): string {
   // Strip leading ../ segments: the '..' a user added to "climb out of
-  // .blink-plugin/" is unnecessary since paths already start at the repo root.
+  // .tovyr-plugin/" is unnecessary since paths already start at the repo root.
   // If '..' appears mid-path (rare), fall back to a generic example.
   const stripped = p.replace(/^(\.\.\/)+/, '')
   const corrected = stripped !== p ? `./${stripped}` : './plugins/my-plugin'
@@ -213,7 +213,7 @@ export async function validatePluginManifest(
   }
 
   // Surface marketplace-only fields as a warning BEFORE validation flags
-  // them. `blink plugin validate` is a developer tool — authors running it
+  // them. `tovyr plugin validate` is a developer tool — authors running it
   // want to know these fields don't belong here. But it's a warning, not an
   // error: the plugin loads fine at runtime (the base schema strips unknown
   // keys). We strip them here so the .strict() call below doesn't double-
@@ -232,7 +232,7 @@ export async function validatePluginManifest(
           path: key,
           message:
             `Field '${key}' belongs in the marketplace entry (marketplace.json), ` +
-            `not plugin.json. It's harmless here but unused — Blink ` +
+            `not plugin.json. It's harmless here but unused — Tovyr ` +
             `ignores it at load time.`,
         })
       }
@@ -255,14 +255,14 @@ export async function validatePluginManifest(
     const manifest = result.data
 
     // Warn if name isn't strict kebab-case. CC's schema only rejects spaces,
-    // but the Blink.ai marketplace sync rejects non-kebab names. Surfacing
+    // but the Tovyr.ai marketplace sync rejects non-kebab names. Surfacing
     // this here lets authors catch it in CI before the sync fails on them.
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(manifest.name)) {
       warnings.push({
         path: 'name',
         message:
-          `Plugin name "${manifest.name}" is not kebab-case. Blink accepts ` +
-          `it, but the Blink marketplace sync requires kebab-case ` +
+          `Plugin name "${manifest.name}" is not kebab-case. Tovyr accepts ` +
+          `it, but the Tovyr marketplace sync requires kebab-case ` +
           `(lowercase letters, digits, and hyphens only, e.g., "my-plugin").`,
       })
     }
@@ -510,7 +510,7 @@ export async function validateMarketplaceManifest(
  *
  * The runtime loader (parseFrontmatter) silently drops unparseable YAML to a
  * debug log and returns an empty object. That's the right resilience choice
- * for the load path, but authors running `blink plugin validate` want a hard
+ * for the load path, but authors running `tovyr plugin validate` want a hard
  * signal. This re-parses the frontmatter block and surfaces what the loader
  * would silently swallow.
  */
@@ -580,7 +580,7 @@ function validateComponentFile(
     warnings.push({
       path: 'description',
       message:
-        `No description in frontmatter. A description helps users and Blink ` +
+        `No description in frontmatter. A description helps users and Tovyr ` +
         `understand when to use this ${fileType}.`,
     })
   }
@@ -827,7 +827,7 @@ export async function validateManifest(
   }
 
   if (stats?.isDirectory()) {
-    // Look for manifest files in .blink-plugin directory
+    // Look for manifest files in .tovyr-plugin directory
     // Prefer marketplace.json over plugin.json
     const marketplacePath = path.join(
       absolutePath,

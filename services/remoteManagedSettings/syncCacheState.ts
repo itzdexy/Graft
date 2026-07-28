@@ -16,13 +16,13 @@
  * null), false (ineligible — return null), true (proceed). managedEnv.ts
  * calls isRemoteManagedSettingsEligible() just before the policySettings
  * read — after userSettings/flagSettings env vars are applied, so the check
- * sees config-provided CLAUDE_CODE_USE_BEDROCK/ANTHROPIC_BASE_URL. That call
+ * sees config-provided TOVYR_CODE_USE_BEDROCK/ANTHROPIC_BASE_URL. That call
  * computes once and mirrors the result here via setEligibility(). Every
  * subsequent read hits the cached bool instead of re-running the auth chain.
  */
 
 import { join } from 'path'
-import { getBlinkConfigHomeDir } from '../../utils/envUtils.js'
+import { getTovyrConfigHomeDir } from '../../utils/envUtils.js'
 import { readFileSync } from '../../utils/fileRead.js'
 import { stripBOM } from '../../utils/jsonRead.js'
 import { resetSettingsCache } from '../../utils/settings/settingsCache.js'
@@ -49,7 +49,7 @@ export function setEligibility(v: boolean): boolean {
 }
 
 export function getSettingsPath(): string {
-  return join(getBlinkConfigHomeDir(), SETTINGS_FILENAME)
+  return join(getTovyrConfigHomeDir(), SETTINGS_FILENAME)
 }
 
 // sync IO — settings pipeline is sync. fileRead and jsonRead are leaves;

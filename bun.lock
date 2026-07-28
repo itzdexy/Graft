@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "blinkcode",
+      "name": "tovyrcode",
       "dependencies": {
         "@ant/computer-use-input": "file:./vendor/ant-stubs/computer-use-input",
         "@ant/computer-use-mcp": "file:./vendor/ant-stubs/computer-use-mcp",

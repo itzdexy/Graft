@@ -17,7 +17,7 @@ import { jsonStringify } from '../utils/slowOperations.js'
  *
  * Bridge sessions have SecurityTier=ELEVATED on the server (CCR v2).
  * The server gates ConnectBridgeWorker on its own flag
- * (sessions_elevated_auth_enforcement in Blink Main); this CLI-side
+ * (sessions_elevated_auth_enforcement in Tovyr Main); this CLI-side
  * flag controls whether the CLI sends X-Trusted-Device-Token at all.
  * Two flags so rollout can be staged: flip CLI-side first (headers
  * start flowing, server still no-ops), then flip server-side.
@@ -26,7 +26,7 @@ import { jsonStringify } from '../utils/slowOperations.js'
  * account_session.created_at < 10min, so it must happen during /login.
  * Token is persistent (90d rolling expiry) and stored in keychain.
  *
- * See blinks/blink#274559 (spec), #310375 (B1b tenant RPCs),
+ * See tovyrs/tovyr#274559 (spec), #310375 (B1b tenant RPCs),
  * #295987 (B2 Python routes), #307150 (C1' CCR v2 gate).
  */
 
@@ -119,10 +119,10 @@ export async function enrollTrustedDevice(): Promise<void> {
     // (config → file → permissions → sessionStorage → commands). Daemon callers
     // of getTrustedDeviceToken() don't need this; only /login does.
     /* eslint-disable @typescript-eslint/no-require-imports */
-    const { getBlinkWebOAuthTokens } =
+    const { getTovyrWebOAuthTokens } =
       require('../utils/auth.js') as typeof import('../utils/auth.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
-    const accessToken = getBlinkWebOAuthTokens()?.accessToken
+    const accessToken = getTovyrWebOAuthTokens()?.accessToken
     if (!accessToken) {
       logForDebugging('[trusted-device] No OAuth token, skipping enrollment')
       return
@@ -147,7 +147,7 @@ export async function enrollTrustedDevice(): Promise<void> {
         device_id?: string
       }>(
         `${baseUrl}/api/auth/trusted_devices`,
-        { display_name: `Blink on ${hostname()} · ${process.platform}` },
+        { display_name: `Tovyr on ${hostname()} · ${process.platform}` },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

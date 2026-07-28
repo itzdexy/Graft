@@ -69,7 +69,7 @@ type State = {
   initialMainLoopModel: ModelSetting
   modelStrings: ModelStrings | null
   isInteractive: boolean
-  blinksActive: boolean
+  tovyrsActive: boolean
   // When true, ensureToolResultPairing throws on mismatch instead of
   // repairing with synthetic placeholders. HFI opts in at startup so
   // trajectories fail fast rather than conditioning the model on fake
@@ -119,7 +119,7 @@ type State = {
   // Last auto-mode classifier request(s) for /share transcript
   lastClassifierRequests: unknown[] | null
   // CLAUDE.md content cached by context.ts for the auto-mode classifier.
-  // Breaks the yoloClassifier → blinkmd → filesystem → permissions cycle.
+  // Breaks the yoloClassifier → tovyrmd → filesystem → permissions cycle.
   cachedClaudeMdContent: string | null
   // In-memory error log for recent errors
   inMemoryErrorLog: Array<{ error: string; timestamp: string }>
@@ -131,13 +131,13 @@ type State = {
   useCoworkPlugins: boolean
   // Session-only bypass permissions mode flag (not persisted)
   sessionBypassPermissionsMode: boolean
-  // Session-only flag gating the .blink/scheduled_tasks.json watcher
+  // Session-only flag gating the .tovyr/scheduled_tasks.json watcher
   // (useScheduledTasks). Set by cronScheduler.start() when the JSON has
   // entries, or by CronCreateTool. Not persisted.
   scheduledTasksEnabled: boolean
   // Session-only cron tasks created via CronCreate with durable: false.
   // Fire on schedule like file-backed tasks but are never written to
-  // .blink/scheduled_tasks.json — they die with the process. Typed via
+  // .tovyr/scheduled_tasks.json — they die with the process. Typed via
   // SessionCronTask below (not importing from cronTasks.ts keeps
   // bootstrap a leaf of the import DAG).
   sessionCronTasks: SessionCronTask[]
@@ -298,7 +298,7 @@ function getInitialState(): State {
     initialMainLoopModel: null,
     modelStrings: null,
     isInteractive: false,
-    blinksActive: false,
+    tovyrsActive: false,
     strictToolResultPairing: false,
     sdkAgentProgressSummariesEnabled: false,
     userMsgOptIn: false,
@@ -980,7 +980,7 @@ export function setMeter(
     description: 'Number of git commits created',
   })
   STATE.costCounter = createCounter('claude_code.cost.usage', {
-    description: 'Cost of the Blink session',
+    description: 'Cost of the Tovyr session',
     unit: 'USD',
   })
   STATE.tokenCounter = createCounter('claude_code.token.usage', {
@@ -1096,12 +1096,12 @@ export function setSdkAgentProgressSummariesEnabled(value: boolean): void {
   STATE.sdkAgentProgressSummariesEnabled = value
 }
 
-export function getBlinksActive(): boolean {
-  return STATE.blinksActive
+export function getTovyrsActive(): boolean {
+  return STATE.tovyrsActive
 }
 
-export function setBlinksActive(value: boolean): void {
-  STATE.blinksActive = value
+export function setTovyrsActive(value: boolean): void {
+  STATE.tovyrsActive = value
 }
 
 export function getStrictToolResultPairing(): boolean {
@@ -1114,7 +1114,7 @@ export function setStrictToolResultPairing(value: boolean): void {
 
 // Field name 'userMsgOptIn' avoids excluded-string substrings ('BriefTool',
 // 'SendUserMessage' — case-insensitive). All callers are inside feature()
-// guards so these accessors don't need their own (matches getBlinksActive).
+// guards so these accessors don't need their own (matches getTovyrsActive).
 export function getUserMsgOptIn(): boolean {
   return STATE.userMsgOptIn
 }
@@ -1677,7 +1677,7 @@ export function setLastEmittedDate(date: string | null): void {
   STATE.lastEmittedDate = date
 }
 
-export function getAdditionalDirectoriesForBlinkMd(): string[] {
+export function getAdditionalDirectoriesForTovyrMd(): string[] {
   return STATE.additionalDirectoriesForClaudeMd
 }
 

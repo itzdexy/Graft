@@ -186,7 +186,7 @@ class RecipeManager {
   private recipePath: string;
   private templateEngine: TemplateEngine;
 
-  constructor(recipePath: string = '~/.blink/recipes') {
+  constructor(recipePath: string = '~/.tovyr/recipes') {
     this.recipePath = recipePath;
     this.templateEngine = new TemplateEngine();
   }

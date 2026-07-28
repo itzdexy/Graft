@@ -3,9 +3,9 @@
  *
  * Companion to lspRecommendation.ts: where LSP recommendations are triggered
  * by file edits, plugin hints are triggered by CLIs/SDKs emitting a
- * `<blink-hint />` tag to stderr (detected by the Bash/PowerShell tools).
+ * `<tovyr-hint />` tag to stderr (detected by the Bash/PowerShell tools).
  *
- * State persists in GlobalConfig.blinkCodeHints — a show-once record per
+ * State persists in GlobalConfig.tovyrCodeHints — a show-once record per
  * plugin and a disabled flag (user picked "don't show again"). Official-
  * marketplace filtering is hardcoded for v1.
  */
@@ -17,10 +17,10 @@ import {
   logEvent,
 } from '../../services/analytics/index.js'
 import {
-  type BlinkCodeHint,
+  type TovyrCodeHint,
   hasShownHintThisSession,
   setPendingHint,
-} from '../blinkCodeHints.js'
+} from '../tovyrCodeHints.js'
 import { getGlobalConfig, saveGlobalConfig } from '../config.js'
 import { logForDebugging } from '../debug.js'
 import { isPluginInstalled } from './installedPluginsManager.js'
@@ -32,7 +32,7 @@ import {
 import { isPluginBlockedByPolicy } from './pluginPolicy.js'
 
 /**
- * Hard cap on `blinkCodeHints.plugin[]` — bounds config growth. Each shown
+ * Hard cap on `tovyrCodeHints.plugin[]` — bounds config growth. Each shown
  * plugin appends one slug; past this point we stop prompting (and stop
  * appending) rather than let the config grow without limit.
  */
@@ -62,7 +62,7 @@ export type PluginHintRecommendation = {
  * just to strip a stderr line. The async marketplace-cache check happens
  * later in resolvePluginHint (hook side).
  */
-export function maybeRecordPluginHint(hint: BlinkCodeHint): void {
+export function maybeRecordPluginHint(hint: TovyrCodeHint): void {
   if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_lapis_finch', false)) return
   if (hasShownHintThisSession()) return
 
@@ -101,7 +101,7 @@ export function _resetHintRecommendationForTesting(): void {
  * the plugin isn't in the marketplace cache — the hint is discarded.
  */
 export async function resolvePluginHint(
-  hint: BlinkCodeHint,
+  hint: TovyrCodeHint,
 ): Promise<PluginHintRecommendation | null> {
   const pluginId = hint.value
   const { name, marketplace } = parsePluginIdentifier(pluginId)

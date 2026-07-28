@@ -1,10 +1,10 @@
 export {
-  BLINK_MEMORY_GRAPH_SERVER_NAME,
-  BLINK_SEQUENTIAL_THINKING_SERVER_NAME,
-  isBlinkBuiltinMcpServer,
-  isBlinkMemoryGraphServer,
-  isBlinkSequentialThinkingServer,
+  TOVYR_MEMORY_GRAPH_SERVER_NAME,
+  TOVYR_SEQUENTIAL_THINKING_SERVER_NAME,
+  isTovyrBuiltinMcpServer,
+  isTovyrMemoryGraphServer,
+  isTovyrSequentialThinkingServer,
 } from './names.js'
-export { getBlinkBuiltinMcpServerConfigs } from './configs.js'
-export { createBlinkSequentialThinkingMcpServer } from './sequentialThinkingMcpServer.js'
-export { createBlinkMemoryGraphMcpServer } from './memoryGraphMcpServer.js'
+export { getTovyrBuiltinMcpServerConfigs } from './configs.js'
+export { createTovyrSequentialThinkingMcpServer } from './sequentialThinkingMcpServer.js'
+export { createTovyrMemoryGraphMcpServer } from './memoryGraphMcpServer.js'

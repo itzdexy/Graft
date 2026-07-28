@@ -53,15 +53,72 @@ import {
   userFacingName,
 } from './UI.js'
 
+/** Weak OpenAI-compatible models sometimes use `file`, `path`, or `filename`
+ *  for the path and `text`/`body`/`code` for the content. Coerce and map them
+ *  to the canonical `file_path`/`content` fields before validation. */
+function firstWriteString(
+  raw: Record<string, unknown>,
+  keys: string[],
+): string | undefined {
+  for (const key of keys) {
+    const v = raw[key]
+    if (typeof v === 'string') return v
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+    if (v == null) continue
+    if (Array.isArray(v) && v.every(x => typeof x === 'string')) {
+      return v.join('\n')
+    }
+    if (typeof v === 'object') {
+      try {
+        return JSON.stringify(v, null, 2)
+      } catch {
+        return String(v)
+      }
+    }
+    return String(v)
+  }
+  return undefined
+}
+
+function normalizeWriteToolInputShape(val: unknown): unknown {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return val
+  const raw = val as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+
+  const file_path = firstWriteString(raw, [
+    'file_path',
+    'path',
+    'filePath',
+    'filename',
+    'file',
+  ])
+  const content = firstWriteString(raw, [
+    'content',
+    'text',
+    'body',
+    'code',
+    'data',
+    'value',
+    'source',
+  ])
+
+  if (file_path !== undefined) out.file_path = file_path
+  if (content !== undefined) out.content = content
+  return out
+}
+
 const inputSchema = lazySchema(() =>
-  z.strictObject({
-    file_path: z
-      .string()
-      .describe(
-        'The absolute path to the file to write (must be absolute, not relative)',
-      ),
-    content: z.string().describe('The content to write to the file'),
-  }),
+  z.preprocess(
+    normalizeWriteToolInputShape,
+    z.strictObject({
+      file_path: z
+        .string()
+        .describe(
+          'File path to write. Relative paths resolve from the active project folder; absolute paths are allowed only when permissions permit.',
+        ),
+      content: z.string().describe('The content to write to the file'),
+    }),
+  ),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
@@ -343,7 +400,7 @@ export const FileWriteTool = buildTool({
 
     let gitDiff: ToolUseDiff | undefined
     if (
-      isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) &&
+      isEnvTruthy(process.env.TOVYR_CODE_REMOTE) &&
       getFeatureValue_CACHED_MAY_BE_STALE('tengu_quartz_lantern', false)
     ) {
       const startTime = Date.now()

@@ -54,7 +54,7 @@ export async function clearConversation({
   getAppState,
   setAppState,
   setConversationId,
-  onBlinkWelcomeReset,
+  onTovyrWelcomeReset,
 }: {
   setMessages: (updater: (prev: Message[]) => Message[]) => void
   readFileState: FileStateCache
@@ -63,11 +63,11 @@ export async function clearConversation({
   getAppState?: () => AppState
   setAppState?: (f: (prev: AppState) => AppState) => void
   setConversationId?: (id: UUID) => void
-  /** Blink: restore welcome chrome after /clear */
-  onBlinkWelcomeReset?: () => void
+  /** Tovyr: restore welcome chrome after /clear */
+  onTovyrWelcomeReset?: () => void
 }): Promise<void> {
   // Execute SessionEnd hooks before clearing (bounded by
-  // CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS, default 1.5s)
+  // TOVYR_CODE_SESSIONEND_HOOKS_TIMEOUT_MS, default 1.5s)
   const sessionEndTimeoutMs = getSessionEndHookTimeoutMs()
   await executeSessionEndHooks('clear', {
     getAppState,
@@ -112,7 +112,7 @@ export async function clearConversation({
   setMessages(() => [])
 
   // Clear context-blocked flag so proactive ticks resume after /clear
-  if (feature('PROACTIVE') || feature('BLINKS')) {
+  if (feature('PROACTIVE') || feature('TOVYRS')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { setContextBlocked } = require('../../proactive/index.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
@@ -205,8 +205,8 @@ export async function clearConversation({
   // Set the old session as parent for analytics lineage tracking
   regenerateSessionId({ setCurrentAsParent: true })
   // Update the environment variable so subprocesses use the new session ID
-  if (process.env.USER_TYPE === 'ant' && process.env.CLAUDE_CODE_SESSION_ID) {
-    process.env.CLAUDE_CODE_SESSION_ID = getSessionId()
+  if (process.env.USER_TYPE === 'ant' && process.env.TOVYR_CODE_SESSION_ID) {
+    process.env.TOVYR_CODE_SESSION_ID = getSessionId()
   }
   await resetSessionFilePointer()
 
@@ -252,5 +252,5 @@ export async function clearConversation({
     setMessages(() => hookMessages)
   }
 
-  onBlinkWelcomeReset?.()
+  onTovyrWelcomeReset?.()
 }

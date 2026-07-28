@@ -8,7 +8,7 @@
 import { getMainLoopModelOverride } from '../../bootstrap/state.js'
 import {
   getSubscriptionType,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
   isMaxSubscriber,
   isProSubscriber,
   isTeamPremiumSubscriber,
@@ -19,6 +19,10 @@ import {
   modelSupports1M,
 } from '../context.js'
 import { isEnvTruthy } from '../envUtils.js'
+import {
+  getAntModelOverrideConfig,
+  resolveAntModel,
+} from './antModels.js'
 import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
 import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
@@ -28,8 +32,8 @@ import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
 import { capitalize } from '../stringUtils.js'
-import { isBlinkRuntime } from '../blinkRuntime.js'
-import { lookupBlinkModelLabel } from '../../scripts/blink-provider-catalog.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
+import { lookupTovyrModelLabel } from '../../scripts/tovyr-provider-catalog.js'
 
 export type ModelShortName = string
 export type ModelName = string
@@ -44,7 +48,9 @@ export function isNonCustomOpusModel(model: ModelName): boolean {
     model === getModelStrings().opus40 ||
     model === getModelStrings().opus41 ||
     model === getModelStrings().opus45 ||
-    model === getModelStrings().opus46
+    model === getModelStrings().opus46 ||
+    model === getModelStrings().opus47 ||
+    model === getModelStrings().opus48
   )
 }
 
@@ -71,11 +77,11 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
     specifiedModel = process.env.ANTHROPIC_MODEL || settings.model || undefined
   }
 
-  // Third-party Blink provider models (e.g. deepseek-ai/deepseek-r1) never match
-  // Blink-only availableModels allowlists — honor env/settings anyway.
+  // Third-party Tovyr provider models (e.g. deepseek-ai/deepseek-r1) never match
+  // Tovyr-only availableModels allowlists — honor env/settings anyway.
   if (
     specifiedModel &&
-    !isBlinkRuntime() &&
+    !isTovyrRuntime() &&
     !isModelAllowed(specifiedModel)
   ) {
     return undefined
@@ -117,9 +123,9 @@ export function getDefaultOpusModel(): ModelName {
   // even when values match, since 3P availability lags firstParty and
   // these will diverge again at the next model launch.
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().opus46
+    return getModelStrings().opus47
   }
-  return getModelStrings().opus46
+  return getModelStrings().opus48
 }
 
 // @[MODEL LAUNCH]: Update the default Sonnet model (3P providers may lag so keep defaults unchanged).
@@ -127,11 +133,11 @@ export function getDefaultSonnetModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_SONNET_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_SONNET_MODEL
   }
-  // Default to Sonnet 4.5 for 3P since they may not have 4.6 yet
+  // Default to Sonnet 4.6 for 3P since they may not have Sonnet 5 yet
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().sonnet45
+    return getModelStrings().sonnet46
   }
-  return getModelStrings().sonnet46
+  return getModelStrings().sonnet5
 }
 
 // @[MODEL LAUNCH]: Update the default Haiku model (3P providers may lag so keep defaults unchanged).
@@ -217,14 +223,29 @@ export function getDefaultMainLoopModel(): ModelName {
 // @[MODEL LAUNCH]: Add a canonical name mapping for the new model below.
 /**
  * Pure string-match that strips date/provider suffixes from a first-party model
- * name. Input must already be a 1P-format ID (e.g. 'blink-3-7-sonnet-20250219',
- * 'us.blink.blink-opus-4-6-v1:0'). Does not touch settings, so safe at
+ * name. Input must already be a 1P-format ID (e.g. 'tovyr-3-7-sonnet-20250219',
+ * 'us.tovyr.tovyr-opus-4-6-v1:0'). Does not touch settings, so safe at
  * module top-level (see MODEL_COSTS in modelCost.ts).
  */
 export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   name = name.toLowerCase()
-  // Special cases for Blink 4+ models to differentiate versions
-  // Order matters: check more specific versions first (4-5 before 4)
+  // Special cases for Tovyr 4+ models to differentiate versions
+  // Order matters: check more specific versions first (4-8 before 4-7, etc.)
+  if (name.includes('claude-fable-5')) {
+    return 'claude-fable-5'
+  }
+  if (name.includes('claude-mythos-5')) {
+    return 'claude-mythos-5'
+  }
+  if (name.includes('claude-sonnet-5')) {
+    return 'claude-sonnet-5'
+  }
+  if (name.includes('claude-opus-4-8')) {
+    return 'claude-opus-4-8'
+  }
+  if (name.includes('claude-opus-4-7')) {
+    return 'claude-opus-4-7'
+  }
   if (name.includes('claude-opus-4-6')) {
     return 'claude-opus-4-6'
   }
@@ -246,10 +267,13 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   if (name.includes('claude-sonnet-4')) {
     return 'claude-sonnet-4'
   }
+  if (name.includes('claude-sonnet')) {
+    return 'claude-sonnet'
+  }
   if (name.includes('claude-haiku-4-5')) {
     return 'claude-haiku-4-5'
   }
-  // Blink 3.x models use a different naming scheme (blink-3-{family})
+  // Tovyr 3.x models use a different naming scheme (tovyr-3-{family})
   if (name.includes('claude-3-7-sonnet')) {
     return 'claude-3-7-sonnet'
   }
@@ -278,10 +302,10 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
 
 /**
  * Maps a full model string to a shorter canonical version that's unified across 1P and 3P providers.
- * For example, 'blink-3-5-haiku-20241022' and 'us.blink.blink-3-5-haiku-20241022-v1:0'
- * would both be mapped to 'blink-3-5-haiku'.
- * @param fullModelName The full model name (e.g., 'blink-3-5-haiku-20241022')
- * @returns The short name (e.g., 'blink-3-5-haiku') if found, or the original name if no mapping exists
+ * For example, 'tovyr-3-5-haiku-20241022' and 'us.tovyr.tovyr-3-5-haiku-20241022-v1:0'
+ * would both be mapped to 'tovyr-3-5-haiku'.
+ * @param fullModelName The full model name (e.g., 'tovyr-3-5-haiku-20241022')
+ * @returns The short name (e.g., 'tovyr-3-5-haiku') if found, or the original name if no mapping exists
  */
 export function getCanonicalName(fullModelName: ModelName): ModelShortName {
   // Resolve overridden model IDs (e.g. Bedrock ARNs) back to canonical names.
@@ -290,7 +314,7 @@ export function getCanonicalName(fullModelName: ModelName): ModelShortName {
 }
 
 // @[MODEL LAUNCH]: Update the default model description strings shown to users.
-export function getBlinkWebUserDefaultModelDescription(
+export function getTovyrWebUserDefaultModelDescription(
   fastMode = false,
 ): string {
   if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
@@ -332,7 +356,7 @@ export function isOpus1mMergeEnabled(): boolean {
   // isProSubscriber() returns false for such users and the merge leaks
   // opus[1m] into the model dropdown — the API then rejects it with a
   // misleading "rate limit reached" error.
-  if (isBlinkWebSubscriber() && getSubscriptionType() === null) {
+  if (isTovyrWebSubscriber() && getSubscriptionType() === null) {
     return false
   }
   return true
@@ -400,9 +424,9 @@ function maskModelCodename(baseName: string): string {
 }
 
 export function renderModelName(model: ModelName): string {
-  if (isBlinkRuntime()) {
-    const blinkLabel = lookupBlinkModelLabel(model)
-    if (blinkLabel) return blinkLabel
+  if (isTovyrRuntime()) {
+    const tovyrLabel = lookupTovyrModelLabel(model)
+    if (tovyrLabel) return tovyrLabel
   }
   const publicName = getPublicModelDisplayName(model)
   if (publicName) {
@@ -427,18 +451,18 @@ export function renderModelName(model: ModelName): string {
 
 /**
  * Returns a safe author name for public display (e.g., in git commit trailers).
- * Returns "Blink {ModelName}" for publicly known models, or "Blink ({model})"
+ * Returns "Tovyr {ModelName}" for publicly known models, or "Tovyr ({model})"
  * for unknown/internal models so the exact model name is preserved.
  *
  * @param model The full model name
- * @returns "Blink {ModelName}" for public models, or "Blink ({model})" for non-public models
+ * @returns "Tovyr {ModelName}" for public models, or "Tovyr ({model})" for non-public models
  */
 export function getPublicModelName(model: ModelName): string {
   const publicName = getPublicModelDisplayName(model)
   if (publicName) {
-    return `Blink ${publicName}`
+    return `Tovyr ${publicName}`
   }
-  return `Blink (${model})`
+  return `Tovyr (${model})`
 }
 
 /**
@@ -481,7 +505,7 @@ export function parseUserSpecifiedModel(
   }
 
   // Opus 4/4.1 are no longer available on the first-party API (same as
-  // Blink.ai) — silently remap to the current Opus default. The 'opus'
+  // Tovyr.ai) — silently remap to the current Opus default. The 'opus'
   // alias already resolves to 4.6, so the only users on these explicit
   // strings pinned them in settings/env/--model/SDK before 4.5 launched.
   // 3P providers may not yet have 4.6 capacity, so pass through unchanged.
@@ -538,7 +562,7 @@ export function resolveSkillModelOverride(
   if (has1mContext(skillModel) || !has1mContext(currentModel)) {
     return skillModel
   }
-  // modelSupports1M matches on canonical IDs ('blink-opus-4-6', 'blink-sonnet-4');
+  // modelSupports1M matches on canonical IDs ('tovyr-opus-4-6', 'tovyr-sonnet-4');
   // a bare 'opus' alias falls through getCanonicalName unmatched. Resolve first.
   if (modelSupports1M(parseUserSpecifiedModel(skillModel))) {
     return skillModel + '[1m]'
@@ -561,15 +585,15 @@ function isLegacyOpusFirstParty(model: string): boolean {
  * Opt-out for the legacy Opus 4.0/4.1 → current Opus remap.
  */
 export function isLegacyModelRemapEnabled(): boolean {
-  return !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_LEGACY_MODEL_REMAP)
+  return !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_LEGACY_MODEL_REMAP)
 }
 
 export function modelDisplayString(model: ModelSetting): string {
   if (model === null) {
     if (process.env.USER_TYPE === 'ant') {
       return `Default for Ants (${renderDefaultModelSetting(getDefaultMainLoopModelSetting())})`
-    } else if (isBlinkWebSubscriber()) {
-      return `Default (${getBlinkAiUserDefaultModelDescription()})`
+    } else if (isTovyrWebSubscriber()) {
+      return `Default (${getTovyrWebUserDefaultModelDescription()})`
     }
     return `Default (${getDefaultMainLoopModel()})`
   }
@@ -587,6 +611,18 @@ export function getMarketingNameForModel(modelId: string): string | undefined {
   const has1m = modelId.toLowerCase().includes('[1m]')
   const canonical = getCanonicalName(modelId)
 
+  if (canonical.includes('claude-mythos-5')) {
+    return 'Mythos 5'
+  }
+  if (canonical.includes('claude-fable-5')) {
+    return has1m ? 'Fable 5 (with 1M context)' : 'Fable 5'
+  }
+  if (canonical.includes('claude-opus-4-8')) {
+    return has1m ? 'Opus 4.8 (with 1M context)' : 'Opus 4.8'
+  }
+  if (canonical.includes('claude-opus-4-7')) {
+    return has1m ? 'Opus 4.7 (with 1M context)' : 'Opus 4.7'
+  }
   if (canonical.includes('claude-opus-4-6')) {
     return has1m ? 'Opus 4.6 (with 1M context)' : 'Opus 4.6'
   }
@@ -599,6 +635,9 @@ export function getMarketingNameForModel(modelId: string): string | undefined {
   if (canonical.includes('claude-opus-4')) {
     return 'Opus 4'
   }
+  if (canonical.includes('claude-sonnet-5')) {
+    return has1m ? 'Sonnet 5 (with 1M context)' : 'Sonnet 5'
+  }
   if (canonical.includes('claude-sonnet-4-6')) {
     return has1m ? 'Sonnet 4.6 (with 1M context)' : 'Sonnet 4.6'
   }
@@ -608,17 +647,20 @@ export function getMarketingNameForModel(modelId: string): string | undefined {
   if (canonical.includes('claude-sonnet-4')) {
     return has1m ? 'Sonnet 4 (with 1M context)' : 'Sonnet 4'
   }
+  if (canonical.includes('claude-sonnet')) {
+    return has1m ? 'Sonnet 5 (with 1M context)' : 'Sonnet 5'
+  }
   if (canonical.includes('claude-3-7-sonnet')) {
-    return 'Blink 3.7 Sonnet'
+    return 'Tovyr 3.7 Sonnet'
   }
   if (canonical.includes('claude-3-5-sonnet')) {
-    return 'Blink 3.5 Sonnet'
+    return 'Tovyr 3.5 Sonnet'
   }
   if (canonical.includes('claude-haiku-4-5')) {
     return 'Haiku 4.5'
   }
   if (canonical.includes('claude-3-5-haiku')) {
-    return 'Blink 3.5 Haiku'
+    return 'Tovyr 3.5 Haiku'
   }
 
   return undefined

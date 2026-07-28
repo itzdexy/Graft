@@ -40,13 +40,13 @@ export type SessionInfo = {
 }
 
 /**
- * Stable session key → session metadata. Persisted to ~/.blink/server-sessions.json
+ * Stable session key → session metadata. Persisted to ~/.tovyr/server-sessions.json
  * so sessions can be resumed across server restarts.
  */
 export type SessionIndexEntry = {
-  /** Server-assigned session ID (matches the subprocess's blink session). */
+  /** Server-assigned session ID (matches the subprocess's tovyr session). */
   sessionId: string
-  /** The blink transcript session ID for --resume. Same as sessionId for direct sessions. */
+  /** The tovyr transcript session ID for --resume. Same as sessionId for direct sessions. */
   transcriptSessionId: string
   cwd: string
   permissionMode?: string

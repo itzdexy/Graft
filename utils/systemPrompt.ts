@@ -16,7 +16,7 @@ export { asSystemPrompt, type SystemPrompt } from './systemPromptType.js'
 // into non-proactive builds.
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactiveModule =
-  feature('PROACTIVE') || feature('BLINKS')
+  feature('PROACTIVE') || feature('TOVYRS')
     ? (require('../proactive/index.js') as typeof import('../proactive/index.js'))
     : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -34,7 +34,7 @@ function isProactiveActive_SAFE_TO_CALL_ANYWHERE(): boolean {
  *      instructions on top of the autonomous agent prompt, like teammates do)
  *    - Otherwise: agent prompt REPLACES default
  * 3. Custom system prompt (if specified via --system-prompt)
- * 4. Default system prompt (the standard Blink prompt)
+ * 4. Default system prompt (the standard Tovyr prompt)
  *
  * Plus appendSystemPrompt is always added at the end if specified (except when override is set).
  */
@@ -61,7 +61,7 @@ export function buildEffectiveSystemPrompt({
   // dependency issues during test module loading.
   if (
     feature('COORDINATOR_MODE') &&
-    isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE) &&
+    isEnvTruthy(process.env.TOVYR_CODE_COORDINATOR_MODE) &&
     !mainThreadAgentDefinition
   ) {
     // Lazy require to avoid circular dependency at module load time
@@ -102,7 +102,7 @@ export function buildEffectiveSystemPrompt({
   // add domain-specific behavior on top — same pattern as teammates.
   if (
     agentSystemPrompt &&
-    (feature('PROACTIVE') || feature('BLINKS')) &&
+    (feature('PROACTIVE') || feature('TOVYRS')) &&
     isProactiveActive_SAFE_TO_CALL_ANYWHERE()
   ) {
     return asSystemPrompt([

@@ -4,8 +4,8 @@ import type { ReactNode } from 'react'
 import { COMMAND_MESSAGE_TAG } from '../../constants/xml.js'
 import { Box, Text } from '../../ink.js'
 import { extractTag } from '../../utils/messages.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
-import { BlinkUserCommandMessage } from '../blink/BlinkUserCommandMessage.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
+import { TovyrUserCommandMessage } from '../tovyr/TovyrUserCommandMessage.js'
 
 type Props = {
   addMargin: boolean
@@ -40,8 +40,8 @@ export function UserCommandMessage({
 
   const content = `/${[commandMessage, args].filter(Boolean).join(' ')}`
 
-  if (isBlinkRuntime()) {
-    return <BlinkUserCommandMessage content={content} addMargin={addMargin} />
+  if (isTovyrRuntime()) {
+    return <TovyrUserCommandMessage content={content} addMargin={addMargin} />
   }
 
   return (

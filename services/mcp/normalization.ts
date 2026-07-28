@@ -3,14 +3,14 @@
  * This file has no dependencies to avoid circular imports.
  */
 
-// Blink.ai server names are prefixed with this string
+// Tovyr.ai server names are prefixed with this string
 const CLAUDEAI_SERVER_PREFIX = 'claude.ai '
 
 /**
  * Normalize server names to be compatible with the API pattern ^[a-zA-Z0-9_-]{1,64}$
  * Replaces any invalid characters (including dots and spaces) with underscores.
  *
- * For blink web servers (names starting with "blink web "), also collapses
+ * For tovyr web servers (names starting with "tovyr web "), also collapses
  * consecutive underscores and strips leading/trailing underscores to prevent
  * interference with the __ delimiter used in MCP tool names.
  */

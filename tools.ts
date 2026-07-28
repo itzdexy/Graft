@@ -12,7 +12,7 @@ import { WebFetchTool } from './tools/WebFetchTool/WebFetchTool.js'
 import { TaskStopTool } from './tools/TaskStopTool/TaskStopTool.js'
 import { BriefTool } from './tools/BriefTool/BriefTool.js'
 import { BrowserUseTool } from './tools/BrowserUseTool/BrowserUseTool.js'
-import { BlinkWebTool } from './tools/BlinkWebTool/BlinkWebTool.js'
+import { TovyrWebTool } from './tools/TovyrWebTool/TovyrWebTool.js'
 // Dead code elimination: conditional import for ant-only tools
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const REPLTool =
@@ -25,7 +25,7 @@ const SuggestBackgroundPRTool =
         .SuggestBackgroundPRTool
     : null
 const SleepTool =
-  feature('PROACTIVE') || feature('BLINKS')
+  feature('PROACTIVE') || feature('TOVYRS')
     ? require('./tools/SleepTool/SleepTool.js').SleepTool
     : null
 const cronTools = feature('AGENT_TRIGGERS')
@@ -41,15 +41,15 @@ const RemoteTriggerTool = feature('AGENT_TRIGGERS_REMOTE')
 const MonitorTool = feature('MONITOR_TOOL')
   ? require('./tools/MonitorTool/MonitorTool.js').MonitorTool
   : null
-const SendUserFileTool = feature('BLINKS')
+const SendUserFileTool = feature('TOVYRS')
   ? require('./tools/SendUserFileTool/SendUserFileTool.js').SendUserFileTool
   : null
 const PushNotificationTool =
-  feature('BLINKS') || feature('BLINKS_PUSH_NOTIFICATION')
+  feature('TOVYRS') || feature('TOVYRS_PUSH_NOTIFICATION')
     ? require('./tools/PushNotificationTool/PushNotificationTool.js')
         .PushNotificationTool
     : null
-const SubscribePRTool = feature('BLINKS_GITHUB_WEBHOOKS')
+const SubscribePRTool = feature('TOVYRS_GITHUB_WEBHOOKS')
   ? require('./tools/SubscribePRTool/SubscribePRTool.js').SubscribePRTool
   : null
 /* eslint-enable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
@@ -93,10 +93,10 @@ import { TaskListTool } from './tools/TaskListTool/TaskListTool.js'
 import uniqBy from 'lodash-es/uniqBy.js'
 import { isToolSearchEnabledOptimistic } from './utils/toolSearch.js'
 import { isTodoV2Enabled } from './utils/tasks.js'
-// Dead code elimination: conditional import for CLAUDE_CODE_VERIFY_PLAN
+// Dead code elimination: conditional import for TOVYR_CODE_VERIFY_PLAN
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const VerifyPlanExecutionTool =
-  process.env.CLAUDE_CODE_VERIFY_PLAN === 'true'
+  process.env.TOVYR_CODE_VERIFY_PLAN === 'true'
     ? require('./tools/VerifyPlanExecutionTool/VerifyPlanExecutionTool.js')
         .VerifyPlanExecutionTool
     : null
@@ -144,7 +144,7 @@ import type { ToolPermissionContext } from './Tool.js'
 import { getDenyRuleForTool } from './utils/permissions/permissions.js'
 import { hasEmbeddedSearchTools } from './utils/embeddedTools.js'
 import { isEnvTruthy } from './utils/envUtils.js'
-import { isBlinkRuntime } from './utils/blinkRuntime.js'
+import { isTovyrRuntime } from './utils/tovyrRuntime.js'
 import { isPowerShellToolEnabled } from './utils/shell/shellToolUtils.js'
 import { isAgentSwarmsEnabled } from './utils/agentSwarmsEnabled.js'
 import { isWorktreeModeEnabled } from './utils/worktreeModeEnabled.js'
@@ -196,7 +196,7 @@ export function getToolsForDefaultPreset(): string[] {
  * This is the source of truth for ALL tools.
  */
 /**
- * NOTE: This MUST stay in sync with https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/blink_code_global_system_caching, in order to cache the system prompt across users.
+ * NOTE: This MUST stay in sync with https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/tovyr_code_global_system_caching, in order to cache the system prompt across users.
  */
 export function getAllBaseTools(): Tools {
   return [
@@ -204,7 +204,7 @@ export function getAllBaseTools(): Tools {
     TaskOutputTool,
     BashTool,
     // Ant-native builds have bfs/ugrep embedded in the bun binary (same ARGV0
-    // trick as ripgrep). When available, find/grep in Blink's shell are aliased
+    // trick as ripgrep). When available, find/grep in Tovyr's shell are aliased
     // to these fast tools, so the dedicated Glob/Grep tools are unnecessary.
     ...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),
     ExitPlanModeV2Tool,
@@ -244,7 +244,7 @@ export function getAllBaseTools(): Tools {
     ...(RemoteTriggerTool ? [RemoteTriggerTool] : []),
     ...(MonitorTool ? [MonitorTool] : []),
     BriefTool,
-    ...(isBlinkRuntime() ? [BrowserUseTool, BlinkWebTool] : []),
+    ...(isTovyrRuntime() ? [BrowserUseTool, TovyrWebTool] : []),
     ...(SendUserFileTool ? [SendUserFileTool] : []),
     ...(PushNotificationTool ? [PushNotificationTool] : []),
     ...(SubscribePRTool ? [SubscribePRTool] : []),
@@ -254,7 +254,7 @@ export function getAllBaseTools(): Tools {
     ListMcpResourcesTool,
     ReadMcpResourceTool,
     // Include ToolSearchTool when tool search might be enabled (optimistic check)
-    // The actual decision to defer tools happens at request time in blink.ts
+    // The actual decision to defer tools happens at request time in tovyr.ts
     ...(isToolSearchEnabledOptimistic() ? [ToolSearchTool] : []),
   ]
 }
@@ -277,7 +277,7 @@ export function filterToolsByDenyRules<
   return tools.filter(tool => !getDenyRuleForTool(permissionContext, tool))
 }
 
-/** Core built-in tools for --bare / CLAUDE_CODE_SIMPLE (fast launch, rich tooling). */
+/** Core built-in tools for --bare / TOVYR_CODE_SIMPLE (fast launch, rich tooling). */
 function getSimpleModeBaseTools(): Tool[] {
   const tools: Tool[] = [
     BashTool,
@@ -297,15 +297,15 @@ function getSimpleModeBaseTools(): Tool[] {
   ]
   const powerShell = getPowerShellTool()
   if (powerShell) tools.push(powerShell)
-  if (isBlinkRuntime()) {
-    tools.push(BlinkWebTool, BrowserUseTool)
+  if (isTovyrRuntime()) {
+    tools.push(TovyrWebTool, BrowserUseTool)
   }
   return tools
 }
 
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
   // Simple mode: expanded bare toolset (fast startup, no marketplace MCP flood)
-  if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
+  if (isEnvTruthy(process.env.TOVYR_CODE_SIMPLE)) {
     // --bare + REPL mode: REPL wraps Bash/Read/Edit/etc inside the VM, so
     // return REPL instead of the raw primitives. Matches the non-bare path
     // below which also hides REPL_ONLY_TOOLS when REPL is enabled.
@@ -386,7 +386,7 @@ export function assembleToolPool(
   const allowedMcpTools = filterToolsByDenyRules(mcpTools, permissionContext)
 
   // Sort each partition for prompt-cache stability, keeping built-ins as a
-  // contiguous prefix. The server's blink_code_system_cache_policy places a
+  // contiguous prefix. The server's tovyr_code_system_cache_policy places a
   // global cache breakpoint after the last prefix-matched built-in tool; a flat
   // sort would interleave MCP tools into built-ins and invalidate all downstream
   // cache keys whenever an MCP tool sorts between existing built-ins. uniqBy

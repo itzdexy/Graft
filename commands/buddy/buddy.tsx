@@ -12,7 +12,7 @@ import {
   rememberProjectFact,
   removeProjectFact,
   type MemoryCategory,
-} from '../../services/blink/buddy/memory.js'
+} from '../../services/tovyr/buddy/memory.js'
 import { getCwd } from '../../utils/cwd.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { renderToString } from '../../utils/staticRender.js'
@@ -21,8 +21,8 @@ import {
   getActiveModelId,
   getProvider,
   loadState,
-} from '../../scripts/blink-providers.js'
-import { randomBlinkTip } from '../../constants/blinkTips.js'
+} from '../../scripts/tovyr-providers.js'
+import { randomTovyrTip } from '../../constants/tovyrTips.js'
 
 function activeConnection(): { provider: string; model: string } {
   try {
@@ -43,7 +43,7 @@ function BuddyCard(): React.ReactNode {
     return (
       <Box flexDirection="column" paddingX={1}>
         <Text bold color="warning">
-          Blink Buddy
+          Tovyr Buddy
         </Text>
         <Text dimColor>Starting up - run again in a moment.</Text>
       </Box>
@@ -183,7 +183,7 @@ function BuddyTip(): React.ReactNode {
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text bold color="permission">Buddy Tip</Text>
-      <Text wrap="wrap">{randomBlinkTip()}</Text>
+      <Text wrap="wrap">{randomTovyrTip()}</Text>
     </Box>
   )
 }
@@ -220,7 +220,7 @@ export async function call(
   if (arg === 'pet') {
     const companion = getCompanion()
     if (!companion) {
-      onDone('Blink Buddy is still hatching - run again in a moment.')
+      onDone('Tovyr Buddy is still hatching - run again in a moment.')
       return null
     }
     return <PetAnimation companion={companion} onDone={() => onDone(`${companion.name} enjoyed the pets.`)} />
@@ -228,18 +228,18 @@ export async function call(
 
   if (arg === 'mute') {
     saveGlobalConfig({ companionMuted: true })
-    onDone('Blink Buddy muted.')
+    onDone('Tovyr Buddy muted.')
     return null
   }
 
   if (arg === 'unmute') {
     saveGlobalConfig({ companionMuted: false })
-    onDone('Blink Buddy unmuted.')
+    onDone('Tovyr Buddy unmuted.')
     return null
   }
 
   if (arg === 'tip') {
-    const tip = randomBlinkTip()
+    const tip = randomTovyrTip()
     onDone(tip)
     return <BuddyTip />
   }
@@ -318,7 +318,7 @@ export async function call(
   if (!config.companion) {
     saveGlobalConfig({
       companion: {
-        name: 'Blink Buddy',
+        name: 'Tovyr Buddy',
         personality:
           'Proactive senior engineer: architect, debugger, reviewer, and project manager.',
         hatchedAt: Date.now(),

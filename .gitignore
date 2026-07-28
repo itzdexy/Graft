@@ -9,9 +9,9 @@ node_modules/
 .env.*
 !.env.example
 
-# Blink user data (keys live in ~/.blink/, never in repo)
-.blink/
-**/.blink/api-key
+# Tovyr user data (keys live in ~/.tovyr/, never in repo)
+.tovyr/
+**/.tovyr/api-key
 **/providers.json
 **/active.json
 
@@ -44,22 +44,23 @@ cloning/
 codemode/
 
 # Local test / debug artifacts
-.blink-patched
-.blink-test-*
-_blink-test-*
+.tovyr-patched
+.tovyr-test-*
+_tovyr-test-*
 *.log
 
 # Build outputs
 build/
 .cache/
 dist/
+/runtime/
 installer/
 *.tgz
-blinkcode-*.tgz
+tovyrcode-*.tgz
 
 # Internal agent / upgrade notes (not for public repo)
-blinkcode-build-prompt.md
-blinkcode-upgrade-pack.md
+tovyrcode-build-prompt.md
+tovyrcode-upgrade-pack.md
 
 # OS junk
 .DS_Store

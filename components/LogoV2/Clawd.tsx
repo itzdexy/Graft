@@ -1,10 +1,10 @@
 /**
- * Blink mascot — re-exported from BlinkBuddy for backwards compatibility.
+ * Tovyr mascot — re-exported from TovyrBuddy for backwards compatibility.
  */
 export {
   Clawd,
-  BlinkBuddy,
-  BLINK_BUDDY_HEIGHT,
+  TovyrBuddy,
+  TOVYR_BUDDY_HEIGHT,
   type ClawdPose,
-  type BlinkBuddyPose,
-} from './BlinkBuddy.js'
+  type TovyrBuddyPose,
+} from './TovyrBuddy.js'

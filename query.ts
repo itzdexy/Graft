@@ -1,11 +1,11 @@
 /**
- * Blink Query Loop (Protected System)
+ * Tovyr Query Loop (Protected System)
  *
  * Core LLM query loop - the source of truth for message processing, tool execution,
  * auto-compaction, and error recovery. This is a protected system; do not redesign.
  *
- * Blink-specific extensions (provider failover, model correction) are injected via
- * conditional checks (isBlinkRuntime()) and do not alter the core loop behavior.
+ * Tovyr-specific extensions (provider failover, model correction) are injected via
+ * conditional checks (isTovyrRuntime()) and do not alter the core loop behavior.
  *
  * @module query
  */
@@ -123,45 +123,45 @@ import {
 } from './bootstrap/state.js'
 import { createBudgetTracker, checkTokenBudget } from './query/tokenBudget.js'
 import { count } from './utils/array.js'
-import { isBlinkRuntime } from './utils/blinkRuntime.js'
+import { isTovyrRuntime } from './utils/tovyrRuntime.js'
 import {
-  applyBlinkFailoverPlan,
-  applyBlinkModelCorrection,
-  ensureBlinkCompatibleModel,
-  ensureBlinkModelCacheWarm,
-  findBlinkFailoverPlan,
-  formatBlinkFailoverNotice,
-  findBlinkSameProviderVerifiedPlan,
-  formatBlinkNoApiKeyHelp,
+  applyTovyrFailoverPlan,
+  applyTovyrModelCorrection,
+  ensureTovyrCompatibleModel,
+  ensureTovyrModelCacheWarm,
+  findTovyrFailoverPlan,
+  formatTovyrFailoverNotice,
+  findTovyrSameProviderVerifiedPlan,
+  formatTovyrNoApiKeyHelp,
   getAssistantErrorText,
   isModelUnavailableErrorText,
-  repairBlinkOpenAiCompatRouting,
-} from './services/blink/providerFailover.js'
+  repairTovyrOpenAiCompatRouting,
+} from './services/tovyr/providerFailover.js'
 import {
   MAX_AIDER_RETRY_ROUNDS,
   buildAiderRetryUserMessage,
   isAiderSearchMissMessage,
-} from './services/blink/edits/aiderRetry.js'
+} from './services/tovyr/edits/aiderRetry.js'
 import {
   MAX_VERIFY_RECOVERY_ROUNDS,
-  runBlinkAutoVerifyIfNeeded,
-} from './services/blink/verify/autoVerifyLoop.js'
+  runTovyrAutoVerifyIfNeeded,
+} from './services/tovyr/verify/autoVerifyLoop.js'
 import {
   MAX_IMPLEMENTATION_RETRY_ROUNDS,
   buildImplementationNudgeMessage,
-  formatBlinkRecoveryNotice,
+  formatTovyrRecoveryNotice,
   getLastUserPromptText,
   implementationDeliveredOnDisk,
   isImplementationGuardEnabled,
   shouldNudgeImplementationComplete,
-  tryBlinkImplementationFileRecovery,
+  tryTovyrImplementationFileRecovery,
   toolBatchHadFailedFileWrite,
-} from './services/blink/intent/implementationGuard.js'
-import { isImplementationRequest } from './services/blink/intent/buildIntent.js'
+} from './services/tovyr/intent/implementationGuard.js'
+import { isImplementationRequest } from './services/tovyr/intent/buildIntent.js'
 import {
   getActiveProviderId,
   resolveActive,
-} from './scripts/blink-providers.js'
+} from './scripts/tovyr-providers.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const snipModule = feature('HISTORY_SNIP')
@@ -178,9 +178,11 @@ function* yieldMissingToolResultBlocks(
 ) {
   for (const assistantMessage of assistantMessages) {
     // Extract all tool use blocks from this assistant message
-    const toolUseBlocks = assistantMessage.message.content.filter(
-      content => content.type === 'tool_use',
-    ) as ToolUseBlock[]
+    const toolUseBlocks = (
+      Array.isArray(assistantMessage.message.content)
+        ? assistantMessage.message.content
+        : []
+    ).filter(content => content.type === 'tool_use') as ToolUseBlock[]
 
     // Emit an interruption message for each tool use
     for (const toolUse of toolUseBlocks) {
@@ -245,7 +247,7 @@ export type QueryParams = {
   // API task_budget (output_config.task_budget, beta task-budgets-2026-03-13).
   // Distinct from the tokenBudget +500k auto-continue feature. `total` is the
   // budget for the whole agentic turn; `remaining` is computed per iteration
-  // from cumulative API usage. See configureTaskBudgetParams in blink.ts.
+  // from cumulative API usage. See configureTaskBudgetParams in tovyr.ts.
   taskBudget?: { total: number }
   deps?: QueryDeps
 }
@@ -341,9 +343,9 @@ async function* queryLoop(
   // trigger point. Loop-local (not on State) to avoid touching the 7 continue
   // sites.
   let taskBudgetRemaining: number | undefined = undefined
-  let blinkFailoverAttempts = 0
-  const blinkFailoverExcluded: string[] = []
-  const blinkFailedModels: string[] = []
+  let tovyrFailoverAttempts = 0
+  const tovyrFailoverExcluded: string[] = []
+  const tovyrFailedModels: string[] = []
   let verifyRecoveryCount = 0
   let aiderRetryCount = 0
   let implementationRetryCount = 0
@@ -608,7 +610,7 @@ async function* queryLoop(
 
     const assistantMessages: AssistantMessage[] = []
     const toolResults: (UserMessage | AttachmentMessage)[] = []
-    // @see https://docs.blink.com/en/docs/build-with-blink/tool-use
+    // @see https://docs.tovyr.com/en/docs/build-with-tovyr/tool-use
     // Note: stop_reason === 'tool_use' is unreliable -- it's not always set correctly.
     // Set during streaming whenever a tool_use block arrives — the sole
     // loop-exit signal. If false after streaming, we're done (modulo stop-hook retry).
@@ -635,12 +637,12 @@ async function* queryLoop(
         doesMostRecentAssistantMessageExceed200k(messagesForQuery),
     })
 
-    if (isBlinkRuntime()) {
+    if (isTovyrRuntime()) {
       // Warm the live model list first so the guard can correct an unavailable
       // or free-form model (e.g. a hand-typed id on NVIDIA NIM) to a verified
       // one before we ever send the request — avoiding a 404 on every turn.
-      await ensureBlinkModelCacheWarm()
-      const guard = ensureBlinkCompatibleModel(currentModel)
+      await ensureTovyrModelCacheWarm()
+      const guard = ensureTovyrCompatibleModel(currentModel)
       if (!guard.ok) {
         yield createAssistantAPIErrorMessage({
           content: guard.message,
@@ -649,7 +651,7 @@ async function* queryLoop(
         return { reason: 'completed' }
       }
       if (guard.switched && guard.model !== currentModel) {
-        currentModel = await applyBlinkModelCorrection(guard.model, undefined, {
+        currentModel = await applyTovyrModelCorrection(guard.model, undefined, {
           setAppState: f => toolUseContext.setAppState(f),
         })
         toolUseContext.options.mainLoopModel = currentModel
@@ -908,9 +910,11 @@ async function* queryLoop(
             if (message.type === 'assistant') {
               assistantMessages.push(message)
 
-              const msgToolUseBlocks = message.message.content.filter(
-                content => content.type === 'tool_use',
-              ) as ToolUseBlock[]
+              const msgToolUseBlocks = (
+                Array.isArray(message.message.content)
+                  ? message.message.content
+                  : []
+              ).filter(content => content.type === 'tool_use') as ToolUseBlock[]
               if (msgToolUseBlocks.length > 0) {
                 toolUseBlocks.push(...msgToolUseBlocks)
                 needsFollowUp = true
@@ -1041,7 +1045,9 @@ async function* queryLoop(
       logEvent('tengu_query_error', {
         assistantMessages: assistantMessages.length,
         toolUses: assistantMessages.flatMap(_ =>
-          _.message.content.filter(content => content.type === 'tool_use'),
+          (Array.isArray(_.message.content) ? _.message.content : []).filter(
+            content => content.type === 'tool_use',
+          ),
         ).length,
 
         queryChainId: queryChainIdForAnalytics,
@@ -1281,7 +1287,7 @@ async function* queryLoop(
         if (
           capEnabled &&
           maxOutputTokensOverride === undefined &&
-          !process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS
+          !process.env.TOVYR_CODE_MAX_OUTPUT_TOKENS
         ) {
           logEvent('tengu_max_tokens_escalate', {
             escalatedTo: ESCALATED_MAX_TOKENS,
@@ -1338,48 +1344,48 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
-        blinkFailoverAttempts < 3 &&
+        isTovyrRuntime() &&
+        tovyrFailoverAttempts < 3 &&
         lastMessage?.type === 'assistant' &&
         lastMessage.isApiErrorMessage
       ) {
         const errText = getAssistantErrorText(lastMessage)
         if (isModelUnavailableErrorText(errText)) {
-          repairBlinkOpenAiCompatRouting()
+          repairTovyrOpenAiCompatRouting()
           if (!resolveActive()) {
             yield createAssistantAPIErrorMessage({
-              content: formatBlinkNoApiKeyHelp(),
+              content: formatTovyrNoApiKeyHelp(),
               error: 'authentication_failed',
             })
             return { reason: 'completed' }
           }
           // Ensure we have the live verified-model list before choosing a
           // recovery model (the pre-flight warm may have been cold/expired).
-          await ensureBlinkModelCacheWarm({ force: true })
+          await ensureTovyrModelCacheWarm({ force: true })
           const failedProviderId = getActiveProviderId()
           // Prefer the (opt-in) cross-provider/catalog failover plan, but always
           // fall back to a same-provider verified-model switch — that recovery
           // is safe and expected even when auto-failover is disabled, so the
           // user isn't stuck re-hitting the same 404.
           const plan =
-            findBlinkFailoverPlan(
+            findTovyrFailoverPlan(
               currentModel,
-              blinkFailoverExcluded,
-              blinkFailedModels,
+              tovyrFailoverExcluded,
+              tovyrFailedModels,
             ) ??
-            findBlinkSameProviderVerifiedPlan(currentModel, blinkFailedModels)
+            findTovyrSameProviderVerifiedPlan(currentModel, tovyrFailedModels)
           if (plan) {
-            blinkFailoverAttempts++
-            blinkFailedModels.push(currentModel)
+            tovyrFailoverAttempts++
+            tovyrFailedModels.push(currentModel)
             if (plan.providerId !== failedProviderId) {
-              blinkFailoverExcluded.push(failedProviderId)
+              tovyrFailoverExcluded.push(failedProviderId)
             }
-            await applyBlinkFailoverPlan(plan, {
+            await applyTovyrFailoverPlan(plan, {
               setAppState: f => toolUseContext.setAppState(f),
             })
             currentModel = plan.model
             toolUseContext.options.mainLoopModel = plan.model
-            yield createSystemMessage(formatBlinkFailoverNotice(plan), 'warning')
+            yield createSystemMessage(formatTovyrFailoverNotice(plan), 'warning')
             const next: State = {
               messages: messagesForQuery,
               toolUseContext,
@@ -1390,7 +1396,7 @@ async function* queryLoop(
               pendingToolUseSummary: undefined,
               stopHookActive: undefined,
               turnCount,
-              transition: { reason: 'blink_provider_failover' },
+              transition: { reason: 'tovyr_provider_failover' },
             }
             state = next
             continue
@@ -1399,7 +1405,7 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
+        isTovyrRuntime() &&
         aiderRetryCount < MAX_AIDER_RETRY_ROUNDS &&
         lastMessage?.type === 'assistant' &&
         !lastMessage.isApiErrorMessage
@@ -1445,7 +1451,7 @@ async function* queryLoop(
             pendingToolUseSummary: undefined,
             stopHookActive: undefined,
             turnCount,
-            transition: { reason: 'blink_aider_retry' },
+            transition: { reason: 'tovyr_aider_retry' },
           }
           state = next
           continue
@@ -1453,12 +1459,12 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
+        isTovyrRuntime() &&
         verifyRecoveryCount < MAX_VERIFY_RECOVERY_ROUNDS &&
         lastMessage?.type === 'assistant' &&
         !lastMessage.isApiErrorMessage
       ) {
-        const verify = await runBlinkAutoVerifyIfNeeded(permissionMode)
+        const verify = await runTovyrAutoVerifyIfNeeded(permissionMode)
         if (verify.kind === 'passed' || verify.kind === 'lint_only') {
           yield createSystemMessage(verify.message, 'info')
         } else if (verify.kind === 'failed') {
@@ -1481,7 +1487,7 @@ async function* queryLoop(
             pendingToolUseSummary: undefined,
             stopHookActive: undefined,
             turnCount,
-            transition: { reason: 'blink_verify_recovery' },
+            transition: { reason: 'tovyr_verify_recovery' },
           }
           state = next
           continue
@@ -1489,11 +1495,11 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
+        isTovyrRuntime() &&
         lastMessage?.type === 'assistant' &&
         !lastMessage.isApiErrorMessage
       ) {
-        const recovery = await tryBlinkImplementationFileRecovery(
+        const recovery = await tryTovyrImplementationFileRecovery(
           messagesForQuery,
           assistantMessages,
           permissionMode,
@@ -1502,7 +1508,7 @@ async function* queryLoop(
           { allowStarterFallback: false },
         )
         if (recovery.wrote) {
-          const notice = formatBlinkRecoveryNotice(
+          const notice = formatTovyrRecoveryNotice(
             recovery.path,
             recovery.source,
           )
@@ -1512,7 +1518,7 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
+        isTovyrRuntime() &&
         isImplementationGuardEnabled() &&
         implementationRetryCount < MAX_IMPLEMENTATION_RETRY_ROUNDS &&
         lastMessage?.type === 'assistant' &&
@@ -1543,7 +1549,7 @@ async function* queryLoop(
             pendingToolUseSummary: undefined,
             stopHookActive: undefined,
             turnCount,
-            transition: { reason: 'blink_implementation_nudge' },
+            transition: { reason: 'tovyr_implementation_nudge' },
           }
           state = next
           continue
@@ -1551,7 +1557,7 @@ async function* queryLoop(
       }
 
       if (
-        isBlinkRuntime() &&
+        isTovyrRuntime() &&
         isImplementationGuardEnabled() &&
         implementationRetryCount >= MAX_IMPLEMENTATION_RETRY_ROUNDS &&
         lastMessage?.type === 'assistant' &&
@@ -1565,14 +1571,14 @@ async function* queryLoop(
             permissionMode,
           ).nudge
         ) {
-          const recovery = await tryBlinkImplementationFileRecovery(
+          const recovery = await tryTovyrImplementationFileRecovery(
             messagesForQuery,
             assistantMessages,
             permissionMode,
             toolResults,
           )
           if (recovery.wrote) {
-            const notice = formatBlinkRecoveryNotice(
+            const notice = formatTovyrRecoveryNotice(
               recovery.path,
               recovery.source,
               undefined,
@@ -1738,7 +1744,7 @@ async function* queryLoop(
     queryCheckpoint('query_tool_execution_end')
 
     if (
-      isBlinkRuntime() &&
+      isTovyrRuntime() &&
       !toolUseContext.abortController.signal.aborted &&
       !shouldPreventContinuation
     ) {
@@ -1753,7 +1759,7 @@ async function* queryLoop(
             toolResults,
           ))
       if (needsImplementationRecovery) {
-        const recovery = await tryBlinkImplementationFileRecovery(
+        const recovery = await tryTovyrImplementationFileRecovery(
           messagesForQuery,
           assistantMessages,
           permissionMode,
@@ -1762,7 +1768,7 @@ async function* queryLoop(
           { allowStarterFallback: false },
         )
         if (recovery.wrote) {
-          const notice = formatBlinkRecoveryNotice(
+          const notice = formatTovyrRecoveryNotice(
             recovery.path,
             recovery.source,
             undefined,
@@ -1788,9 +1794,11 @@ async function* queryLoop(
       const lastAssistantMessage = assistantMessages.at(-1)
       let lastAssistantText: string | undefined
       if (lastAssistantMessage) {
-        const textBlocks = lastAssistantMessage.message.content.filter(
-          block => block.type === 'text',
-        )
+        const textBlocks = (
+          Array.isArray(lastAssistantMessage.message.content)
+            ? lastAssistantMessage.message.content
+            : []
+        ).filter(block => block.type === 'text')
         if (textBlocks.length > 0) {
           const lastTextBlock = textBlocks.at(-1)
           if (lastTextBlock && 'text' in lastTextBlock) {
@@ -1911,7 +1919,7 @@ async function* queryLoop(
     })
 
     // Get queued commands snapshot before processing attachments.
-    // These will be sent as attachments so Blink can respond to them in the current turn.
+    // These will be sent as attachments so Tovyr can respond to them in the current turn.
     //
     // Drain pending notifications. LocalShellTask completions are 'next'
     // (when MONITOR_TOOL is on) and drain without Sleep. Other task types
@@ -2044,7 +2052,7 @@ async function* queryLoop(
     // Each time we have tool results and are about to recurse, that's a turn
     const nextTurnCount = turnCount + 1
 
-    // Periodic task summary for `blink ps` — fires mid-turn so a
+    // Periodic task summary for `tovyr ps` — fires mid-turn so a
     // long-running agent still refreshes what it's working on. Gated
     // only on !agentId so every top-level conversation (REPL, SDK, HFI,
     // remote) generates summaries; subagents/forks don't.

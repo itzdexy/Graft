@@ -1,10 +1,11 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { getInitialMainLoopModel } from '../../bootstrap/state.js'
 import {
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
   isMaxSubscriber,
   isTeamPremiumSubscriber,
 } from '../auth.js'
+import { getAntModels } from './antModels.js'
 import { getModelStrings } from './modelStrings.js'
 import {
   COST_TIER_3_15,
@@ -18,7 +19,7 @@ import { getAPIProvider } from './providers.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import {
   getCanonicalName,
-  getBlinkWebUserDefaultModelDescription,
+  getTovyrWebUserDefaultModelDescription,
   getDefaultSonnetModel,
   getDefaultOpusModel,
   getDefaultHaikuModel,
@@ -32,8 +33,12 @@ import {
 } from './model.js'
 import { has1mContext } from '../context.js'
 import { getGlobalConfig } from '../config.js'
-import { isBlinkRuntime } from '../blinkRuntime.js'
-import { formatPickerCapabilityBadges } from '../../services/blink/modelCapabilities.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
+import { formatPickerCapabilityBadges } from '../../services/tovyr/modelCapabilities.js'
+// @ts-ignore: plain JS provider module has no type declarations
+import { getDefaultModelId, getProvider, resolveActive } from '../../scripts/tovyr-providers.js'
+// @ts-ignore: plain JS provider module has no type declarations
+import { sortModelsBestToWorst } from '../../scripts/tovyr-provider-catalog.js'
 
 // @[MODEL LAUNCH]: Update all the available and default model option strings below.
 
@@ -58,11 +63,11 @@ export function getDefaultOptionForUser(fastMode = false): ModelOption {
   }
 
   // Subscribers
-  if (isBlinkWebSubscriber()) {
+  if (isTovyrWebSubscriber()) {
     return {
       value: null,
       label: 'Default (recommended)',
-      description: getBlinkWebUserDefaultModelDescription(fastMode),
+      description: getTovyrWebUserDefaultModelDescription(fastMode),
     }
   }
 
@@ -95,14 +100,16 @@ function getCustomSonnetOption(): ModelOption | undefined {
 
 // @[MODEL LAUNCH]: Update or add model option functions (getSonnetXXOption, getOpusXXOption, etc.)
 // with the new model's label and description. These appear in the /model picker.
-function getSonnet46Option(): ModelOption {
+function getSonnetOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
+  const defaultSonnet = getDefaultSonnetModel()
+  const marketing = getMarketingNameForModel(defaultSonnet) ?? 'Sonnet'
   return {
-    value: is3P ? getModelStrings().sonnet46 : 'sonnet',
+    value: is3P ? defaultSonnet : 'sonnet',
     label: 'Sonnet',
-    description: `Sonnet 4.6 · Best for everyday tasks${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
+    description: `${marketing} · Best for everyday tasks${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
     descriptionForModel:
-      'Sonnet 4.6 - best for everyday tasks. Generally recommended for most coding tasks',
+      `${marketing} - best for everyday tasks. Generally recommended for most coding tasks`,
   }
 }
 
@@ -132,35 +139,41 @@ function getOpus41Option(): ModelOption {
   }
 }
 
-function getOpus46Option(fastMode = false): ModelOption {
+function getOpusOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
+  const defaultOpus = getDefaultOpusModel()
+  const marketing = getMarketingNameForModel(defaultOpus) ?? 'Opus'
   return {
-    value: is3P ? getModelStrings().opus46 : 'opus',
+    value: is3P ? defaultOpus : 'opus',
     label: 'Opus',
-    description: `Opus 4.6 · Most capable for complex work${getOpus46PricingSuffix(fastMode)}`,
-    descriptionForModel: 'Opus 4.6 - most capable for complex work',
+    description: `${marketing} · Most capable for complex work${getOpus46PricingSuffix(fastMode)}`,
+    descriptionForModel: `${marketing} - most capable for complex work`,
   }
 }
 
 export function getSonnet46_1MOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
+  const defaultSonnet = getDefaultSonnetModel()
+  const marketing = getMarketingNameForModel(defaultSonnet) ?? 'Sonnet'
   return {
-    value: is3P ? getModelStrings().sonnet46 + '[1m]' : 'sonnet[1m]',
+    value: is3P ? defaultSonnet + '[1m]' : 'sonnet[1m]',
     label: 'Sonnet (1M context)',
-    description: `Sonnet 4.6 for long sessions${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
+    description: `${marketing} for long sessions${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
     descriptionForModel:
-      'Sonnet 4.6 with 1M context window - for long sessions with large codebases',
+      `${marketing} with 1M context window - for long sessions with large codebases`,
   }
 }
 
 export function getOpus46_1MOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
+  const defaultOpus = getDefaultOpusModel()
+  const marketing = getMarketingNameForModel(defaultOpus) ?? 'Opus'
   return {
-    value: is3P ? getModelStrings().opus46 + '[1m]' : 'opus[1m]',
+    value: is3P ? defaultOpus + '[1m]' : 'opus[1m]',
     label: 'Opus (1M context)',
-    description: `Opus 4.6 for long sessions${getOpus46PricingSuffix(fastMode)}`,
+    description: `${marketing} for long sessions${getOpus46PricingSuffix(fastMode)}`,
     descriptionForModel:
-      'Opus 4.6 with 1M context window - for long sessions with large codebases',
+      `${marketing} with 1M context window - for long sessions with large codebases`,
   }
 }
 
@@ -211,47 +224,54 @@ function getHaikuOption(): ModelOption {
 }
 
 function getMaxOpusOption(fastMode = false): ModelOption {
+  const defaultOpus = getDefaultOpusModel()
+  const marketing = getMarketingNameForModel(defaultOpus) ?? 'Opus'
   return {
     value: 'opus',
     label: 'Opus',
-    description: `Opus 4.6 · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`,
+    description: `${marketing} · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`,
   }
 }
 
 export function getMaxSonnet46_1MOption(): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
-  const billingInfo = isBlinkWebSubscriber() ? ' · Billed as extra usage' : ''
+  const billingInfo = isTovyrWebSubscriber() ? ' · Billed as extra usage' : ''
+  const defaultSonnet = getDefaultSonnetModel()
+  const marketing = getMarketingNameForModel(defaultSonnet) ?? 'Sonnet'
   return {
     value: 'sonnet[1m]',
     label: 'Sonnet (1M context)',
-    description: `Sonnet 4.6 with 1M context${billingInfo}${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
+    description: `${marketing} with 1M context${billingInfo}${is3P ? '' : ` · ${formatModelPricing(COST_TIER_3_15)}`}`,
   }
 }
 
 export function getMaxOpus46_1MOption(fastMode = false): ModelOption {
-  const billingInfo = isBlinkWebSubscriber() ? ' · Billed as extra usage' : ''
+  const billingInfo = isTovyrWebSubscriber() ? ' · Billed as extra usage' : ''
+  const defaultOpus = getDefaultOpusModel()
+  const marketing = getMarketingNameForModel(defaultOpus) ?? 'Opus'
   return {
     value: 'opus[1m]',
     label: 'Opus (1M context)',
-    description: `Opus 4.6 with 1M context${billingInfo}${getOpus46PricingSuffix(fastMode)}`,
+    description: `${marketing} with 1M context${billingInfo}${getOpus46PricingSuffix(fastMode)}`,
   }
 }
 
 function getMergedOpus1MOption(fastMode = false): ModelOption {
   const is3P = getAPIProvider() !== 'firstParty'
+  const defaultOpus = getDefaultOpusModel()
   return {
-    value: is3P ? getModelStrings().opus46 + '[1m]' : 'opus[1m]',
+    value: is3P ? defaultOpus + '[1m]' : 'opus[1m]',
     label: 'Opus (1M context)',
-    description: `Opus 4.6 with 1M context · Most capable for complex work${!is3P && fastMode ? getOpus46PricingSuffix(fastMode) : ''}`,
+    description: `Opus with 1M context · Most capable for complex work${!is3P && fastMode ? getOpus46PricingSuffix(fastMode) : ''}`,
     descriptionForModel:
-      'Opus 4.6 with 1M context - most capable for complex work',
+      'Opus with 1M context - most capable for complex work',
   }
 }
 
 const MaxSonnet46Option: ModelOption = {
   value: 'sonnet',
   label: 'Sonnet',
-  description: 'Sonnet 4.6 · Best for everyday tasks',
+  description: 'Sonnet · Best for everyday tasks',
 }
 
 const MaxHaiku45Option: ModelOption = {
@@ -264,13 +284,53 @@ function getOpusPlanOption(): ModelOption {
   return {
     value: 'opusplan',
     label: 'Opus Plan Mode',
-    description: 'Use Opus 4.6 in plan mode, Sonnet 4.6 otherwise',
+    description: 'Use Opus in plan mode, Sonnet otherwise',
   }
+}
+
+function getModelOptionsForActiveProvider(
+  provider: any,
+  fastMode = false,
+): ModelOption[] {
+  const defaultModel = getDefaultModelId(provider)
+  const options: ModelOption[] = [
+    {
+      value: null,
+      label: 'Default (recommended)',
+      description: `Use the default model for ${provider.label} (currently ${defaultModel || 'unknown'})`,
+      descriptionForModel: `Default model (currently ${defaultModel || 'unknown'})`,
+    },
+  ]
+
+  const models = provider.models ? sortModelsBestToWorst(provider.models) : []
+  for (const model of models) {
+    const label = model.label || model.id
+    const tier = model.tier ? ` · ${model.tier} tier` : ''
+    const context = model.context ? ` · ${model.context}` : ''
+    options.push({
+      value: model.id,
+      label,
+      description: `${label}${tier}${context}`,
+      descriptionForModel: `${label} (${model.id})`,
+    })
+  }
+
+  return options
 }
 
 // @[MODEL LAUNCH]: Update the model picker lists below to include/reorder options for the new model.
 // Each user tier (ant, Max/Team Premium, Pro/Team Standard/Enterprise, PAYG 1P, PAYG 3P) has its own list.
 function getModelOptionsBase(fastMode = false): ModelOption[] {
+  if (isTovyrRuntime()) {
+    const active = resolveActive()
+    if (active?.providerId) {
+      const provider = getProvider(active.providerId)
+      if (provider?.models?.length) {
+        return getModelOptionsForActiveProvider(provider, fastMode)
+      }
+    }
+  }
+
   if (process.env.USER_TYPE === 'ant') {
     // Build options from antModels config
     const antModelOptions: ModelOption[] = getAntModels().map(m => ({
@@ -283,13 +343,13 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
       getDefaultOptionForUser(),
       ...antModelOptions,
       getMergedOpus1MOption(fastMode),
-      getSonnet46Option(),
+      getSonnetOption(),
       getSonnet46_1MOption(),
       getHaiku45Option(),
     ]
   }
 
-  if (isBlinkWebSubscriber()) {
+  if (isTovyrWebSubscriber()) {
     if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
       // Max and Team Premium users: Opus is default, show Sonnet as alternative
       const premiumOptions = [getDefaultOptionForUser(fastMode)]
@@ -334,7 +394,7 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     if (isOpus1mMergeEnabled()) {
       payg1POptions.push(getMergedOpus1MOption(fastMode))
     } else {
-      payg1POptions.push(getOpus46Option(fastMode))
+      payg1POptions.push(getOpusOption(fastMode))
       if (checkOpus1mAccess()) {
         payg1POptions.push(getOpus46_1MOption(fastMode))
       }
@@ -350,8 +410,8 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
   if (customSonnet !== undefined) {
     payg3pOptions.push(customSonnet)
   } else {
-    // Add Sonnet 4.6 since Sonnet 4.5 is the default
-    payg3pOptions.push(getSonnet46Option())
+    // Add explicit Sonnet option since the default may be a newer version
+    payg3pOptions.push(getSonnetOption())
     if (checkSonnet1mAccess()) {
       payg3pOptions.push(getSonnet46_1MOption())
     }
@@ -361,9 +421,9 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
   if (customOpus !== undefined) {
     payg3pOptions.push(customOpus)
   } else {
-    // Add Opus 4.1, Opus 4.6 and Opus 4.6 1M
-    payg3pOptions.push(getOpus41Option()) // This is the default opus
-    payg3pOptions.push(getOpus46Option(fastMode))
+    // Add Opus 4.1 and the latest explicit Opus / Opus 1M options
+    payg3pOptions.push(getOpus41Option()) // Legacy opus
+    payg3pOptions.push(getOpusOption(fastMode))
     if (checkOpus1mAccess()) {
       payg3pOptions.push(getOpus46_1MOption(fastMode))
     }
@@ -391,8 +451,8 @@ function getModelFamilyInfo(
 
   // Sonnet family
   if (
-    canonical.includes('claude-sonnet-4-6') ||
-    canonical.includes('claude-sonnet-4-5') ||
+    canonical.includes('claude-sonnet') ||
+    canonical.includes('claude-sonnet') ||
     canonical.includes('claude-sonnet-4-') ||
     canonical.includes('claude-3-7-sonnet') ||
     canonical.includes('claude-3-5-sonnet')
@@ -426,7 +486,7 @@ function getModelFamilyInfo(
 }
 
 /**
- * Returns a ModelOption for a known Blink model with a human-readable
+ * Returns a ModelOption for a known Tovyr model with a human-readable
  * label, and an upgrade hint if a newer version is available via the alias.
  * Returns null if the model is not recognized.
  */
@@ -512,7 +572,7 @@ export function getModelOptions(fastMode = false): ModelOption[] {
       getMergedOpus1MOption(fastMode),
     ])
   } else {
-    // Try to show a human-readable label for known Blink models, with an
+    // Try to show a human-readable label for known Tovyr models, with an
     // upgrade hint if the alias now resolves to a newer version.
     const knownOption = getKnownModelOption(customModel)
     if (knownOption) {
@@ -527,13 +587,31 @@ export function getModelOptions(fastMode = false): ModelOption[] {
     result = filterModelOptionsByAllowlist(options)
   }
 
+  // When a Tovyr provider is active, drop options whose model is not in the
+  // provider's catalog (unless it accepts arbitrary model ids). The Default
+  // option and the picker itself will still preserve the user's current value.
+  if (isTovyrRuntime()) {
+    const active = resolveActive()
+    if (active?.providerId) {
+      const provider = getProvider(active.providerId)
+      if (provider && !provider.anyModel && provider.models?.length) {
+        const allowed = new Set((provider.models || []).map((m: any) => m.id))
+        result = result.filter(
+          opt =>
+            opt.value === null ||
+            (opt.value !== null && allowed.has(String(opt.value))),
+        )
+      }
+    }
+  }
+
   return decorateModelOptionsWithCapabilityBadges(result)
 }
 
 function decorateModelOptionsWithCapabilityBadges(
   options: ModelOption[],
 ): ModelOption[] {
-  if (!isBlinkRuntime()) return options
+  if (!isTovyrRuntime()) return options
   return options.map(opt => {
     if (opt.value == null) return opt
     const badges = formatPickerCapabilityBadges(String(opt.value))

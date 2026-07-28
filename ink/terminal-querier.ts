@@ -149,7 +149,7 @@ export class TerminalQuerier {
   send<T extends TerminalResponse>(
     query: TerminalQuery<T>,
   ): Promise<T | undefined> {
-    if (isEnvTruthy(process.env.BLINK_SKIP_TERMINAL_QUERIES)) {
+    if (isEnvTruthy(process.env.TOVYR_SKIP_TERMINAL_QUERIES)) {
       return Promise.resolve(undefined)
     }
     return new Promise(resolve => {
@@ -172,7 +172,7 @@ export class TerminalQuerier {
    * Safe to call with no pending queries — still waits for a round-trip.
    */
   flush(): Promise<void> {
-    if (isEnvTruthy(process.env.BLINK_SKIP_TERMINAL_QUERIES)) {
+    if (isEnvTruthy(process.env.TOVYR_SKIP_TERMINAL_QUERIES)) {
       return Promise.resolve()
     }
     return new Promise(resolve => {

@@ -6,14 +6,14 @@
  * local UI / bridge / hooks / classifier. First resolver wins via claim().
  *
  * Inbound is a structured event: the server parses the user's "yes tbxkq"
- * reply and emits notifications/blink/channel/permission with
+ * reply and emits notifications/tovyr/channel/permission with
  * {request_id, behavior}. CC never sees the reply as text — approval
  * requires the server to deliberately emit that specific event, not just
  * relay content. Servers opt in by declaring
- * capabilities.experimental['blink/channel/permission'].
+ * capabilities.experimental['tovyr/channel/permission'].
  *
- * Kenneth's "would this let Blink self-approve?": the approving party is
- * the human via the channel, not Blink. But the trust boundary isn't the
+ * Kenneth's "would this let Tovyr self-approve?": the approving party is
+ * the human via the channel, not Tovyr. But the trust boundary isn't the
  * terminal — it's the allowlist (tengu_harbor_ledger). A compromised
  * channel server CAN fabricate "yes <id>" without the human seeing the
  * prompt. Accepted risk: a compromised channel already has unlimited
@@ -50,7 +50,7 @@ export type ChannelPermissionCallbacks = {
     handler: (response: ChannelPermissionResponse) => void,
   ): () => void
   /** Resolve a pending request from a structured channel event
-   *  (notifications/blink/channel/permission). Returns true if the ID
+   *  (notifications/tovyr/channel/permission). Returns true if the ID
    *  was pending — the server parsed the user's reply and emitted
    *  {request_id, behavior}; we just match against the map. */
   resolve(
@@ -68,7 +68,7 @@ export type ChannelPermissionCallbacks = {
  * autocorrect). No bare yes/no (conversational). No prefix/suffix chatter.
  *
  * CC generates the ID and sends the prompt. The SERVER parses the user's
- * reply and emits notifications/blink/channel/permission with {request_id,
+ * reply and emits notifications/tovyr/channel/permission with {request_id,
  * behavior} — CC doesn't regex-match text anymore. Exported so plugins can
  * import the exact regex rather than hand-copying it.
  */
@@ -201,7 +201,7 @@ export function filterPermissionRelayClients<
  * a React hook, stable reference stored in AppState.
  *
  * resolve() is called from the dedicated notification handler
- * (notifications/blink/channel/permission) with the structured payload.
+ * (notifications/tovyr/channel/permission) with the structured payload.
  * The server already parsed "yes tbxkq" → {request_id, behavior}; we just
  * match against the pending map. No regex on CC's side — text in the
  * general channel can't accidentally approve anything.

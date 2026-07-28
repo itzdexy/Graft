@@ -5,6 +5,6 @@
  * import without pulling in auth.ts and its transitive dependency tree.
  */
 
-export function getBlinkCodeUserAgent(): string {
-  return `blink/${MACRO.VERSION}`
+export function getTovyrCodeUserAgent(): string {
+  return `tovyr/${MACRO.VERSION}`
 }

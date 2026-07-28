@@ -1,7 +1,7 @@
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import { AGENT_TOOL_NAME } from '../../tools/AgentTool/constants.js'
 import { registerBundledSkill } from '../bundledSkills.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 
 const PROMPT = `# Subagent-driven development
 
@@ -37,7 +37,7 @@ export function registerSubagentDrivenDevelopmentSkill(): void {
     whenToUse:
       'Large multi-file features, parallel research, or when context is getting crowded',
     userInvocable: true,
-    isEnabled: () => isBlinkRuntime(),
+    isEnabled: () => isTovyrRuntime(),
     async getPromptForCommand(): Promise<ContentBlockParam[]> {
       return [{ type: 'text', text: PROMPT }]
     },

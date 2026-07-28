@@ -167,7 +167,7 @@ class ProviderManager {
       },
     });
 
-    // Blink
+    // Tovyr
     this.registerProvider({
       name: 'anthropic',
       type: 'anthropic',
@@ -302,7 +302,7 @@ class ProviderManager {
     options: ChatCompletionOptions
   ): Promise<ChatCompletionResponse> {
     // In a real implementation, this would make actual API calls
-    // based on the provider type (OpenAI, Blink, etc.)
+    // based on the provider type (OpenAI, Tovyr, etc.)
     
     const startTime = Date.now();
     

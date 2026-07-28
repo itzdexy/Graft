@@ -58,7 +58,7 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     // dialog needs the terminal). Disable entry too so plan mode isn't a
     // trap the model can enter but never leave.
     if (
-      (feature('BLINKS') || feature('BLINKS_CHANNELS')) &&
+      (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) &&
       getAllowedChannels().length > 0
     ) {
       return false

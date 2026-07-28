@@ -113,7 +113,7 @@ function generateReservedShortcuts(): string {
 
 const FILE_FORMAT_EXAMPLE: KeybindingsSchemaType = {
   $schema: 'https://www.schemastore.org/claude-code-keybindings.json',
-  $docs: 'https://github.com/itsdexy/BlinkCode/blob/main/docs/GUIDE.md',
+  $docs: 'https://github.com/itsdexy/Tovyr/blob/main/docs/GUIDE.md',
   bindings: [
     {
       context: 'Chat',

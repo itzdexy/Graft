@@ -1,11 +1,11 @@
 import { z } from 'zod/v4'
 import { buildTool } from '../../Tool.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import {
   isBrowserUseConfigured,
   runBrowserUseTask,
-} from '../../services/blink/browser/cloudClient.js'
+} from '../../services/tovyr/browser/cloudClient.js'
 
 export const BROWSER_USE_TOOL_NAME = 'BrowserUse'
 
@@ -33,12 +33,12 @@ export const BrowserUseTool = buildTool({
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   isEnabled() {
-    return isBlinkRuntime() && isBrowserUseConfigured()
+    return isTovyrRuntime() && isBrowserUseConfigured()
   },
   async description(input) {
     const task = (input as { task?: string }).task ?? ''
     const preview = task.length > 80 ? `${task.slice(0, 77)}…` : task
-    return `Blink wants to run a cloud browser task: ${preview}`
+    return `Tovyr wants to run a cloud browser task: ${preview}`
   },
   userFacingName() {
     return 'Browser'

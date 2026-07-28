@@ -65,7 +65,7 @@ class LocalizationSystem {
         info: 'Information',
       },
       ui: {
-        welcome: 'Welcome to Blink',
+        welcome: 'Welcome to Tovyr',
         start: 'Start',
         stop: 'Stop',
         settings: 'Settings',
@@ -106,7 +106,7 @@ class LocalizationSystem {
         info: 'Información',
       },
       ui: {
-        welcome: 'Bienvenido a Blink',
+        welcome: 'Bienvenido a Tovyr',
         start: 'Iniciar',
         stop: 'Detener',
         settings: 'Configuración',
@@ -147,7 +147,7 @@ class LocalizationSystem {
         info: 'Information',
       },
       ui: {
-        welcome: 'Bienvenue dans Blink',
+        welcome: 'Bienvenue dans Tovyr',
         start: 'Démarrer',
         stop: 'Arrêter',
         settings: 'Paramètres',
@@ -188,7 +188,7 @@ class LocalizationSystem {
         info: 'Information',
       },
       ui: {
-        welcome: 'Willkommen bei Blink',
+        welcome: 'Willkommen bei Tovyr',
         start: 'Starten',
         stop: 'Stoppen',
         settings: 'Einstellungen',
@@ -229,7 +229,7 @@ class LocalizationSystem {
         info: '情報',
       },
       ui: {
-        welcome: 'Blinkへようこそ',
+        welcome: 'Tovyrへようこそ',
         start: '開始',
         stop: '停止',
         settings: '設定',
@@ -270,7 +270,7 @@ class LocalizationSystem {
         info: '信息',
       },
       ui: {
-        welcome: '欢迎使用 Blink',
+        welcome: '欢迎使用 Tovyr',
         start: '开始',
         stop: '停止',
         settings: '设置',
@@ -311,7 +311,7 @@ class LocalizationSystem {
         info: 'Informação',
       },
       ui: {
-        welcome: 'Bem-vindo ao Blink',
+        welcome: 'Bem-vindo ao Tovyr',
         start: 'Iniciar',
         stop: 'Parar',
         settings: 'Configurações',
@@ -352,7 +352,7 @@ class LocalizationSystem {
         info: 'Информация',
       },
       ui: {
-        welcome: 'Добро пожаловать в Blink',
+        welcome: 'Добро пожаловать в Tovyr',
         start: 'Начать',
         stop: 'Остановить',
         settings: 'Настройки',
@@ -393,7 +393,7 @@ class LocalizationSystem {
         info: 'معلومات',
       },
       ui: {
-        welcome: 'مرحباً بك في Blink',
+        welcome: 'مرحباً بك في Tovyr',
         start: 'بدء',
         stop: 'إيقاف',
         settings: 'الإعدادات',
@@ -434,7 +434,7 @@ class LocalizationSystem {
         info: 'जानकारी',
       },
       ui: {
-        welcome: 'Blink में आपका स्वागत है',
+        welcome: 'Tovyr में आपका स्वागत है',
         start: 'शुरू करें',
         stop: 'रोकें',
         settings: 'सेटिंग्स',
@@ -683,7 +683,7 @@ class LocalizationSystem {
    */
   private saveLocalePreference(locale: string): void {
     try {
-      localStorage.setItem('blink-locale', locale);
+      localStorage.setItem('tovyr-locale', locale);
     } catch (error) {
       // Ignore storage errors
     }
@@ -694,7 +694,7 @@ class LocalizationSystem {
    */
   loadLocalePreference(): string | null {
     try {
-      return localStorage.getItem('blink-locale');
+      return localStorage.getItem('tovyr-locale');
     } catch (error) {
       return null;
     }

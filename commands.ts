@@ -3,7 +3,7 @@ import addDir from './commands/add-dir/index.js'
 import autofixPr from './commands/autofix-pr/index.js'
 import backfillSessions from './commands/backfill-sessions/index.js'
 import btw from './commands/btw/index.js'
-import goodClaude from './commands/good-claude/index.js'
+import goodTovyr from './commands/good-claude/index.js'
 import issue from './commands/issue/index.js'
 import feedback from './commands/feedback/index.js'
 import clear from './commands/clear/index.js'
@@ -27,6 +27,7 @@ import oops from './commands/oops/index.js'
 import ide from './commands/ide/index.js'
 import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
+import { isTovyrRuntime } from './utils/tovyrRuntime.js'
 import keybindings from './commands/keybindings/index.js'
 import installGitHubApp from './commands/install-github-app/index.js'
 import installSlackApp from './commands/install-slack-app/index.js'
@@ -60,14 +61,14 @@ import { feature } from 'bun:bundle'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactive =
-  feature('PROACTIVE') || feature('BLINKS')
+  feature('PROACTIVE') || feature('TOVYRS')
     ? require('./commands/proactive.js').default
     : null
 const briefCommand =
-  feature('BLINKS') || feature('BLINKS_BRIEF')
+  feature('TOVYRS') || feature('TOVYRS_BRIEF')
     ? require('./commands/brief.js').default
     : null
-const assistantCommand = feature('BLINKS')
+const assistantCommand = feature('TOVYRS')
   ? require('./commands/assistant/index.js').default
   : null
 const forceSnip = feature('HISTORY_SNIP')
@@ -83,7 +84,7 @@ const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
       require('./services/skillSearch/localSearch.js') as typeof import('./services/skillSearch/localSearch.js')
     ).clearSkillIndexCache
   : null
-const subscribePr = feature('BLINKS_GITHUB_WEBHOOKS')
+const subscribePr = feature('TOVYRS_GITHUB_WEBHOOKS')
   ? require('./commands/subscribe-pr.js').default
   : null
 const ultraplan = feature('ULTRAPLAN')
@@ -100,11 +101,16 @@ const forkCmd = feature('FORK_SUBAGENT')
       require('./commands/fork/index.js') as typeof import('./commands/fork/index.js')
     ).default
   : null
-const buddy = feature('BUDDY')
-  ? (
-      require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
-    ).default
-  : null
+let buddy = null
+if (isTovyrRuntime()) {
+  buddy = (
+    require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
+  ).default
+} else if (feature('BUDDY')) {
+  buddy = (
+    require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
+  ).default
+}
 /* eslint-enable @typescript-eslint/no-require-imports */
 import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'
@@ -113,59 +119,60 @@ import plan from './commands/plan/index.js'
 import bypass from './commands/bypass/index.js'
 import safe from './commands/safe/index.js'
 import code from './commands/code/index.js'
-import blinkAnalyze from './commands/blink/analyze.js'
-import blinkBuild from './commands/blink/build.js'
-import blinkFix from './commands/blink/fix.js'
-import blinkRefactor from './commands/blink/refactor.js'
-import blinkResearch from './commands/blink/research.js'
-import blinkDebug from './commands/blink/debug.js'
-import blinkProvider from './commands/blink/provider.js'
-import blinkModel from './commands/blink/models.js'
-import blinkSetup from './commands/blink/setup.js'
-import blinkGuide from './commands/blink/guide.js'
-import blinkPersonality from './commands/blink/personality.js'
-import blinkRetry from './commands/blink/retry.js'
-import blinkUndo from './commands/blink/undo.js'
-import blinkAgency from './commands/blink/agency.js'
-import blinkIntegrations from './commands/blink/integrations.js'
-import blinkEcosystem from './commands/blink/ecosystem.js'
-import blinkCodex from './commands/blink/codex.js'
-import blinkGemini from './commands/blink/gemini.js'
-import blinkGoose from './commands/blink/goose.js'
-import blinkPlandex from './commands/blink/plandex.js'
-import blinkOpencode from './commands/blink/opencode.js'
-import blinkContinueDev from './commands/blink/continue-dev.js'
-import blinkClaudeCode from './commands/blink/claude-code.js'
-import blinkRecipe from './commands/blink/recipe.js'
-import blinkGitCommit from './commands/blink/git-commit.js'
-import blinkSandboxDiff from './commands/blink/sandbox-diff.js'
-import blinkInterpret from './commands/blink/interpret.js'
-import blinkImprove from './commands/blink/improve.js'
-import blinkAgentsMd from './commands/blink/agents-md.js'
-import blinkResolveIssue from './commands/blink/resolve-issue.js'
-import blinkExperiment from './commands/blink/experiment.js'
-import blinkCrush from './commands/blink/crush.js'
-import blinkAider from './commands/blink/aider.js'
-import blinkReflect from './commands/blink/reflect.js'
-import blinkWarp from './commands/blink/warp.js'
-import blinkWorktree from './commands/blink/worktree.js'
-import blinkChain from './commands/blink/chain.js'
-import blinkFaker from './commands/blink/faker.js'
-import blinkAgent from './commands/blink/agent.js'
-import blinkSuperthink from './commands/blink/superthink.js'
-import blinkRepo from './commands/blink/repo.js'
-import blinkMemory from './commands/blink/memory.js'
-import blinkBrowser from './commands/blink/browser.js'
-import blinkDeepResearch from './commands/blink/deep-research.js'
-import blinkCompare from './commands/blink/compare.js'
-import blinkCookbook from './commands/blink/cookbook.js'
-import blinkVerify from './commands/blink/verify.js'
-import blinkTimeline from './commands/blink/timeline.js'
-import blinkCoordinator from './commands/blink/coordinator.js'
-import blinkRoadmap from './commands/blink/roadmap.js'
-import blinkCritique, { multiagent as blinkMultiagent } from './commands/blink/critique.js'
-import blinkReview from './commands/blink/review.js'
-import blinkExpansion from './commands/blink/expansion.js'
+import tovyrAnalyze from './commands/tovyr/analyze.js'
+import tovyrBuild from './commands/tovyr/build.js'
+import tovyrFix from './commands/tovyr/fix.js'
+import tovyrRefactor from './commands/tovyr/refactor.js'
+import tovyrResearch from './commands/tovyr/research.js'
+import tovyrDebug from './commands/tovyr/debug.js'
+import tovyrProvider from './commands/tovyr/provider.js'
+import tovyrModel from './commands/tovyr/models.js'
+import tovyrSetup from './commands/tovyr/setup.js'
+import tovyrGuide from './commands/tovyr/guide.js'
+import tovyrPersonality from './commands/tovyr/personality.js'
+import tovyrRetry from './commands/tovyr/retry.js'
+import tovyrUndo from './commands/tovyr/undo.js'
+import tovyrAgency from './commands/tovyr/agency.js'
+import tovyrIntegrations from './commands/tovyr/integrations.js'
+import tovyrEcosystem from './commands/tovyr/ecosystem.js'
+import tovyrCodex from './commands/tovyr/codex.js'
+import tovyrGemini from './commands/tovyr/gemini.js'
+import tovyrGoose from './commands/tovyr/goose.js'
+import tovyrPlandex from './commands/tovyr/plandex.js'
+import tovyrOpencode from './commands/tovyr/opencode.js'
+import tovyrContinueDev from './commands/tovyr/continue-dev.js'
+import tovyrClaudeCode from './commands/tovyr/claude-code.js'
+import tovyrRecipe from './commands/tovyr/recipe.js'
+import tovyrGitCommit from './commands/tovyr/git-commit.js'
+import tovyrSandboxDiff from './commands/tovyr/sandbox-diff.js'
+import tovyrInterpret from './commands/tovyr/interpret.js'
+import tovyrImprove from './commands/tovyr/improve.js'
+import tovyrAgentsMd from './commands/tovyr/agents-md.js'
+import tovyrResolveIssue from './commands/tovyr/resolve-issue.js'
+import tovyrExperiment from './commands/tovyr/experiment.js'
+import tovyrCrush from './commands/tovyr/crush.js'
+import tovyrAider from './commands/tovyr/aider.js'
+import tovyrReflect from './commands/tovyr/reflect.js'
+import tovyrWarp from './commands/tovyr/warp.js'
+import tovyrWorktree from './commands/tovyr/worktree.js'
+import tovyrChain from './commands/tovyr/chain.js'
+import tovyrFaker from './commands/tovyr/faker.js'
+import tovyrAgent from './commands/tovyr/agent.js'
+import tovyrSuperthink from './commands/tovyr/superthink.js'
+import tovyrRepo from './commands/tovyr/repo.js'
+import tovyrMemory from './commands/tovyr/memory.js'
+import tovyrBrowser from './commands/tovyr/browser.js'
+import tovyrComputer from './commands/tovyr/computer.js'
+import tovyrDeepResearch from './commands/tovyr/deep-research.js'
+import tovyrCompare from './commands/tovyr/compare.js'
+import tovyrCookbook from './commands/tovyr/cookbook.js'
+import tovyrVerify from './commands/tovyr/verify.js'
+import tovyrTimeline from './commands/tovyr/timeline.js'
+import tovyrCoordinator from './commands/tovyr/coordinator.js'
+import tovyrRoadmap from './commands/tovyr/roadmap.js'
+import tovyrCritique, { multiagent as tovyrMultiagent } from './commands/tovyr/critique.js'
+import tovyrReview from './commands/tovyr/review.js'
+import tovyrExpansion from './commands/tovyr/expansion.js'
 import mode from './commands/mode/index.js'
 import dash from './commands/dash/index.js'
 import fast from './commands/fast/index.js'
@@ -209,7 +216,7 @@ import {
   clearPluginSkillsCache,
 } from './utils/plugins/loadPluginCommands.js'
 import memoize from 'lodash-es/memoize.js'
-import { isUsing3PServices, isBlinkWebSubscriber } from './utils/auth.js'
+import { isUsing3PServices, isTovyrWebSubscriber } from './utils/auth.js'
 import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
 import env from './commands/env/index.js'
 import exit from './commands/exit/index.js'
@@ -225,7 +232,7 @@ import stats from './commands/stats/index.js'
 const usageReport: Command = {
   type: 'prompt',
   name: 'insights',
-  description: 'Generate a report analyzing your Blink sessions',
+  description: 'Generate a report analyzing your Tovyr sessions',
   contentLength: 0,
   progressMessage: 'analyzing your sessions',
   source: 'builtin',
@@ -264,7 +271,7 @@ export const INTERNAL_ONLY_COMMANDS = [
   commit,
   commitPushPr,
   ctx_viz,
-  goodClaude,
+  goodTovyr,
   issue,
   initVerifiers,
   ...(forceSnip ? [forceSnip] : []),
@@ -288,13 +295,13 @@ export const INTERNAL_ONLY_COMMANDS = [
   autofixPr,
 ].filter(Boolean)
 
-const BLINK_RUNTIME = (): boolean =>
-  !!(process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC)
+const TOVYR_RUNTIME = (): boolean =>
+  !!(process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC)
 
 // Declared as a function so that we don't run this until getCommands is called,
 // since underlying functions read from config, which can't be read at module initialization time
 const COMMANDS = memoize((): Command[] => {
-  const blink = BLINK_RUNTIME()
+  const tovyr = TOVYR_RUNTIME()
   return [
   addDir,
   advisor,
@@ -329,7 +336,7 @@ const COMMANDS = memoize((): Command[] => {
   installSlackApp,
   mcp,
   memory,
-  ...(blink ? [] : [model]),
+  ...(tovyr ? [] : [model]),
   outputStyle,
   plugin,
   pr_comments,
@@ -346,7 +353,7 @@ const COMMANDS = memoize((): Command[] => {
   tag,
   theme,
   feedback,
-  ...(blink ? [blinkReview, prReview] : [review]),
+  ...(tovyr ? [tovyrReview, prReview] : [review]),
   ultrareview,
   rewind,
   securityReview,
@@ -366,61 +373,62 @@ const COMMANDS = memoize((): Command[] => {
   bypass,
   safe,
   code,
-  ...(blink
+  ...(tovyr
     ? [
-        blinkAnalyze,
-        blinkBuild,
-        blinkFix,
-        blinkRefactor,
-        blinkResearch,
-        blinkDebug,
-        blinkCritique,
-        blinkMultiagent,
-        blinkProvider,
-        blinkModel,
-        blinkSetup,
-        blinkGuide,
-        blinkPersonality,
-        blinkRetry,
-        blinkUndo,
-        blinkAgency,
-        blinkIntegrations,
-        blinkEcosystem,
-        blinkCodex,
-        blinkGemini,
-        blinkGoose,
-        blinkPlandex,
-        blinkOpencode,
-        blinkContinueDev,
-        blinkClaudeCode,
-        blinkRecipe,
-        blinkGitCommit,
-        blinkSandboxDiff,
-        blinkInterpret,
-        blinkImprove,
-        blinkAgentsMd,
-        blinkResolveIssue,
-        blinkExperiment,
-        blinkCrush,
-        blinkAider,
-        blinkReflect,
-        blinkWarp,
-        blinkWorktree,
-        blinkChain,
-        blinkFaker,
-        blinkAgent,
-        blinkSuperthink,
-        blinkRepo,
-        blinkMemory,
-        blinkBrowser,
-        blinkDeepResearch,
-        blinkCompare,
-        blinkCookbook,
-        blinkVerify,
-        blinkTimeline,
-        blinkCoordinator,
-        blinkRoadmap,
-        blinkExpansion,
+        tovyrAnalyze,
+        tovyrBuild,
+        tovyrFix,
+        tovyrRefactor,
+        tovyrResearch,
+        tovyrDebug,
+        tovyrCritique,
+        tovyrMultiagent,
+        tovyrProvider,
+        tovyrModel,
+        tovyrSetup,
+        tovyrGuide,
+        tovyrPersonality,
+        tovyrRetry,
+        tovyrUndo,
+        tovyrAgency,
+        tovyrIntegrations,
+        tovyrEcosystem,
+        tovyrCodex,
+        tovyrGemini,
+        tovyrGoose,
+        tovyrPlandex,
+        tovyrOpencode,
+        tovyrContinueDev,
+        tovyrClaudeCode,
+        tovyrRecipe,
+        tovyrGitCommit,
+        tovyrSandboxDiff,
+        tovyrInterpret,
+        tovyrImprove,
+        tovyrAgentsMd,
+        tovyrResolveIssue,
+        tovyrExperiment,
+        tovyrCrush,
+        tovyrAider,
+        tovyrReflect,
+        tovyrWarp,
+        tovyrWorktree,
+        tovyrChain,
+        tovyrFaker,
+        tovyrAgent,
+        tovyrSuperthink,
+        tovyrRepo,
+        tovyrMemory,
+        tovyrBrowser,
+        tovyrComputer,
+        tovyrDeepResearch,
+        tovyrCompare,
+        tovyrCookbook,
+        tovyrVerify,
+        tovyrTimeline,
+        tovyrCoordinator,
+        tovyrRoadmap,
+        tovyrExpansion,
       ]
     : []),
   mode,
@@ -513,14 +521,14 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
   for (const a of cmd.availability) {
     switch (a) {
       case 'claude-ai':
-        if (isBlinkWebSubscriber()) return true
+        if (isTovyrWebSubscriber()) return true
         break
       case 'console':
-        // Console API key user = direct 1P API customer (not 3P, not blink web).
+        // Console API key user = direct 1P API customer (not 3P, not tovyr web).
         // Excludes 3P (Bedrock/Vertex/Foundry) who don't set ANTHROPIC_BASE_URL
         // and gateway users who proxy through a custom base URL.
         if (
-          !isBlinkWebSubscriber() &&
+          !isTovyrWebSubscriber() &&
           !isUsing3PServices() &&
           isFirstPartyAnthropicBaseUrl()
         )

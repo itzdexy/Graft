@@ -3,11 +3,11 @@ import { getOauthConfig } from '../../constants/oauth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { getAuthHeaders } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 
 /**
- * Fetch the user's first Blink token date and store in config.
- * This is called after successful login to cache when they started using Blink.
+ * Fetch the user's first Tovyr token date and store in config.
+ * This is called after successful login to cache when they started using Tovyr.
  */
 export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
   try {
@@ -29,7 +29,7 @@ export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
     const response = await axios.get(url, {
       headers: {
         ...authHeaders.headers,
-        'User-Agent': getBlinkCodeUserAgent(),
+        'User-Agent': getTovyrCodeUserAgent(),
       },
       timeout: 10000,
     })

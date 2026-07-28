@@ -11,7 +11,7 @@ import {
   embeddedSearchToolsBinaryPath,
   hasEmbeddedSearchTools,
 } from '../embeddedTools.js'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import { pathExists } from '../file.js'
 import { getFsImplementation } from '../fsOperations.js'
 import { logError } from '../log.js'
@@ -263,10 +263,10 @@ function getUserSnapshotContent(configFile: string): string {
 }
 
 /**
- * Generates Blink specific snapshot content
+ * Generates Tovyr specific snapshot content
  * This content is always included regardless of user configuration
  */
-async function getBlinkCodeSnapshotContent(): Promise<string> {
+async function getTovyrCodeSnapshotContent(): Promise<string> {
   // Get the appropriate PATH based on platform
   let pathValue = process.env.PATH
   if (getPlatform() === 'windows') {
@@ -317,7 +317,7 @@ RIPGREP_FUNC_END
   // For ant-native builds, shadow find/grep with bfs/ugrep embedded in the bun
   // binary. Unlike rg (which only activates if system rg is absent), we always
   // shadow find/grep since bfs/ugrep are drop-in replacements and we want
-  // consistent fast behavior in Blink's shell.
+  // consistent fast behavior in Tovyr's shell.
   const findGrepIntegration = createFindGrepShellIntegration()
   if (findGrepIntegration !== null) {
     content += `
@@ -350,14 +350,14 @@ async function getSnapshotScript(
   const configFile = getConfigFile(shellPath)
   const isZsh = configFile.endsWith('.zshrc')
 
-  // Generate the user content and Blink content
+  // Generate the user content and Tovyr content
   const userContent = configFileExists
     ? getUserSnapshotContent(configFile)
     : !isZsh
       ? // we need to manually force alias expansion in bash - normally `getUserSnapshotContent` takes care of this
         'echo "shopt -s expand_aliases" >> "$SNAPSHOT_FILE"'
       : ''
-  const claudeCodeContent = await getBlinkCodeSnapshotContent()
+  const claudeCodeContent = await getTovyrCodeSnapshotContent()
 
   const script = `SNAPSHOT_FILE=${quote([snapshotFilePath])}
       ${configFileExists ? `source "${configFile}" < /dev/null` : '# No user config file to source'}
@@ -388,7 +388,7 @@ async function getSnapshotScript(
 /**
  * Creates and saves the shell environment snapshot by loading the user's shell configuration
  *
- * This function is a critical part of Blink's shell integration strategy. It:
+ * This function is a critical part of Tovyr's shell integration strategy. It:
  *
  * 1. Identifies the user's shell config file (.zshrc, .bashrc, etc.)
  * 2. Creates a temporary script that sources this configuration file
@@ -400,7 +400,7 @@ async function getSnapshotScript(
  * The snapshot is saved to a temporary file that can be sourced by subsequent shell
  * commands, ensuring they run with the user's expected environment, aliases, and functions.
  *
- * This approach allows Blink to execute commands as if they were run in the user's
+ * This approach allows Tovyr to execute commands as if they were run in the user's
  * interactive shell, while avoiding the overhead of creating a new login shell for each command.
  * It handles both Bash and Zsh shells with their different syntax for functions, options, and aliases.
  *
@@ -429,14 +429,14 @@ export const createAndSaveSnapshot = async (
 
       if (!configFileExists) {
         logForDebugging(
-          `Shell config file not found: ${configFile}, creating snapshot with Blink defaults only`,
+          `Shell config file not found: ${configFile}, creating snapshot with Tovyr defaults only`,
         )
       }
 
       // Create unique snapshot path with timestamp and random ID
       const timestamp = Date.now()
       const randomId = Math.random().toString(36).substring(2, 8)
-      const snapshotsDir = join(getBlinkConfigHomeDir(), 'shell-snapshots')
+      const snapshotsDir = join(getTovyrConfigHomeDir(), 'shell-snapshots')
       logForDebugging(`Snapshots directory: ${snapshotsDir}`)
       const shellSnapshotPath = join(
         snapshotsDir,
@@ -458,7 +458,7 @@ export const createAndSaveSnapshot = async (
         ['-c', '-l', snapshotScript],
         {
           env: {
-            ...((process.env.CLAUDE_CODE_DONT_INHERIT_ENV
+            ...((process.env.TOVYR_CODE_DONT_INHERIT_ENV
               ? {}
               : subprocessEnv()) as typeof process.env),
             SHELL: binShell,
@@ -485,7 +485,7 @@ export const createAndSaveSnapshot = async (
             logForDebugging(`  - Config file: ${getConfigFile(binShell)}`)
             logForDebugging(`  - Config file exists: ${configFileExists}`)
             logForDebugging(`  - Working directory: ${getCwd()}`)
-            logForDebugging(`  - Claude home: ${getBlinkConfigHomeDir()}`)
+            logForDebugging(`  - Tovyr home: ${getTovyrConfigHomeDir()}`)
             logForDebugging(`Full snapshot script:\n${snapshotScript}`)
             if (stdout) {
               logForDebugging(

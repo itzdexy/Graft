@@ -50,7 +50,7 @@ export type SessionStats = {
   timestamp: string
 }
 
-export type BlinkCodeStats = {
+export type TovyrCodeStats = {
   // Activity overview
   totalSessions: number
   totalMessages: number
@@ -435,12 +435,12 @@ async function getAllSessionFiles(): Promise<string[]> {
 }
 
 /**
- * Convert a PersistedStatsCache to BlinkCodeStats by computing derived fields.
+ * Convert a PersistedStatsCache to TovyrCodeStats by computing derived fields.
  */
 function cacheToStats(
   cache: PersistedStatsCache,
   todayStats: ProcessedStats | null,
-): BlinkCodeStats {
+): TovyrCodeStats {
   // Merge cache with today's stats
   const dailyActivityMap = new Map<string, DailyActivity>()
   for (const day of cache.dailyActivity) {
@@ -590,7 +590,7 @@ function cacheToStats(
     cache.totalSpeculationTimeSavedMs +
     (todayStats?.totalSpeculationTimeSavedMs || 0)
 
-  const result: BlinkCodeStats = {
+  const result: TovyrCodeStats = {
     totalSessions,
     totalMessages,
     totalDays,
@@ -634,10 +634,10 @@ function cacheToStats(
 }
 
 /**
- * Aggregates stats from all Blink sessions across all projects.
+ * Aggregates stats from all Tovyr sessions across all projects.
  * Uses a disk cache to avoid reprocessing historical data.
  */
-export async function aggregateBlinkCodeStats(): Promise<BlinkCodeStats> {
+export async function aggregateTovyrCodeStats(): Promise<TovyrCodeStats> {
   const allSessionFiles = await getAllSessionFiles()
 
   if (allSessionFiles.length === 0) {
@@ -715,11 +715,11 @@ export type StatsDateRange = '7d' | '30d' | 'all'
  * Aggregates stats for a specific date range.
  * For 'all', uses the cached aggregation. For other ranges, processes files directly.
  */
-export async function aggregateBlinkCodeStatsForRange(
+export async function aggregateTovyrCodeStatsForRange(
   range: StatsDateRange,
-): Promise<BlinkCodeStats> {
+): Promise<TovyrCodeStats> {
   if (range === 'all') {
-    return aggregateBlinkCodeStats()
+    return aggregateTovyrCodeStats()
   }
 
   const allSessionFiles = await getAllSessionFiles()
@@ -739,16 +739,16 @@ export async function aggregateBlinkCodeStatsForRange(
     fromDate: fromDateStr,
   })
 
-  return processedStatsToBlinkCodeStats(stats)
+  return processedStatsToTovyrCodeStats(stats)
 }
 
 /**
- * Convert ProcessedStats to BlinkCodeStats.
+ * Convert ProcessedStats to TovyrCodeStats.
  * Used for filtered date ranges that bypass the cache.
  */
-function processedStatsToBlinkCodeStats(
+function processedStatsToTovyrCodeStats(
   stats: ProcessedStats,
-): BlinkCodeStats {
+): TovyrCodeStats {
   const dailyActivitySorted = stats.dailyActivity
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -809,7 +809,7 @@ function processedStatsToBlinkCodeStats(
         ) + 1
       : 0
 
-  const result: BlinkCodeStats = {
+  const result: TovyrCodeStats = {
     totalSessions: stats.sessionStats.length,
     totalMessages: stats.totalMessages,
     totalDays,
@@ -1035,7 +1035,7 @@ export async function readSessionStartDate(
   }
 }
 
-function getEmptyStats(): BlinkCodeStats {
+function getEmptyStats(): TovyrCodeStats {
   return {
     totalSessions: 0,
     totalMessages: 0,

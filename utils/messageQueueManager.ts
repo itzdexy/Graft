@@ -367,7 +367,7 @@ export function isQueuedCommandEditable(cmd: QueuedCommand): boolean {
  */
 export function isQueuedCommandVisible(cmd: QueuedCommand): boolean {
   if (
-    (feature('BLINKS') || feature('BLINKS_CHANNELS')) &&
+    (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) &&
     cmd.origin?.kind === 'channel'
   )
     return true

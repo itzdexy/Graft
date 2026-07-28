@@ -1,12 +1,12 @@
 /**
- * MDM (Mobile Device Management) profile enforcement for Blink managed settings.
+ * MDM (Mobile Device Management) profile enforcement for Tovyr managed settings.
  *
  * Reads enterprise settings from OS-level MDM configuration:
- * - macOS: `com.blink.blinkcode` preference domain
+ * - macOS: `com.tovyr.tovyrcode` preference domain
  *   (MDM profiles at /Library/Managed Preferences/ only — not user-writable ~/Library/Preferences/)
- * - Windows: `HKLM\SOFTWARE\Policies\BlinkCode` (admin-only)
- *   and `HKCU\SOFTWARE\Policies\BlinkCode` (user-writable, lowest priority)
- * - Linux: No MDM equivalent (uses /etc/blink/managed-settings.json instead)
+ * - Windows: `HKLM\SOFTWARE\Policies\TovyrCode` (admin-only)
+ *   and `HKCU\SOFTWARE\Policies\TovyrCode` (user-writable, lowest priority)
+ * - Linux: No MDM equivalent (uses /etc/tovyr/managed-settings.json instead)
  *
  * Policy settings use "first source wins" — the highest-priority source that exists
  * provides all policy settings. Priority (highest to lowest):

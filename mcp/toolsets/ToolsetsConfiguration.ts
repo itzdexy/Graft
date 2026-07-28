@@ -84,7 +84,7 @@ class ToolsetConfigurationManager {
   private configPath: string;
   private autoSave: boolean;
 
-  constructor(configPath: string = '~/.blink/toolsets.json', autoSave: boolean = true) {
+  constructor(configPath: string = '~/.tovyr/toolsets.json', autoSave: boolean = true) {
     this.configPath = configPath;
     this.autoSave = autoSave;
   }
@@ -473,7 +473,7 @@ class ToolsetConfigurationManager {
         version: '1.0.0',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        author: 'Blink',
+        author: 'Tovyr',
         category: 'filesystem',
         tags: ['default'],
       },
@@ -494,7 +494,7 @@ class ToolsetConfigurationManager {
         version: '1.0.0',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        author: 'Blink',
+        author: 'Tovyr',
         category: 'git',
         tags: ['default'],
       },

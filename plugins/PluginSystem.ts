@@ -1,5 +1,5 @@
 /**
- * Plugin System for Blink extensibility
+ * Plugin System for Tovyr extensibility
  * Allows users to add custom tools, commands, themes, and integrations
  */
 
@@ -11,7 +11,7 @@ export interface PluginManifest {
   description: string;
   author: string;
   license: string;
-  blinkVersion: string;
+  tovyrVersion: string;
   main: string;
   permissions: PluginPermission[];
   dependencies?: string[];
@@ -80,7 +80,7 @@ class PluginManager {
   async loadPlugin(pluginPath: string): Promise<void> {
     try {
       // Read manifest
-      const manifestPath = `${pluginPath}/blink-plugin.json`;
+      const manifestPath = `${pluginPath}/tovyr-plugin.json`;
       const manifest: PluginManifest = await this.readManifest(manifestPath);
 
       // Validate manifest
@@ -317,9 +317,9 @@ class PluginManager {
       name: 'example-plugin',
       version: '1.0.0',
       description: 'Example plugin',
-      author: 'Blink',
+      author: 'Tovyr',
       license: 'MIT',
-      blinkVersion: '1.0.0',
+      tovyrVersion: '1.0.0',
       main: 'index.js',
       permissions: [],
     };

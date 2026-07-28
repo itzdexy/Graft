@@ -7,7 +7,7 @@
  *
  * Eligibility:
  * - Console users (API key): All eligible
- * - OAuth users (Blink.ai): Only Enterprise/C4E and Team subscribers are eligible
+ * - OAuth users (Tovyr.ai): Only Enterprise/C4E and Team subscribers are eligible
  * - API fails open (non-blocking) - if fetch fails, continues without remote settings
  * - API returns empty settings for users without managed settings
  */
@@ -19,7 +19,7 @@ import { getOauthConfig, OAUTH_BETA_HEADER } from '../../constants/oauth.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
   getAnthropicApiKeyWithSource,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
 } from '../../utils/auth.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -31,7 +31,7 @@ import {
 } from '../../utils/settings/types.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 import { getRetryDelay } from '../api/withRetry.js'
 import {
   checkManagedSettingsSecurity,
@@ -169,7 +169,7 @@ function getRemoteSettingsAuthHeaders(): {
 } {
   // Try API key first (for Console users)
   // Skip apiKeyHelper to avoid circular dependency with getSettings()
-  // Wrap in try-catch because getBlinkApiKeyWithSource throws in CI/test environments
+  // Wrap in try-catch because getTovyrApiKeyWithSource throws in CI/test environments
   try {
     const { key: apiKey } = getAnthropicApiKeyWithSource({
       skipRetrievingKeyFromApiKeyHelper: true,
@@ -185,8 +185,8 @@ function getRemoteSettingsAuthHeaders(): {
     // No API key available - continue to check OAuth
   }
 
-  // Fall back to OAuth tokens (for Blink.ai users)
-  const oauthTokens = getBlinkWebOAuthTokens()
+  // Fall back to OAuth tokens (for Tovyr.ai users)
+  const oauthTokens = getTovyrWebOAuthTokens()
   if (oauthTokens?.accessToken) {
     return {
       headers: {
@@ -267,7 +267,7 @@ async function fetchRemoteManagedSettings(
     const endpoint = getRemoteManagedSettingsEndpoint()
     const headers: Record<string, string> = {
       ...authHeaders.headers,
-      'User-Agent': getBlinkCodeUserAgent(),
+      'User-Agent': getTovyrCodeUserAgent(),
     }
 
     // Add If-None-Match header for ETag-based caching

@@ -6,11 +6,11 @@ import axios from 'axios'
 import { OAUTH_BETA_HEADER } from '../constants/oauth.js'
 import {
   getAnthropicApiKey,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   handleOAuth401Error,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
 } from './auth.js'
-import { getBlinkCodeUserAgent } from './userAgent.js'
+import { getTovyrCodeUserAgent } from './userAgent.js'
 import { getWorkload } from './workloadContext.js'
 
 declare const MACRO: { VERSION: string }
@@ -27,13 +27,13 @@ export function getUserAgent(): string {
   // Turn-/process-scoped workload tag for cron-initiated requests.
   const workload = getWorkload()
   const workloadSuffix = workload ? `, workload/${workload}` : ''
-  return `blink/${MACRO.VERSION} (${process.env.USER_TYPE ?? 'user'}, ${process.env.CLAUDE_CODE_ENTRYPOINT ?? 'cli'}${agentSdkVersion}${clientApp}${workloadSuffix})`
+  return `tovyr/${MACRO.VERSION} (${process.env.USER_TYPE ?? 'user'}, ${process.env.TOVYR_CODE_ENTRYPOINT ?? 'cli'}${agentSdkVersion}${clientApp}${workloadSuffix})`
 }
 
 export function getMCPUserAgent(): string {
   const parts: string[] = []
-  if (process.env.CLAUDE_CODE_ENTRYPOINT) {
-    parts.push(process.env.CLAUDE_CODE_ENTRYPOINT)
+  if (process.env.TOVYR_CODE_ENTRYPOINT) {
+    parts.push(process.env.TOVYR_CODE_ENTRYPOINT)
   }
   if (process.env.CLAUDE_AGENT_SDK_VERSION) {
     parts.push(`agent-sdk/${process.env.CLAUDE_AGENT_SDK_VERSION}`)
@@ -42,13 +42,13 @@ export function getMCPUserAgent(): string {
     parts.push(`client-app/${process.env.CLAUDE_AGENT_SDK_CLIENT_APP}`)
   }
   const suffix = parts.length > 0 ? ` (${parts.join(', ')})` : ''
-  return `blink/${MACRO.VERSION}${suffix}`
+  return `tovyr/${MACRO.VERSION}${suffix}`
 }
 
 // User-Agent for WebFetch requests to arbitrary sites.
 export function getWebFetchUserAgent(): string {
-  // Use a neutral, Blink-branded agent so local WebFetch/WebSearch work with any provider.
-  return `Mozilla/5.0 (compatible; BlinkCode/${MACRO.VERSION}; +https://github.com/itsdexy/BlinkCode)`
+  // Use a neutral, Tovyr-branded agent so local WebFetch/WebSearch work with any provider.
+  return `Mozilla/5.0 (compatible; TovyrCode/${MACRO.VERSION}; +https://github.com/itsdexy/Tovyr)`
 }
 
 export type AuthHeaders = {
@@ -61,8 +61,8 @@ export type AuthHeaders = {
  * Returns either OAuth headers for Max/Pro users or API key headers for regular users
  */
 export function getAuthHeaders(): AuthHeaders {
-  if (isBlinkWebSubscriber()) {
-    const oauthTokens = getBlinkWebOAuthTokens()
+  if (isTovyrWebSubscriber()) {
+    const oauthTokens = getTovyrWebOAuthTokens()
     if (!oauthTokens?.accessToken) {
       return {
         headers: {},
@@ -77,7 +77,7 @@ export function getAuthHeaders(): AuthHeaders {
     }
   }
   // TODO: this will fail if the API key is being set to an LLM Gateway key
-  // should we try to query keychain / credentials for a valid Blink key?
+  // should we try to query keychain / credentials for a valid Tovyr key?
   const apiKey = getAnthropicApiKey()
   if (!apiKey) {
     return {
@@ -122,7 +122,7 @@ export async function withOAuth401Retry<T>(
         typeof err.response?.data === 'string' &&
         err.response.data.includes('OAuth token has been revoked'))
     if (!isAuthError) throw err
-    const failedAccessToken = getBlinkWebOAuthTokens()?.accessToken
+    const failedAccessToken = getTovyrWebOAuthTokens()?.accessToken
     if (!failedAccessToken) throw err
     await handleOAuth401Error(failedAccessToken)
     return await request()

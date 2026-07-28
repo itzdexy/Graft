@@ -4,15 +4,15 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/gr
 import type { Tool } from '../../Tool.js'
 import { AGENT_TOOL_NAME } from '../AgentTool/constants.js'
 
-// Dead code elimination: Brief tool name only needed when BLINKS or BLINKS_BRIEF is on
+// Dead code elimination: Brief tool name only needed when TOVYRS or TOVYRS_BRIEF is on
 /* eslint-disable @typescript-eslint/no-require-imports */
 const BRIEF_TOOL_NAME: string | null =
-  feature('BLINKS') || feature('BLINKS_BRIEF')
+  feature('TOVYRS') || feature('TOVYRS_BRIEF')
     ? (
         require('../BriefTool/prompt.js') as typeof import('../BriefTool/prompt.js')
       ).BRIEF_TOOL_NAME
     : null
-const SEND_USER_FILE_TOOL_NAME: string | null = feature('BLINKS')
+const SEND_USER_FILE_TOOL_NAME: string | null = feature('TOVYRS')
   ? (
       require('../SendUserFileTool/prompt.js') as typeof import('../SendUserFileTool/prompt.js')
     ).SEND_USER_FILE_TOOL_NAME
@@ -57,10 +57,10 @@ Query forms:
  * - It has shouldDefer: true
  *
  * A tool is NEVER deferred if it has alwaysLoad: true (MCP tools set this via
- * _meta['blink/alwaysLoad']). This check runs first, before any other rule.
+ * _meta['tovyr/alwaysLoad']). This check runs first, before any other rule.
  */
 export function isDeferredTool(tool: Tool): boolean {
-  // Explicit opt-out via _meta['blink/alwaysLoad'] — tool appears in the
+  // Explicit opt-out via _meta['tovyr/alwaysLoad'] — tool appears in the
   // initial prompt with full schema. Checked first so MCP tools can opt out.
   if (tool.alwaysLoad === true) return false
 
@@ -86,7 +86,7 @@ export function isDeferredTool(tool: Tool): boolean {
   // tool's isEnabled() IS isBriefEnabled(), so being asked about its deferral
   // status implies the gate already passed.
   if (
-    (feature('BLINKS') || feature('BLINKS_BRIEF')) &&
+    (feature('TOVYRS') || feature('TOVYRS_BRIEF')) &&
     BRIEF_TOOL_NAME &&
     tool.name === BRIEF_TOOL_NAME
   ) {
@@ -96,7 +96,7 @@ export function isDeferredTool(tool: Tool): boolean {
   // SendUserFile is a file-delivery communication channel (sibling of Brief).
   // Must be immediately available without a ToolSearch round-trip.
   if (
-    feature('BLINKS') &&
+    feature('TOVYRS') &&
     SEND_USER_FILE_TOOL_NAME &&
     tool.name === SEND_USER_FILE_TOOL_NAME &&
     isReplBridgeActive()

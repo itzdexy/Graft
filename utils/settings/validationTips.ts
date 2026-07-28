@@ -23,7 +23,7 @@ type TipMatcher = {
   tip: ValidationTip
 }
 
-const DOCUMENTATION_BASE = 'https://github.com/itsdexy/BlinkCode/blob/main/docs/GUIDE.md'
+const DOCUMENTATION_BASE = 'https://github.com/itsdexy/Tovyr/blob/main/docs/GUIDE.md'
 
 const TIP_MATCHERS: TipMatcher[] = [
   {

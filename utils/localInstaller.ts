@@ -5,19 +5,19 @@
 import { access, chmod, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { type ReleaseChannel, saveGlobalConfig } from './config.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
 import { getErrnoCode } from './errors.js'
 import { execFileNoThrowWithCwd } from './execFileNoThrow.js'
 import { getFsImplementation } from './fsOperations.js'
 import { logError } from './log.js'
 import { jsonStringify } from './slowOperations.js'
 
-// Lazy getters: getBlinkConfigHomeDir() is memoized and reads process.env.
+// Lazy getters: getTovyrConfigHomeDir() is memoized and reads process.env.
 // Evaluating at module scope would capture the value before entrypoints like
 // hfi.tsx get a chance to set CLAUDE_CONFIG_DIR in main(), and would also
 // populate the memoize cache with that stale value for all 150+ other callers.
 function getLocalInstallDir(): string {
-  return join(getBlinkConfigHomeDir(), 'local')
+  return join(getTovyrConfigHomeDir(), 'local')
 }
 export function getLocalClaudePath(): string {
   return join(getLocalInstallDir(), 'claude')
@@ -90,7 +90,7 @@ export async function ensureLocalPackageEnvironment(): Promise<boolean> {
 }
 
 /**
- * Install or update Blink CLI package in the local directory
+ * Install or update Tovyr CLI package in the local directory
  * @param channel - Release channel to use (latest or stable)
  * @param specificVersion - Optional specific version to install (overrides channel)
  */
@@ -118,7 +118,7 @@ export async function installOrUpdateClaudePackage(
 
     if (result.code !== 0) {
       const error = new Error(
-        `Failed to install Blink CLI package: ${result.stderr}`,
+        `Failed to install Tovyr CLI package: ${result.stderr}`,
       )
       logError(error)
       return result.code === 190 ? 'in_progress' : 'install_failed'

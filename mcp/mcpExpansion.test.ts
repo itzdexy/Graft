@@ -21,27 +21,27 @@ import {
   wrapCommandForPlatform,
 } from '../mcp/multilang/index.js'
 import {
-  isBlinkBuiltinMcpServer,
-  BLINK_MEMORY_GRAPH_SERVER_NAME,
+  isTovyrBuiltinMcpServer,
+  TOVYR_MEMORY_GRAPH_SERVER_NAME,
 } from '../mcp/builtin/names.js'
-import { getBlinkBuiltinMcpServerConfigs } from '../mcp/builtin/configs.js'
+import { getTovyrBuiltinMcpServerConfigs } from '../mcp/builtin/configs.js'
 
 describe('memory knowledge graph MCP API', () => {
   test('createEntities and search_nodes semantics', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'blink-graph-'))
+    const dir = await mkdtemp(join(tmpdir(), 'tovyr-graph-'))
     try {
       createEntities(dir, [
-        { name: 'Blink', entityType: 'project', observations: ['CLI agent'] },
+        { name: 'Tovyr', entityType: 'project', observations: ['CLI agent'] },
       ])
       createRelations(dir, [
-        { from: 'Blink', to: 'MCP', relationType: 'uses' },
+        { from: 'Tovyr', to: 'MCP', relationType: 'uses' },
       ])
       addObservations(dir, [
-        { entityName: 'Blink', contents: ['OpenCode-style UI'] },
+        { entityName: 'Tovyr', contents: ['OpenCode-style UI'] },
       ])
       const search = searchKnowledgeGraph(dir, 'CLI')
-      expect(search.entities.some(e => e.name === 'Blink')).toBe(true)
-      const open = openKnowledgeNodes(dir, ['Blink'])
+      expect(search.entities.some(e => e.name === 'Tovyr')).toBe(true)
+      const open = openKnowledgeNodes(dir, ['Tovyr'])
       expect(open.entities[0]?.observations).toContain('OpenCode-style UI')
       const full = readKnowledgeGraph(dir)
       expect(full.relations.some(r => r.to === 'MCP')).toBe(true)
@@ -75,7 +75,7 @@ describe('sequential thinking MCP API', () => {
 describe('multilang MCP templates', () => {
   test('lists builtin and external templates', () => {
     const ids = listMcpTemplateIds()
-    expect(ids).toContain('blink-memory')
+    expect(ids).toContain('tovyr-memory')
     expect(ids).toContain('stagehand')
     expect(ids).toContain('sequential-thinking')
   })
@@ -91,22 +91,22 @@ describe('multilang MCP templates', () => {
     }
   })
 
-  test('templateToMcpConfig for blink builtin', () => {
-    const cfg = templateToMcpConfig(getMcpTemplate('blink-memory')!)
-    expect(cfg.env?.BLINK_BUILTIN_MCP).toBe('memory-graph')
+  test('templateToMcpConfig for tovyr builtin', () => {
+    const cfg = templateToMcpConfig(getMcpTemplate('tovyr-memory')!)
+    expect(cfg.env?.TOVYR_BUILTIN_MCP).toBe('memory-graph')
   })
 
-  test('getBlinkBuiltinMcpServerConfigs includes memory server name', () => {
-    const prev = process.env.BLINK_SRC
-    process.env.BLINK_SRC = '1'
-    const configs = getBlinkBuiltinMcpServerConfigs()
-    if (prev === undefined) delete process.env.BLINK_SRC
-    else process.env.BLINK_SRC = prev
-    expect(configs[BLINK_MEMORY_GRAPH_SERVER_NAME]).toBeDefined()
+  test('getTovyrBuiltinMcpServerConfigs includes memory server name', () => {
+    const prev = process.env.TOVYR_SRC
+    process.env.TOVYR_SRC = '1'
+    const configs = getTovyrBuiltinMcpServerConfigs()
+    if (prev === undefined) delete process.env.TOVYR_SRC
+    else process.env.TOVYR_SRC = prev
+    expect(configs[TOVYR_MEMORY_GRAPH_SERVER_NAME]).toBeDefined()
   })
 
-  test('isBlinkBuiltinMcpServer recognizes reserved names', () => {
-    expect(isBlinkBuiltinMcpServer('blink-memory')).toBe(true)
-    expect(isBlinkBuiltinMcpServer('slack')).toBe(false)
+  test('isTovyrBuiltinMcpServer recognizes reserved names', () => {
+    expect(isTovyrBuiltinMcpServer('tovyr-memory')).toBe(true)
+    expect(isTovyrBuiltinMcpServer('slack')).toBe(false)
   })
 })

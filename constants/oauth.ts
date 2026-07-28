@@ -16,7 +16,7 @@ function getOauthConfigType(): OauthConfigType {
 }
 
 export function fileSuffixForOauthConfig(): string {
-  if (process.env.CLAUDE_CODE_CUSTOM_OAUTH_URL) {
+  if (process.env.TOVYR_CODE_CUSTOM_OAUTH_URL) {
     return '-custom-oauth'
   }
   switch (getOauthConfigType()) {
@@ -41,7 +41,7 @@ export const CONSOLE_OAUTH_SCOPES = [
   CLAUDE_AI_PROFILE_SCOPE,
 ] as const
 
-// Blink.ai OAuth scopes - for Blink.ai subscribers (Pro/Max/Team/Enterprise)
+// Tovyr.ai OAuth scopes - for Tovyr.ai subscribers (Pro/Max/Team/Enterprise)
 export const CLAUDE_AI_OAUTH_SCOPES = [
   CLAUDE_AI_PROFILE_SCOPE,
   CLAUDE_AI_INFERENCE_SCOPE,
@@ -50,8 +50,8 @@ export const CLAUDE_AI_OAUTH_SCOPES = [
   'user:file_upload',
 ] as const
 
-// All OAuth scopes - union of all scopes used in Blink CLI
-// When logging in, request all scopes in order to handle both Console -> Blink.ai redirect
+// All OAuth scopes - union of all scopes used in Tovyr CLI
+// When logging in, request all scopes in order to handle both Console -> Tovyr.ai redirect
 // Ensure that `OAuthConsentPage` in apps repo is kept in sync with this list.
 export const ALL_OAUTH_SCOPES = Array.from(
   new Set([...CONSOLE_OAUTH_SCOPES, ...CLAUDE_AI_OAUTH_SCOPES]),
@@ -62,10 +62,10 @@ type OauthConfig = {
   CONSOLE_AUTHORIZE_URL: string
   CLAUDE_AI_AUTHORIZE_URL: string
   /**
-   * The blink web web origin. Separate from CLAUDE_AI_AUTHORIZE_URL because
-   * that now routes through blink.com/cai/* for attribution — deriving
-   * .origin from it would give blink.com, breaking links to /code,
-   * /settings/connectors, and other blink web web pages.
+   * The tovyr web web origin. Separate from CLAUDE_AI_AUTHORIZE_URL because
+   * that now routes through tovyr.com/cai/* for attribution — deriving
+   * .origin from it would give tovyr.com, breaking links to /code,
+   * /settings/connectors, and other tovyr web web pages.
    */
   CLAUDE_AI_ORIGIN: string
   TOKEN_URL: string
@@ -84,8 +84,8 @@ type OauthConfig = {
 const PROD_OAUTH_CONFIG = {
   BASE_API_URL: 'https://api.anthropic.com',
   CONSOLE_AUTHORIZE_URL: 'https://platform.claude.com/oauth/authorize',
-  // Bounces through blink.com/cai/* so CLI sign-ins connect to blink.com
-  // visits for attribution. 307s to blink web/oauth/authorize in two hops.
+  // Bounces through tovyr.com/cai/* so CLI sign-ins connect to tovyr.com
+  // visits for attribution. 307s to tovyr web/oauth/authorize in two hops.
   CLAUDE_AI_AUTHORIZE_URL: 'https://claude.com/cai/oauth/authorize',
   CLAUDE_AI_ORIGIN: 'https://claude.ai',
   TOKEN_URL: 'https://platform.claude.com/v1/oauth/token',
@@ -106,8 +106,8 @@ const PROD_OAUTH_CONFIG = {
 /**
  * Client ID Metadata Document URL for MCP OAuth (CIMD / SEP-991).
  * When an MCP auth server advertises client_id_metadata_document_supported: true,
- * Blink uses this URL as its client_id instead of Dynamic Client Registration.
- * The URL must point to a JSON document hosted by Blink.
+ * Tovyr uses this URL as its client_id instead of Dynamic Client Registration.
+ * The URL must point to a JSON document hosted by Tovyr.
  * See: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00
  */
 export const MCP_CLIENT_METADATA_URL =
@@ -143,8 +143,8 @@ const STAGING_OAUTH_CONFIG =
     : undefined
 
 // Three local dev servers: :8000 api-proxy (`api dev start -g ccr`),
-// :4000 blink-ai frontend, :3000 Console frontend. Env vars let
-// scripts/blink-localhost override if your layout differs.
+// :4000 tovyr-ai frontend, :3000 Console frontend. Env vars let
+// scripts/tovyr-localhost override if your layout differs.
 function getLocalOauthConfig(): OauthConfig {
   const api =
     process.env.CLAUDE_LOCAL_OAUTH_API_BASE?.replace(/\/$/, '') ??
@@ -173,7 +173,7 @@ function getLocalOauthConfig(): OauthConfig {
   }
 }
 
-// Allowed base URLs for CLAUDE_CODE_CUSTOM_OAUTH_URL override.
+// Allowed base URLs for TOVYR_CODE_CUSTOM_OAUTH_URL override.
 // Only FedStart/PubSec deployments are permitted to prevent OAuth tokens
 // from being sent to arbitrary endpoints.
 const ALLOWED_OAUTH_BASE_URLS = [
@@ -197,12 +197,12 @@ export function getOauthConfig(): OauthConfig {
 
   // Allow overriding all OAuth URLs to point to an approved FedStart deployment.
   // Only allowlisted base URLs are accepted to prevent credential leakage.
-  const oauthBaseUrl = process.env.CLAUDE_CODE_CUSTOM_OAUTH_URL
+  const oauthBaseUrl = process.env.TOVYR_CODE_CUSTOM_OAUTH_URL
   if (oauthBaseUrl) {
     const base = oauthBaseUrl.replace(/\/$/, '')
     if (!ALLOWED_OAUTH_BASE_URLS.includes(base)) {
       throw new Error(
-        'CLAUDE_CODE_CUSTOM_OAUTH_URL is not an approved endpoint.',
+        'TOVYR_CODE_CUSTOM_OAUTH_URL is not an approved endpoint.',
       )
     }
     config = {
@@ -222,7 +222,7 @@ export function getOauthConfig(): OauthConfig {
   }
 
   // Allow CLIENT_ID override via environment variable (e.g., for Xcode integration)
-  const clientIdOverride = process.env.CLAUDE_CODE_OAUTH_CLIENT_ID
+  const clientIdOverride = process.env.TOVYR_CODE_OAUTH_CLIENT_ID
   if (clientIdOverride) {
     config = {
       ...config,

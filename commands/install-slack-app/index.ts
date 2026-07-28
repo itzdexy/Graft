@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const installSlackApp = {
   type: 'local',
   name: 'install-slack-app',
-  description: 'Install the Blink Slack app',
+  description: 'Install the Tovyr Slack app',
   availability: ['claude-ai'],
   supportsNonInteractive: false,
   load: () => import('./install-slack-app.js'),

@@ -1,6 +1,6 @@
 /**
- * Clear legacy web OAuth so Blink uses only the FreeModel API key from config.
- * Usage: node scripts/clear-blink-ai-auth.js
+ * Clear legacy web OAuth so Tovyr uses only the FreeModel API key from config.
+ * Usage: node scripts/clear-tovyr-ai-auth.js
  */
 import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
@@ -36,7 +36,7 @@ if (existsSync(credPath)) {
 }
 
 if (changed) {
-  console.log('Cleared legacy web OAuth session (Blink uses FreeModel API key only).')
+  console.log('Cleared legacy web OAuth session (Tovyr uses FreeModel API key only).')
 } else {
   console.log('No legacy web OAuth session found.')
 }

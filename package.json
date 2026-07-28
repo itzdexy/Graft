@@ -1,21 +1,21 @@
 {
-  "name": "blinkcode",
-  "version": "1.0.0",
-  "description": "Blink — a fast, polished AI coding agent for your terminal",
+  "name": "tovyrcode",
+  "version": "1.2.0",
+  "description": "TOVYR — a fast, polished AI coding agent for your terminal",
   "type": "module",
   "license": "MIT",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsdexy/BlinkCode.git"
+    "url": "git+https://github.com/itsdexy/Tovyr.git"
   },
   "bugs": {
-    "url": "https://github.com/itsdexy/BlinkCode/issues"
+    "url": "https://github.com/itsdexy/Tovyr/issues"
   },
-  "homepage": "https://github.com/itsdexy/BlinkCode#readme",
+  "homepage": "https://github.com/itsdexy/Tovyr#readme",
   "keywords": [
-    "blink",
-    "blinkcode",
+    "tovyr",
+    "tovyrcode",
     "ai",
     "coding-agent",
     "cli",
@@ -25,35 +25,37 @@
     "node": ">=18"
   },
   "bin": {
-    "blink": {
-      "windows": "./bin/blink.cmd",
-      "linux": "./bin/blink.js",
-      "darwin": "./bin/blink.js"
-    }
+    "tovyr": "bin/tovyr.js",
+    "tovyrcode": "bin/tovyr.js"
   },
   "files": [
-    "bin/blink",
-    "bin/blink.js",
-    "bin/blink.cmd",
-    "bin/blink.ps1",
-    "bin/install-blink.sh",
-    "constants/blink.js",
-    "scripts/blink-*.js",
+    "bin/tovyr",
+    "bin/tovyr.js",
+    "bin/tovyr.cmd",
+    "bin/tovyr.ps1",
+    "bin/install-tovyr.sh",
+    "constants/tovyr.js",
+    "scripts/tovyr-*.js",
     "README.md"
   ],
   "scripts": {
-    "postinstall": "node scripts/blink-postinstall.js",
-    "warm": "node scripts/blink-warm.js",
+    "postinstall": "node scripts/tovyr-postinstall.js",
+    "warm": "node scripts/tovyr-warm.js",
     "dev": "bun run entrypoints/cli.tsx",
-    "test": "bun test services/blink",
+    "test": "bun test services/tovyr utils/settings/envInt.test.ts services/mcp",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "generate:sdk-types": "bun scripts/generate-sdk-types.ts",
-    "build": "node scripts/blink-warm.js",
-    "setup-key": "bun run scripts/setup-blink-key.ts",
+    "build": "node scripts/tovyr-warm.js",
+    "build:npm-runtime": "node scripts/build-npm-runtime.js",
+    "setup-key": "bun run scripts/setup-tovyr-key.ts",
     "prepublishOnly": "node -e \"console.error('Use: npm run publish:npm'); process.exit(1)\"",
     "publish:npm": "node scripts/publish-npm.js",
     "publish:npm:dry-run": "node scripts/publish-npm.js --dry-run",
-    "bench": "node scripts/blink-bench.js",
-    "check:brand": "node scripts/check-blink-brand.js"
+    "pack:npm": "node scripts/publish-npm.js --pack-artifact",
+    "bench": "node scripts/tovyr-bench.js",
+    "check:brand": "node scripts/check-tovyr-brand.js"
   },
   "dependencies": {
     "@ant/computer-use-input": "file:./vendor/ant-stubs/computer-use-input",
@@ -83,6 +85,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
+    "@biomejs/biome": "^2.2.0",
     "@commander-js/extra-typings": "^15.0.0",
     "@growthbook/growthbook": "^1.6.5",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -121,5 +124,10 @@
   },
   "imports": {
     "src/*": "./*"
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "author": ""
 }

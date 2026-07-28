@@ -1,0 +1,45 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "services/tovyr/models/**/*.ts",
+      "utils/settings/envInt.ts",
+      "utils/settings/envInt.test.ts",
+      "utils/sandbox/network/**/*.ts",
+      "services/mcp/diagnostics.ts",
+      "services/mcp/diagnostics.test.ts",
+      "services/mcp/redact.ts",
+      "services/mcp/redact.test.ts",
+      "components/tovyr/McpDiagnosticsView.tsx"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noConsole": "error"
+      }
+    }
+  }
+}

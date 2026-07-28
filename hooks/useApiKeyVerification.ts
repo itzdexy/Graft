@@ -1,14 +1,14 @@
 import { useCallback, useState } from 'react'
 import { getIsNonInteractiveSession } from '../bootstrap/state.js'
-import { probeBlinkApiKeyHealth } from '../services/blink/apiKeyHealthCheck.js'
+import { probeTovyrApiKeyHealth } from '../services/tovyr/apiKeyHealthCheck.js'
 import { verifyApiKey } from '../services/api/claude.js'
 import {
   getAnthropicApiKeyWithSource,
   getApiKeyFromApiKeyHelper,
   isAnthropicAuthEnabled,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
 } from '../utils/auth.js'
-import { isBlinkRuntime } from '../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 
 export type VerificationStatus =
   | 'loading'
@@ -25,7 +25,7 @@ export type ApiKeyVerificationResult = {
 
 export function useApiKeyVerification(): ApiKeyVerificationResult {
   const [status, setStatus] = useState<VerificationStatus>(() => {
-    if (!isAnthropicAuthEnabled() || isBlinkWebSubscriber()) {
+    if (!isAnthropicAuthEnabled() || isTovyrWebSubscriber()) {
       return 'valid'
     }
     // Use skipRetrievingKeyFromApiKeyHelper to avoid executing apiKeyHelper
@@ -43,12 +43,12 @@ export function useApiKeyVerification(): ApiKeyVerificationResult {
   const [error, setError] = useState<Error | null>(null)
 
   const verify = useCallback(async (): Promise<void> => {
-    if (!isAnthropicAuthEnabled() || isBlinkWebSubscriber()) {
+    if (!isAnthropicAuthEnabled() || isTovyrWebSubscriber()) {
       setStatus('valid')
       return
     }
     // Warm the apiKeyHelper cache (no-op if not configured), then read from
-    // all sources. getBlinkApiKeyWithSource() reads the now-warm cache.
+    // all sources. getTovyrApiKeyWithSource() reads the now-warm cache.
     await getApiKeyFromApiKeyHelper(getIsNonInteractiveSession())
     const { key: apiKey, source } = getAnthropicApiKeyWithSource()
     if (!apiKey) {
@@ -63,11 +63,11 @@ export function useApiKeyVerification(): ApiKeyVerificationResult {
     }
 
     try {
-      if (isBlinkRuntime()) {
-        const probe = await probeBlinkApiKeyHealth()
+      if (isTovyrRuntime()) {
+        const probe = await probeTovyrApiKeyHealth()
         if (probe === true) {
           const { fetchActiveProviderModelIds } = await import(
-            '../services/blink/providerModels.js'
+            '../services/tovyr/providerModels.js'
           )
           void fetchActiveProviderModelIds({ force: true })
           setStatus('valid')

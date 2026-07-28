@@ -5,7 +5,7 @@
  */
 import { type Command, Option } from '@commander-js/extra-typings'
 import { cliError, cliOk } from '../../cli/exit.js'
-import { blinkCmd } from '../../constants/blink.js'
+import { tovyrCmd } from '../../constants/tovyr.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
@@ -35,16 +35,16 @@ export function registerMcpAddCommand(mcp: Command): void {
   mcp
     .command('add <name> <commandOrUrl> [args...]')
     .description(
-      'Add an MCP server to Blink.\n\n' +
+      'Add an MCP server to Tovyr.\n\n' +
         'Examples:\n' +
         '  # Add HTTP server:\n' +
-        `  ${blinkCmd('mcp add --transport http sentry https://mcp.sentry.dev/mcp')}\n\n` +
+        `  ${tovyrCmd('mcp add --transport http sentry https://mcp.sentry.dev/mcp')}\n\n` +
         '  # Add HTTP server with headers:\n' +
-        `  ${blinkCmd('mcp add --transport http corridor https://app.corridor.dev/api/mcp --header "Authorization: Bearer ..."')}\n\n` +
+        `  ${tovyrCmd('mcp add --transport http corridor https://app.corridor.dev/api/mcp --header "Authorization: Bearer ..."')}\n\n` +
         '  # Add stdio server with environment variables:\n' +
-        `  ${blinkCmd('mcp add -e API_KEY=xxx my-server -- npx my-mcp-server')}\n\n` +
+        `  ${tovyrCmd('mcp add -e API_KEY=xxx my-server -- npx my-mcp-server')}\n\n` +
         '  # Add stdio server with subprocess flags:\n' +
-        `  ${blinkCmd('mcp add my-server -- my-command --some-flag arg1')}`,
+        `  ${tovyrCmd('mcp add my-server -- my-command --some-flag arg1')}`,
     )
     .option(
       '-s, --scope <scope>',
@@ -76,7 +76,7 @@ export function registerMcpAddCommand(mcp: Command): void {
     .addOption(
       new Option(
         '--xaa',
-        `Enable XAA (SEP-990) for this server. Requires '${blinkCmd('mcp xaa setup')}' first. Also requires --client-id and --client-secret (for the MCP server's AS).`,
+        `Enable XAA (SEP-990) for this server. Requires '${tovyrCmd('mcp xaa setup')}' first. Also requires --client-id and --client-secret (for the MCP server's AS).`,
       ).hideHelp(!isXaaEnabled()),
     )
     .action(async (name, commandOrUrl, args, options) => {
@@ -88,12 +88,12 @@ export function registerMcpAddCommand(mcp: Command): void {
       if (!name) {
         cliError(
           'Error: Server name is required.\n' +
-            `Usage: ${blinkCmd('mcp add <name> <command> [args...]')}`,
+            `Usage: ${tovyrCmd('mcp add <name> <command> [args...]')}`,
         )
       } else if (!actualCommand) {
         cliError(
           'Error: Command is required when server name is provided.\n' +
-            `Usage: ${blinkCmd('mcp add <name> <command> [args...]')}`,
+            `Usage: ${tovyrCmd('mcp add <name> <command> [args...]')}`,
         )
       }
 
@@ -104,7 +104,7 @@ export function registerMcpAddCommand(mcp: Command): void {
         // XAA fail-fast: validate at add-time, not auth-time.
         if (options.xaa && !isXaaEnabled()) {
           cliError(
-            'Error: --xaa requires CLAUDE_CODE_ENABLE_XAA=1 in your environment',
+            'Error: --xaa requires TOVYR_CODE_ENABLE_XAA=1 in your environment',
           )
         }
         const xaa = Boolean(options.xaa)
@@ -114,7 +114,7 @@ export function registerMcpAddCommand(mcp: Command): void {
           if (!options.clientSecret) missing.push('--client-secret')
           if (!getXaaIdpSettings()) {
             missing.push(
-              `'${blinkCmd('mcp xaa setup')}' (settings.xaaIdp not configured)`,
+              `'${tovyrCmd('mcp xaa setup')}' (settings.xaaIdp not configured)`,
             )
           }
           if (missing.length) {
@@ -255,10 +255,10 @@ export function registerMcpAddCommand(mcp: Command): void {
               `\nWarning: The command "${actualCommand}" looks like a URL, but is being interpreted as a stdio server as --transport was not specified.\n`,
             )
             process.stderr.write(
-              `If this is an HTTP server, use: ${blinkCmd(`mcp add --transport http ${name} ${actualCommand}`)}\n`,
+              `If this is an HTTP server, use: ${tovyrCmd(`mcp add --transport http ${name} ${actualCommand}`)}\n`,
             )
             process.stderr.write(
-              `If this is an SSE server, use: ${blinkCmd(`mcp add --transport sse ${name} ${actualCommand}`)}\n`,
+              `If this is an SSE server, use: ${tovyrCmd(`mcp add --transport sse ${name} ${actualCommand}`)}\n`,
             )
           }
 

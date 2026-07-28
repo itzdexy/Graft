@@ -1,5 +1,5 @@
 /**
- * Blink Theory-of-Mind Module
+ * Tovyr Theory-of-Mind Module
  * Inspired by OpenHands' theory-of-mind capabilities for AI agents
  * Enables agents to model and reason about other agents' mental states, beliefs, and intentions
  */

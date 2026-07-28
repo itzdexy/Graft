@@ -10,7 +10,7 @@ import {
   duck,
   ghost,
   goose,
-  blink,
+  tovyr,
   mushroom,
   octopus,
   owl,
@@ -439,7 +439,7 @@ const BODIES: Record<Species, string[][]> = {
       '  `------´~ ',
     ],
   ],
-  [blink]: [
+  [tovyr]: [
     [
       '            ',
       '    ___     ',
@@ -534,7 +534,7 @@ export function renderFace(bones: CompanionBones): string {
       return `|${eye}  ${eye}|`
     case chonk:
       return `(${eye}.${eye})`
-    case blink:
+    case tovyr:
       return `<${eye}${eye}>`
   }
 }

@@ -34,7 +34,7 @@ let vscodeMcpClient: ConnectedMCPServer | null = null
 
 /**
  * Sends a file_updated notification to the VSCode MCP server. This is used to
- * notify VSCode when files are edited or written by Blink.
+ * notify VSCode when files are edited or written by Tovyr.
  */
 export function notifyVscodeFileUpdated(
   filePath: string,
@@ -92,7 +92,7 @@ export function setupVscodeSdkMcp(sdkClients: MCPServerConnection[]): void {
         'tengu_quiet_fern',
         false,
       ),
-      // In-band OAuth via blink_authenticate (vs. extension-native PKCE).
+      // In-band OAuth via tovyr_authenticate (vs. extension-native PKCE).
       tengu_vscode_cc_auth: getFeatureValue_CACHED_MAY_BE_STALE(
         'tengu_vscode_cc_auth',
         false,

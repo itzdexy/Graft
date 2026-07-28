@@ -334,7 +334,7 @@ async function processRemoteEvalPayload(
   // Empty object is truthy — without the length check, `{features: {}}`
   // (transient server bug, truncated response) would pass, clear the maps
   // below, return true, and syncRemoteEvalToDisk would wholesale-write `{}`
-  // to disk: total flag blackout for every process sharing ~/.blink.json.
+  // to disk: total flag blackout for every process sharing ~/.tovyr.json.
   if (!payload?.features || Object.keys(payload.features).length === 0) {
     return false
   }
@@ -425,15 +425,15 @@ function isGrowthBookEnabled(): boolean {
 }
 
 /**
- * Hostname of ANTHROPIC_BASE_URL when it points at a non-Blink proxy.
+ * Hostname of ANTHROPIC_BASE_URL when it points at a non-Tovyr proxy.
  *
  * Enterprise-proxy deployments (Epic, Marble, etc.) typically use
- * apiKeyHelper auth, which means isBlinkAuthEnabled() returns false and
+ * apiKeyHelper auth, which means isTovyrAuthEnabled() returns false and
  * organizationUUID/accountUUID/email are all absent from GrowthBook
  * attributes. Without this, there's no stable attribute to target them on
- * — only per-device IDs. See src/utils/auth.ts isBlinkAuthEnabled().
+ * — only per-device IDs. See src/utils/auth.ts isTovyrAuthEnabled().
  *
- * Returns undefined for unset/default (api.blink.com) so the attribute
+ * Returns undefined for unset/default (api.tovyr.com) so the attribute
  * is absent for direct-API users. Hostname only — no path/query/creds.
  */
 export function getApiBaseUrlHost(): string | undefined {
@@ -502,7 +502,7 @@ const getGrowthBookClient = memoize(
     }
     const baseUrl =
       process.env.USER_TYPE === 'ant'
-        ? process.env.CLAUDE_CODE_GB_BASE_URL || 'https://api.anthropic.com/'
+        ? process.env.TOVYR_CODE_GB_BASE_URL || 'https://api.anthropic.com/'
         : 'https://api.anthropic.com/'
 
     // Skip auth if trust hasn't been established yet

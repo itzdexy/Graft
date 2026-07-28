@@ -113,10 +113,10 @@ export type AppState = DeepImmutable<{
   // Assistant mode fully enabled (settings + GrowthBook gate + trust).
   // Single source of truth - computed once in main.tsx before option
   // mutation, consumers read this instead of re-calling isAssistantMode().
-  blinksEnabled: boolean
+  tovyrsEnabled: boolean
   // Remote session URL for --remote mode (shown in footer indicator)
   remoteSessionUrl: string | undefined
-  // Remote session WS state (`blink assistant` viewer). 'connected' means the
+  // Remote session WS state (`tovyr assistant` viewer). 'connected' means the
   // live event stream is open; 'reconnecting' = transient WS drop, backoff
   // in progress; 'disconnected' = permanent close or reconnects exhausted.
   remoteConnectionStatus:
@@ -124,7 +124,7 @@ export type AppState = DeepImmutable<{
     | 'connected'
     | 'reconnecting'
     | 'disconnected'
-  // `blink assistant`: count of background tasks (Agent calls, teammates,
+  // `tovyr assistant`: count of background tasks (Agent calls, teammates,
   // workflows) running inside the REMOTE daemon child. Event-sourced from
   // system/task_started and system/task_notification on the WS. The local
   // AppState.tasks is always empty in viewer mode — the tasks live in a
@@ -138,13 +138,13 @@ export type AppState = DeepImmutable<{
   replBridgeOutboundOnly: boolean
   // Always-on bridge: env registered + session created (= "Ready")
   replBridgeConnected: boolean
-  // Always-on bridge: ingress WebSocket is open (= "Connected" - user on blink web)
+  // Always-on bridge: ingress WebSocket is open (= "Connected" - user on tovyr web)
   replBridgeSessionActive: boolean
   // Always-on bridge: poll loop is in error backoff (= "Reconnecting")
   replBridgeReconnecting: boolean
   // Always-on bridge: connect URL for Ready state (?bridge=envId)
   replBridgeConnectUrl: string | undefined
-  // Always-on bridge: session URL on blink web (set when connected)
+  // Always-on bridge: session URL on tovyr web (set when connected)
   replBridgeSessionUrl: string | undefined
   // Always-on bridge: IDs for debugging (shown in dialog when --verbose)
   replBridgeEnvironmentId: string | undefined
@@ -480,7 +480,7 @@ export function getDefaultAppState(): AppState {
     coordinatorTaskIndex: -1,
     viewSelectionMode: 'none',
     footerSelection: null,
-    blinksEnabled: false,
+    tovyrsEnabled: false,
     remoteSessionUrl: undefined,
     remoteConnectionStatus: 'connecting',
     remoteBackgroundTaskCount: 0,

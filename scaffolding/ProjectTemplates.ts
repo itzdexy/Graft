@@ -174,7 +174,7 @@ export default App`,
           path: 'src/index.css',
           content: `body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, TovyrMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .app {

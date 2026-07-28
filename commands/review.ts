@@ -1,11 +1,11 @@
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.js'
 import type { Command } from '../commands.js'
 import { isUltrareviewEnabled } from './review/ultrareviewEnabled.js'
-import { isBlinkWebOnlyCommandEnabled } from '../utils/blinkRuntime.js'
+import { isTovyrWebOnlyCommandEnabled } from '../utils/tovyrRuntime.js'
 
 // Legal wants the explicit surface name plus a docs link visible before the
-// user triggers, so the description carries "Blink on the web" + URL.
-const CCR_TERMS_URL = 'https://github.com/itsdexy/BlinkCode/blob/main/docs/GUIDE.md'
+// user triggers, so the description carries "Tovyr on the web" + URL.
+const CCR_TERMS_URL = 'https://github.com/itsdexy/Tovyr/blob/main/docs/GUIDE.md'
 
 const LOCAL_REVIEW_PROMPT = (args: string) => `
       You are an expert code reviewer. Follow these steps:
@@ -43,7 +43,7 @@ const review: Command = {
   },
 }
 
-/** GitHub PR review â€” exposed as /pr-review when Blink uses /review for Buddy code review. */
+/** GitHub PR review â€” exposed as /pr-review when Tovyr uses /review for Buddy code review. */
 const prReview: Command = {
   ...review,
   name: 'pr-review',
@@ -56,8 +56,8 @@ const prReview: Command = {
 const ultrareview: Command = {
   type: 'local-jsx',
   name: 'ultrareview',
-  description: `~10â€“20 min Â· Finds and verifies bugs in your branch. Runs in Blink on the web. See ${CCR_TERMS_URL}`,
-  isEnabled: () => isBlinkWebOnlyCommandEnabled() && isUltrareviewEnabled(),
+  description: `~10â€“20 min Â· Finds and verifies bugs in your branch. Runs in Tovyr on the web. See ${CCR_TERMS_URL}`,
+  isEnabled: () => isTovyrWebOnlyCommandEnabled() && isUltrareviewEnabled(),
   load: () => import('./review/ultrareviewCommand.js'),
 }
 

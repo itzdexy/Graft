@@ -415,7 +415,7 @@ class CodeIntelligenceEngine {
     const configFiles: string[] = []
     const testFiles: string[] = []
     const documentation: string[] = []
-    const candidates = ['package.json', 'tsconfig.json', 'README.md', 'blink.md']
+    const candidates = ['package.json', 'tsconfig.json', 'README.md', 'tovyr.md']
     for (const c of candidates) {
       const p = join(path, c)
       if (existsSync(p)) {

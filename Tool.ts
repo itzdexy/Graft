@@ -247,8 +247,8 @@ export type ToolUseContext = {
     updater: (prev: AttributionState) => AttributionState,
   ) => void
   setConversationId?: (id: UUID) => void
-  /** Blink: restore welcome chrome after /clear */
-  onBlinkWelcomeReset?: () => void
+  /** Tovyr: restore welcome chrome after /clear */
+  onTovyrWelcomeReset?: () => void
   agentId?: AgentId // Only set for subagents; use getSessionId() for session ID. Hooks use this to distinguish subagent calls.
   agentType?: string // Subagent type name. For the main thread's --agent type, hooks fall back to getMainThreadAgentType().
   /** When true, canUseTool must always be called even when hooks auto-approve.
@@ -450,7 +450,7 @@ export type Tool<
   /**
    * When true, this tool is never deferred — its full schema appears in the
    * initial prompt even when ToolSearch is enabled. For MCP tools, set via
-   * `_meta['blink/alwaysLoad']`. Use for tools the model must see on
+   * `_meta['tovyr/alwaysLoad']`. Use for tools the model must see on
    * turn 1 without a ToolSearch round-trip.
    */
   readonly alwaysLoad?: boolean
@@ -463,7 +463,7 @@ export type Tool<
   readonly name: string
   /**
    * Maximum size in characters for tool result before it gets persisted to disk.
-   * When exceeded, the result is saved to a file and Blink receives a preview
+   * When exceeded, the result is saved to a file and Tovyr receives a preview
    * with the file path instead of the full content.
    *
    * Set to Infinity for tools whose output must never be persisted (e.g. Read,

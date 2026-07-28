@@ -45,7 +45,7 @@ import {
   dedupClaudeAiMcpServers,
   doesEnterpriseMcpConfigExist,
   filterMcpServersByPolicy,
-  getBlinkMcpConfigs,
+  getTovyrMcpConfigs,
   isMcpServerDisabled,
   setMcpServerEnabled,
 } from 'src/services/mcp/config.js'
@@ -78,7 +78,7 @@ import {
 } from './channelPermissions.js'
 import {
   clearClaudeAIMcpConfigsCache,
-  fetchBlinkWebMcpConfigsIfEligible,
+  fetchTovyrWebMcpConfigsIfEligible,
 } from './claudeai.js'
 import { registerElicitationHandler } from './elicitationHandler.js'
 import { getMcpPrefix } from './mcpStringUtils.js'
@@ -147,7 +147,7 @@ export function useManageMCPConnections(
   const store = useAppStateStore()
   const _authVersion = useAppState(s => s.authVersion)
   // Incremented by /reload-plugins (refreshActivePlugins) to pick up newly
-  // enabled plugin MCP servers. getBlinkCodeMcpConfigs() reads loadAllPlugins()
+  // enabled plugin MCP servers. getTovyrCodeMcpConfigs() reads loadAllPlugins()
   // which has been cleared by refreshActivePlugins, so the effects below see
   // fresh plugin data on re-run.
   const _pluginReconnectKey = useAppState(s => s.mcp.pluginReconnectKey)
@@ -169,7 +169,7 @@ export function useManageMCPConnections(
     null,
   )
   if (
-    (feature('BLINKS') || feature('BLINKS_CHANNELS')) &&
+    (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) &&
     channelPermCallbacksRef.current === null
   ) {
     channelPermCallbacksRef.current = createChannelPermissionCallbacks()
@@ -177,14 +177,14 @@ export function useManageMCPConnections(
   // Store callbacks in AppState so interactiveHandler.ts can reach them via
   // ctx.toolUseContext.getAppState(). One-time set — the ref is stable.
   useEffect(() => {
-    if (feature('BLINKS') || feature('BLINKS_CHANNELS')) {
+    if (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) {
       const callbacks = channelPermCallbacksRef.current
       if (!callbacks) return
       // GrowthBook runtime gate — separate from channels so channels can
       // ship without this. Checked at mount; mid-session flips need restart.
       // If off, callbacks never go into AppState → interactiveHandler sees
       // undefined → never sends → intercept has nothing pending → "yes tbxkq"
-      // flows to Blink as normal chat. One gate, full disable.
+      // flows to Tovyr as normal chat. One gate, full disable.
       if (!isChannelPermissionRelayEnabled()) return
       setAppState(prev => {
         if (prev.channelPermissionCallbacks === callbacks) return prev
@@ -467,10 +467,10 @@ export function useManageMCPConnections(
             }
           }
 
-          // Channel push: notifications/blink/channel → enqueue().
+          // Channel push: notifications/tovyr/channel → enqueue().
           // Gate decides whether to register the handler; connection stays
           // up either way (allowedMcpServers controls that).
-          if (feature('BLINKS') || feature('BLINKS_CHANNELS')) {
+          if (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) {
             const gate = gateChannelServer(
               client.name,
               client.capabilities,
@@ -532,7 +532,7 @@ export function useManageMCPConnections(
                 )
                 // Permission-reply handler — separate event, separate
                 // capability. Only registers if the server declares
-                // blink/channel/permission (same opt-in check as the send
+                // tovyr/channel/permission (same opt-in check as the send
                 // path in interactiveHandler.ts). Server parses the user's
                 // reply and emits {request_id, behavior}; no regex on our
                 // side, text in the general channel can't accidentally match.
@@ -597,7 +597,7 @@ export function useManageMCPConnections(
                     gate.kind === 'disabled'
                       ? 'Channels are not currently available'
                       : gate.kind === 'auth'
-                        ? 'Channels require Blink authentication · run /login'
+                        ? 'Channels require Tovyr authentication · run /login'
                         : gate.kind === 'policy'
                           ? 'Channels are not enabled for your org · have an administrator set channelsEnabled: true in managed settings'
                           : gate.reason
@@ -766,14 +766,14 @@ export function useManageMCPConnections(
   // Re-runs on session change (/clear) and on /reload-plugins (pluginReconnectKey).
   // On plugin reload, also disconnects stale plugin MCP servers (scope 'dynamic')
   // that no longer appear in configs — prevents ghost tools from disabled plugins.
-  // Skip blink web dedup here to avoid blocking on the network fetch; the connect
+  // Skip tovyr web dedup here to avoid blocking on the network fetch; the connect
   // useEffect below runs immediately after and dedups before connecting.
   const sessionId = getSessionId()
   useEffect(() => {
     async function initializeServersAsPending() {
       const { servers: existingConfigs, errors: mcpErrors } = isStrictMcpConfig
         ? { servers: {}, errors: [] }
-        : await getBlinkMcpConfigs(dynamicMcpConfig)
+        : await getTovyrMcpConfigs(dynamicMcpConfig)
       const configs = { ...existingConfigs, ...dynamicMcpConfig }
 
       // Add MCP errors to plugin errors for UI visibility (deduplicated)
@@ -854,31 +854,31 @@ export function useManageMCPConnections(
   ])
 
   // Load MCP configs and connect to servers
-  // Two-phase loading: Blink configs first (fast), then blink web configs (may be slow)
+  // Two-phase loading: Tovyr configs first (fast), then tovyr web configs (may be slow)
   useEffect(() => {
     let cancelled = false
 
     async function loadAndConnectMcpConfigs() {
-      // Clear blink web MCP cache so we fetch fresh configs with current auth
+      // Clear tovyr web MCP cache so we fetch fresh configs with current auth
       // state. This is important when authVersion changes (e.g., after login/
       // logout). Kick off the fetch now so it overlaps with loadAllPlugins()
-      // inside getBlinkCodeMcpConfigs; it's awaited only at the dedup step.
+      // inside getTovyrCodeMcpConfigs; it's awaited only at the dedup step.
       // Phase 2 below awaits the same promise — no second network call.
       let claudeaiPromise: Promise<Record<string, ScopedMcpServerConfig>>
       if (isStrictMcpConfig || doesEnterpriseMcpConfigExist()) {
         claudeaiPromise = Promise.resolve({})
       } else {
         clearClaudeAIMcpConfigsCache()
-        claudeaiPromise = fetchBlinkWebMcpConfigsIfEligible()
+        claudeaiPromise = fetchTovyrWebMcpConfigsIfEligible()
       }
 
-      // Phase 1: Load Blink configs. Plugin MCP servers that duplicate a
-      // --mcp-config entry or a blink web connector are suppressed here so they
+      // Phase 1: Load Tovyr configs. Plugin MCP servers that duplicate a
+      // --mcp-config entry or a tovyr web connector are suppressed here so they
       // don't connect alongside the connector in Phase 2.
       const { servers: claudeCodeConfigs, errors: mcpErrors } =
         isStrictMcpConfig
           ? { servers: {}, errors: [] }
-          : await getBlinkMcpConfigs(dynamicMcpConfig, claudeaiPromise)
+          : await getTovyrMcpConfigs(dynamicMcpConfig, claudeaiPromise)
       if (cancelled) return
 
       // Add MCP errors to plugin errors for UI visibility (deduplicated)
@@ -886,7 +886,7 @@ export function useManageMCPConnections(
 
       const configs = { ...claudeCodeConfigs, ...dynamicMcpConfig }
 
-      // Start connecting to Blink servers (don't wait - runs concurrently with Phase 2)
+      // Start connecting to Tovyr servers (don't wait - runs concurrently with Phase 2)
       // Filter out disabled servers to avoid unnecessary connection attempts
       const enabledConfigs = Object.fromEntries(
         Object.entries(configs).filter(([name]) => !isMcpServerDisabled(name)),
@@ -901,7 +901,7 @@ export function useManageMCPConnections(
         )
       })
 
-      // Phase 2: Await blink web configs (started above; memoized — no second fetch)
+      // Phase 2: Await tovyr web configs (started above; memoized — no second fetch)
       let claudeaiConfigs: Record<string, ScopedMcpServerConfig> = {}
       if (!isStrictMcpConfig) {
         claudeaiConfigs = filterMcpServersByPolicy(
@@ -909,8 +909,8 @@ export function useManageMCPConnections(
         ).allowed
         if (cancelled) return
 
-        // Suppress blink web connectors that duplicate an enabled manual server.
-        // Keys never collide (`slack` vs `blink web Slack`) so the merge below
+        // Suppress tovyr web connectors that duplicate an enabled manual server.
+        // Keys never collide (`slack` vs `tovyr web Slack`) so the merge below
         // won't catch this — need content-based dedup by URL signature.
         if (Object.keys(claudeaiConfigs).length > 0) {
           const { servers: dedupedClaudeAi } = dedupClaudeAiMcpServers(
@@ -921,7 +921,7 @@ export function useManageMCPConnections(
         }
 
         if (Object.keys(claudeaiConfigs).length > 0) {
-          // Add blink web servers as pending immediately so they show up in UI
+          // Add tovyr web servers as pending immediately so they show up in UI
           setAppState(prevState => {
             const existingServerNames = new Set(
               prevState.mcp.clients.map(c => c.name),
@@ -957,7 +957,7 @@ export function useManageMCPConnections(
           ).catch(error => {
             logMCPError(
               'useManageMcpConnections',
-              `Failed to get Blink MCP resources: ${errorMessage(error)}`,
+              `Failed to get Tovyr MCP resources: ${errorMessage(error)}`,
             )
           })
         }

@@ -1,6 +1,6 @@
 /**
  * SDK runtime types (callbacks, session interfaces). Re-exported from the agent SDK
- * for source builds that lack Blink's committed generated files.
+ * for source builds that lack Tovyr's committed generated files.
  */
 export type {
   AnyZodRawShape,

@@ -7,7 +7,7 @@ import {
   isAutoMemPath,
 } from '../memdir/paths.js'
 import { isAgentMemoryPath } from '../tools/AgentTool/agentMemory.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
 import {
   posixPathToWindowsPath,
   windowsPathToPosixPath,
@@ -34,13 +34,13 @@ function toComparable(p: string): string {
 }
 
 /**
- * Detects if a file path is a session-related file under ~/.blink.
+ * Detects if a file path is a session-related file under ~/.tovyr.
  * Returns the type of session file or null if not a session file.
  */
 export function detectSessionFileType(
   filePath: string,
 ): 'session_memory' | 'session_transcript' | null {
-  const configDir = getBlinkConfigHomeDir()
+  const configDir = getTovyrConfigHomeDir()
   // Compare in forward-slash form; on Windows also case-fold. The caller
   // (isShellCommandTargetingMemory) converts MinGW /c/... → native before
   // reaching here, so we only need separator + case normalization.
@@ -124,9 +124,9 @@ function isAgentMemFile(filePath: string): boolean {
 }
 
 /**
- * Check if a file is a Blink-managed memory file (NOT user-managed instruction files).
+ * Check if a file is a Tovyr-managed memory file (NOT user-managed instruction files).
  * Includes: auto-memory (memdir), agent memory, session memory/transcripts.
- * Excludes: CLAUDE.md, CLAUDE.local.md, .blink/rules/*.md (user-managed).
+ * Excludes: CLAUDE.md, CLAUDE.local.md, .tovyr/rules/*.md (user-managed).
  *
  * Use this for collapse/badge logic where user-managed files should show full diffs.
  */
@@ -186,7 +186,7 @@ export function isMemoryDirectory(dirPath: string): boolean {
     }
   }
 
-  const configDirCmp = toComparable(getBlinkConfigHomeDir())
+  const configDirCmp = toComparable(getTovyrConfigHomeDir())
   const memoryBaseCmp = toComparable(getMemoryBaseDir())
   const underConfig = normalizedCmp.startsWith(configDirCmp)
   const underMemoryBase = normalizedCmp.startsWith(memoryBaseCmp)
@@ -213,7 +213,7 @@ export function isMemoryDirectory(dirPath: string): boolean {
  * collapse logic.
  */
 export function isShellCommandTargetingMemory(command: string): boolean {
-  const configDir = getBlinkConfigHomeDir()
+  const configDir = getTovyrConfigHomeDir()
   const memoryBase = getMemoryBaseDir()
   const autoMemDir = isAutoMemoryEnabled()
     ? getAutoMemPath().replace(/[/\\]+$/, '')

@@ -208,7 +208,7 @@ class WorkflowEngine {
       startNodeId,
       metadata: {
         version: '1.0.0',
-        author: 'Blink',
+        author: 'Tovyr',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         executionCount: 0,

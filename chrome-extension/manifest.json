@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Tovyr in Chrome",
+  "version": "1.1.0",
+  "description": "Tovyr-style side panel + browser automation for Tovyr Code CLI via MCP (Chrome, Edge, Brave).",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "tabs",
+    "debugger",
+    "activeTab",
+    "scripting",
+    "nativeMessaging",
+    "tabGroups",
+    "windows",
+    "storage",
+    "alarms",
+    "sidePanel",
+    "clipboardWrite"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Tovyr",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

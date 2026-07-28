@@ -11,11 +11,11 @@ import type {
   UserMessage,
 } from 'src/types/message.js'
 import { getPlanSlugCache, getSessionId } from '../bootstrap/state.js'
-import { BLINK_PLAN_FILENAME } from '../constants/blink.js'
+import { TOVYR_PLAN_FILENAME } from '../constants/tovyr.js'
 import { EXIT_PLAN_MODE_V2_TOOL_NAME } from '../tools/ExitPlanModeTool/constants.js'
 import { getCwd } from './cwd.js'
 import { logForDebugging } from './debug.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
 import { isENOENT } from './errors.js'
 import { getEnvironmentKind } from './filePersistence/outputsScanner.js'
 import { getFsImplementation } from './fsOperations.js'
@@ -92,13 +92,13 @@ export const getPlansDirectory = memoize(function getPlansDirectory(): string {
       logError(
         new Error(`plansDirectory must be within project root: ${settingsDir}`),
       )
-      plansPath = join(getBlinkConfigHomeDir(), 'plans')
+      plansPath = join(getTovyrConfigHomeDir(), 'plans')
     } else {
       plansPath = resolved
     }
   } else {
     // Default
-    plansPath = join(getBlinkConfigHomeDir(), 'plans')
+    plansPath = join(getTovyrConfigHomeDir(), 'plans')
   }
 
   // Ensure directory exists (mkdirSync with recursive: true is a no-op if it exists)
@@ -118,9 +118,9 @@ export const getPlansDirectory = memoize(function getPlansDirectory(): string {
  * For subagents (agentId provided), returns {planSlug}-agent-{agentId}.md
  */
 export function getPlanFilePath(agentId?: AgentId): string {
-  // Blink: fixed plan file in the project root for the main session
+  // Tovyr: fixed plan file in the project root for the main session
   if (!agentId) {
-    return join(getCwd(), BLINK_PLAN_FILENAME)
+    return join(getCwd(), TOVYR_PLAN_FILENAME)
   }
 
   const planSlug = getPlanSlug(getSessionId())

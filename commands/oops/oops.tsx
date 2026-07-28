@@ -23,7 +23,7 @@ const RECOVERIES: Recovery[] = [
     code: 'timeout',
     title: 'Request timed out',
     description: 'The model took too long to respond.',
-    action: 'Try a faster model (/model) or enable auto-failover with BLINK_AUTO_FAILOVER=1.',
+    action: 'Try a faster model (/model) or enable auto-failover with TOVYR_AUTO_FAILOVER=1.',
   },
   {
     code: 'tool-error',

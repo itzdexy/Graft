@@ -96,28 +96,28 @@ export const MULTILANG_MCP_TEMPLATES: McpServerLaunchSpec[] = [
   },
 ]
 
-/** Blink built-in in-process servers (no subprocess). */
-export const BLINK_BUILTIN_TEMPLATES: McpServerLaunchSpec[] = [
+/** Tovyr built-in in-process servers (no subprocess). */
+export const TOVYR_BUILTIN_TEMPLATES: McpServerLaunchSpec[] = [
   {
-    id: 'blink-sequential-thinking',
+    id: 'tovyr-sequential-thinking',
     runtime: 'node',
-    command: 'blink-builtin',
+    command: 'tovyr-builtin',
     args: ['sequential-thinking'],
     description: 'Built-in sequential thinking (in-process, no npx)',
   },
   {
-    id: 'blink-memory',
+    id: 'tovyr-memory',
     runtime: 'node',
-    command: 'blink-builtin',
+    command: 'tovyr-builtin',
     args: ['memory-graph'],
-    description: 'Built-in knowledge graph at .blink/memory-graph.json',
+    description: 'Built-in knowledge graph at .tovyr/memory-graph.json',
   },
 ]
 
 export function getMcpTemplate(id: string): McpServerLaunchSpec | undefined {
   return (
     MULTILANG_MCP_TEMPLATES.find(t => t.id === id) ??
-    BLINK_BUILTIN_TEMPLATES.find(t => t.id === id)
+    TOVYR_BUILTIN_TEMPLATES.find(t => t.id === id)
   )
 }
 
@@ -131,7 +131,7 @@ export function getStagehandTemplate(
 export function wrapCommandForPlatform(
   spec: McpServerLaunchSpec,
 ): { command: string; args: string[] } {
-  if (spec.command === 'blink-builtin') {
+  if (spec.command === 'tovyr-builtin') {
     return { command: spec.command, args: spec.args }
   }
   if (getPlatform() === 'windows' && (spec.command === 'npx' || spec.command === 'uvx')) {
@@ -146,12 +146,12 @@ export function wrapCommandForPlatform(
 export function templateToMcpConfig(
   spec: McpServerLaunchSpec,
 ): { command: string; args: string[]; env?: Record<string, string> } {
-  if (spec.command === 'blink-builtin') {
+  if (spec.command === 'tovyr-builtin') {
     return {
       command: 'node',
       args: ['-e', '0'],
       env: {
-        BLINK_BUILTIN_MCP: spec.args[0] ?? spec.id,
+        TOVYR_BUILTIN_MCP: spec.args[0] ?? spec.id,
         ...spec.env,
       },
     }
@@ -180,7 +180,7 @@ export async function installMcpTemplate(
 
 export function listMcpTemplateIds(): string[] {
   return [
-    ...BLINK_BUILTIN_TEMPLATES.map(t => t.id),
+    ...TOVYR_BUILTIN_TEMPLATES.map(t => t.id),
     ...MULTILANG_MCP_TEMPLATES.map(t => t.id),
   ]
 }
@@ -189,9 +189,9 @@ export function formatMultilangMcpHelp(): string {
   const lines = [
     '# Multi-language MCP servers',
     '',
-    'Built-in (in-process, enabled automatically in Blink):',
+    'Built-in (in-process, enabled automatically in Tovyr):',
     '',
-    ...BLINK_BUILTIN_TEMPLATES.map(
+    ...TOVYR_BUILTIN_TEMPLATES.map(
       t => `- **${t.id}** — ${t.description ?? t.runtime}`,
     ),
     '',

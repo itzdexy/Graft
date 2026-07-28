@@ -8,7 +8,7 @@ import {
   PERMISSION_MODES,
 } from '../permissions/PermissionMode.js'
 import { MarketplaceSourceSchema } from '../plugins/schemas.js'
-import { CLAUDE_CODE_SETTINGS_SCHEMA_URL } from './constants.js'
+import { TOVYR_CODE_SETTINGS_SCHEMA_URL } from './constants.js'
 import { PermissionRuleSchema } from './permissionValidation.js'
 
 // Re-export hook schemas and types from centralized location for backward compatibility
@@ -63,7 +63,7 @@ export const PermissionsSchema = lazySchema(() =>
             : EXTERNAL_PERMISSION_MODES,
         )
         .optional()
-        .describe('Default permission mode when Blink needs access'),
+        .describe('Default permission mode when Tovyr needs access'),
       disableBypassPermissionsMode: z
         .enum(['disable'])
         .optional()
@@ -211,7 +211,7 @@ export const DeniedMcpServerEntrySchema = lazySchema(() =>
  *
  * ⚠️ BACKWARD COMPATIBILITY NOTICE ⚠️
  *
- * This schema defines the structure of user settings files (.blink/settings.json).
+ * This schema defines the structure of user settings files (.tovyr/settings.json).
  * We support backward-compatible changes! Here's how:
  *
  * ✅ ALLOWED CHANGES:
@@ -256,9 +256,9 @@ export const SettingsSchema = lazySchema(() =>
   z
     .object({
       $schema: z
-        .literal(CLAUDE_CODE_SETTINGS_SCHEMA_URL)
+        .literal(TOVYR_CODE_SETTINGS_SCHEMA_URL)
         .optional()
-        .describe('JSON Schema reference for Blink settings'),
+        .describe('JSON Schema reference for Tovyr settings'),
       apiKeyHelper: z
         .string()
         .optional()
@@ -277,11 +277,11 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Command to refresh GCP authentication (e.g., gcloud auth application-default login)',
         ),
-      // Gated so the SDK generator (which runs without CLAUDE_CODE_ENABLE_XAA)
-      // doesn't surface this in GlobalBlinkSettings. Read via getXaaIdpSettings().
+      // Gated so the SDK generator (which runs without TOVYR_CODE_ENABLE_XAA)
+      // doesn't surface this in GlobalTovyrSettings. Read via getXaaIdpSettings().
       // .passthrough() on the outer object keeps an existing settings.json key
       // alive across env-var-off sessions — it's just not schema-validated then.
-      ...(isEnvTruthy(process.env.CLAUDE_CODE_ENABLE_XAA)
+      ...(isEnvTruthy(process.env.TOVYR_CODE_ENABLE_XAA)
         ? {
             xaaIdp: z
               .object({
@@ -291,7 +291,7 @@ export const SettingsSchema = lazySchema(() =>
                   .describe('IdP issuer URL for OIDC discovery'),
                 clientId: z
                   .string()
-                  .describe("Blink's client_id registered at the IdP"),
+                  .describe("Tovyr's client_id registered at the IdP"),
                 callbackPort: z
                   .number()
                   .int()
@@ -332,7 +332,7 @@ export const SettingsSchema = lazySchema(() =>
         ),
       env: EnvironmentVariablesSchema()
         .optional()
-        .describe('Environment variables to set for Blink sessions'),
+        .describe('Environment variables to set for Tovyr sessions'),
       // Attribution for commits and PRs
       attribution: z
         .object({
@@ -354,20 +354,20 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Customize attribution text for commits and PRs. ' +
-            'Each field defaults to the standard Blink attribution if not set.',
+            'Each field defaults to the standard Tovyr attribution if not set.',
         ),
       includeCoAuthoredBy: z
         .boolean()
         .optional()
         .describe(
           'Deprecated: Use attribution instead. ' +
-            "Whether to include Blink's co-authored by attribution in commits and PRs (defaults to true)",
+            "Whether to include Tovyr's co-authored by attribution in commits and PRs (defaults to true)",
         ),
       includeGitInstructions: z
         .boolean()
         .optional()
         .describe(
-          "Include built-in commit and PR workflow instructions in Blink's system prompt (default: true)",
+          "Include built-in commit and PR workflow instructions in Tovyr's system prompt (default: true)",
         ),
       permissions: PermissionsSchema()
         .optional()
@@ -375,7 +375,7 @@ export const SettingsSchema = lazySchema(() =>
       model: z
         .string()
         .optional()
-        .describe('Override the default model used by Blink'),
+        .describe('Override the default model used by Tovyr'),
       // Enterprise allowlist of models
       availableModels: z
         .array(z.string())
@@ -392,7 +392,7 @@ export const SettingsSchema = lazySchema(() =>
         .record(z.string(), z.string())
         .optional()
         .describe(
-          'Override mapping from Anthropic model ID (e.g. "blink-opus-4-6") to provider-specific ' +
+          'Override mapping from Anthropic model ID (e.g. "tovyr-opus-4-6") to provider-specific ' +
             'model ID (e.g. a Bedrock inference profile ARN). Typically set in managed settings by ' +
             'enterprise administrators.',
         ),
@@ -620,12 +620,12 @@ export const SettingsSchema = lazySchema(() =>
             'these exact sources are blocked from being added as marketplaces. The check happens BEFORE ' +
             'downloading, so blocked sources never touch the filesystem.',
         ),
-      // Force a specific login method: 'blinkai' for Blink Pro/Max, 'console' for Console billing
+      // Force a specific login method: 'tovyrai' for Tovyr Pro/Max, 'console' for Console billing
       forceLoginMethod: z
         .enum(['claudeai', 'console'])
         .optional()
         .describe(
-          'Force a specific login method: "claudeai" for Blink Pro/Max, "console" for Console billing',
+          'Force a specific login method: "claudeai" for Tovyr Pro/Max, "console" for Console billing',
         ),
       // Organization UUID to use for OAuth login (will be added as URL param to authorization URL)
       forceLoginOrgUUID: z
@@ -644,7 +644,7 @@ export const SettingsSchema = lazySchema(() =>
         .string()
         .optional()
         .describe(
-          'Preferred language for Blink responses and voice dictation (e.g., "japanese", "spanish")',
+          'Preferred language for Tovyr responses and voice dictation (e.g., "japanese", "spanish")',
         ),
       skipWebFetchPreflight: z
         .boolean()
@@ -838,7 +838,7 @@ export const SettingsSchema = lazySchema(() =>
               ),
           }
         : {}),
-      ...(feature('PROACTIVE') || feature('BLINKS')
+      ...(feature('PROACTIVE') || feature('TOVYRS')
         ? {
             minSleepDurationMs: z
               .number()
@@ -869,28 +869,28 @@ export const SettingsSchema = lazySchema(() =>
               .describe('Enable voice mode (hold-to-talk dictation)'),
           }
         : {}),
-      ...(feature('BLINKS')
+      ...(feature('TOVYRS')
         ? {
             assistant: z
               .boolean()
               .optional()
               .describe(
-                'Start Blink in assistant mode (custom system prompt, brief view, scheduled check-in skills)',
+                'Start Tovyr in assistant mode (custom system prompt, brief view, scheduled check-in skills)',
               ),
             assistantName: z
               .string()
               .optional()
               .describe(
-                'Display name for the assistant, shown in the Blink session list',
+                'Display name for the assistant, shown in the Tovyr session list',
               ),
           }
         : {}),
       // Teams/Enterprise opt-IN for channel notifications. Default OFF.
-      // MCP servers that declare the blink/channel capability can push
+      // MCP servers that declare the tovyr/channel capability can push
       // inbound messages into the conversation; for managed orgs this only
       // works when explicitly enabled. Which servers can connect at all is
       // still governed by allowedMcpServers/deniedMcpServers. Not
-      // feature-spread: BLINKS_CHANNELS is external:true, and the spread
+      // feature-spread: TOVYRS_CHANNELS is external:true, and the spread
       // wrecks type inference for allowedChannelPlugins (the .passthrough()
       // catch-all gives {} instead of the array type).
       channelsEnabled: z
@@ -902,7 +902,7 @@ export const SettingsSchema = lazySchema(() =>
             'Set true to allow; users then select servers via --channels.',
         ),
       // Org-level channel plugin allowlist. When set, REPLACES the
-      // Blink ledger — admin owns the trust decision. Undefined means
+      // Tovyr ledger — admin owns the trust decision. Undefined means
       // fall back to the ledger. Plugin-only entry shape (same as the
       // ledger); server-kind entries still need the dev flag.
       allowedChannelPlugins: z
@@ -915,11 +915,11 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Teams/Enterprise allowlist of channel plugins. When set, ' +
-            'replaces the default Blink allowlist — admins decide which ' +
+            'replaces the default Tovyr allowlist — admins decide which ' +
             'plugins may push inbound messages. Undefined falls back to the default. ' +
             'Requires channelsEnabled: true.',
         ),
-      ...(feature('BLINKS') || feature('BLINKS_BRIEF')
+      ...(feature('TOVYRS') || feature('TOVYRS_BRIEF')
         ? {
             defaultView: z
               .enum(['chat', 'transcript'])
@@ -938,16 +938,16 @@ export const SettingsSchema = lazySchema(() =>
       toolDetail: z
         .enum(['smart', 'compact', 'expanded'])
         .optional()
-        .describe('Blink tool detail disclosure. Default: smart.'),
+        .describe('Tovyr tool detail disclosure. Default: smart.'),
       reasoningDisplay: z
         .enum(['live-collapse', 'summary', 'hidden'])
         .optional()
-        .describe('Blink reasoning presentation. Default: live-collapse.'),
+        .describe('Tovyr reasoning presentation. Default: live-collapse.'),
       autoMemoryEnabled: z
         .boolean()
         .optional()
         .describe(
-          'Enable auto-memory for this project. When false, Blink will not read from or write to the auto-memory directory.',
+          'Enable auto-memory for this project. When false, Tovyr will not read from or write to the auto-memory directory.',
         ),
       autoMemoryDirectory: z
         .string()
@@ -1048,7 +1048,7 @@ export const SettingsSchema = lazySchema(() =>
                 'Default working directory on the remote host. ' +
                   'Supports tilde expansion (e.g. ~/projects). ' +
                   'If not specified, defaults to the remote user home directory. ' +
-                  'Can be overridden by the [dir] positional argument in `blink ssh <config> [dir]`.',
+                  'Can be overridden by the [dir] positional argument in `tovyr ssh <config> [dir]`.',
               ),
           }),
         )

@@ -5,7 +5,7 @@ import { GREP_TOOL_NAME } from 'src/tools/GrepTool/prompt.js'
 import { SEND_MESSAGE_TOOL_NAME } from 'src/tools/SendMessageTool/constants.js'
 import { WEB_FETCH_TOOL_NAME } from 'src/tools/WebFetchTool/prompt.js'
 import { WEB_SEARCH_TOOL_NAME } from 'src/tools/WebSearchTool/prompt.js'
-import { BLINK_GUIDE_URL } from 'src/constants/blink.js'
+import { TOVYR_GUIDE_URL } from 'src/constants/tovyr.js'
 import { isUsing3PServices } from 'src/utils/auth.js'
 import { hasEmbeddedSearchTools } from 'src/utils/embeddedTools.js'
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
@@ -15,31 +15,31 @@ import type {
   BuiltInAgentDefinition,
 } from '../loadAgentsDir.js'
 
-/** Claude API / Agent SDK docs (provider docs — not this CLI). */
+/** Tovyr API / Agent SDK docs (provider docs — not this CLI). */
 const CLAUDE_API_DOCS_MAP_URL = 'https://platform.claude.com/llms.txt'
 
-export const CLAUDE_CODE_GUIDE_AGENT_TYPE = 'claude-code-guide'
+export const TOVYR_CODE_GUIDE_AGENT_TYPE = 'claude-code-guide'
 
-function getBlinkCodeGuideBasePrompt(): string {
+function getTovyrCodeGuideBasePrompt(): string {
   // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
   // dedicated Glob/Grep tools, so point at find/grep instead.
   const localSearchHint = hasEmbeddedSearchTools()
     ? `${FILE_READ_TOOL_NAME}, \`find\`, and \`grep\``
     : `${FILE_READ_TOOL_NAME}, ${GLOB_TOOL_NAME}, and ${GREP_TOOL_NAME}`
 
-  return `You are the Blink guide agent. Your primary responsibility is helping users understand and use **Blink** (this CLI — built by Blink, not Claude Code), plus optional Claude provider APIs when relevant.
+  return `You are the Tovyr guide agent. Your primary responsibility is helping users understand and use **Tovyr** (this CLI — built by Tovyr, not Tovyr), plus optional Tovyr provider APIs when relevant.
 
 **Your expertise spans three domains:**
 
-1. **Blink** (this CLI tool): Installation, configuration, hooks, skills, MCP servers, keyboard shortcuts, IDE integrations, settings, and workflows. Prefer project docs and ${BLINK_GUIDE_URL}.
+1. **Tovyr** (this CLI tool): Installation, configuration, hooks, skills, MCP servers, keyboard shortcuts, IDE integrations, settings, and workflows. Prefer project docs and ${TOVYR_GUIDE_URL}.
 
-2. **Claude Agent SDK**: A third-party framework for building custom AI agents. Available for Node.js/TypeScript and Python. Do not imply Blink is Claude Code.
+2. **Tovyr Agent SDK**: A third-party framework for building custom AI agents. Available for Node.js/TypeScript and Python. Do not imply Tovyr is Tovyr.
 
-3. **Claude API**: The Claude API (Anthropic) for direct model interaction, tool use, and integrations — used as a *provider*, not as the product identity of this CLI.
+3. **Tovyr API**: The Tovyr API (Anthropic) for direct model interaction, tool use, and integrations — used as a *provider*, not as the product identity of this CLI.
 
 **Documentation sources:**
 
-- **Blink docs** (${BLINK_GUIDE_URL}): Use for questions about this CLI, including:
+- **Tovyr docs** (${TOVYR_GUIDE_URL}): Use for questions about this CLI, including:
   - Installation, setup, and getting started
   - Hooks (pre/post command execution)
   - Custom skills
@@ -50,7 +50,7 @@ function getBlinkCodeGuideBasePrompt(): string {
   - Subagents and plugins
   - Sandboxing and security
 
-- **Claude Agent SDK / Claude API docs** (${CLAUDE_API_DOCS_MAP_URL}): Fetch this for questions about Anthropic's SDK/API (not Blink product docs), including:
+- **Tovyr Agent SDK / Tovyr API docs** (${CLAUDE_API_DOCS_MAP_URL}): Fetch this for questions about Anthropic's SDK/API (not Tovyr product docs), including:
   - SDK overview and getting started (Python and TypeScript)
   - Agent configuration + custom tools
   - Messages API, streaming, tool use
@@ -59,14 +59,14 @@ function getBlinkCodeGuideBasePrompt(): string {
 
 **Approach:**
 1. Determine which domain the user's question falls into
-2. For Blink questions, use ${WEB_FETCH_TOOL_NAME} on ${BLINK_GUIDE_URL} and local project files (blink.md, AGENTS.md, .blink/)
-3. For Claude API/SDK questions, fetch ${CLAUDE_API_DOCS_MAP_URL} then relevant pages
+2. For Tovyr questions, use ${WEB_FETCH_TOOL_NAME} on ${TOVYR_GUIDE_URL} and local project files (tovyr.md, AGENTS.md, .tovyr/)
+3. For Tovyr API/SDK questions, fetch ${CLAUDE_API_DOCS_MAP_URL} then relevant pages
 4. Provide clear, actionable guidance
 5. Use ${WEB_SEARCH_TOOL_NAME} if docs don't cover the topic
 6. Reference local project files when relevant using ${localSearchHint}
 
 **Guidelines:**
-- Always say this product is **Blink** / **Blink** — never claim it is Claude Code or that Anthropic/Claude built this CLI
+- Always say this product is **Tovyr** / **Tovyr** — never claim it is Tovyr or that Anthropic/Tovyr built this CLI
 - Claude/Anthropic names are fine when referring to models and APIs
 - Keep responses concise and actionable
 - Include specific examples or code snippets when helpful
@@ -84,9 +84,9 @@ function getFeedbackGuideline(): string {
   return "- When you cannot find an answer or the feature doesn't exist, direct the user to use /feedback to report a feature request or bug"
 }
 
-export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
-  agentType: CLAUDE_CODE_GUIDE_AGENT_TYPE,
-  whenToUse: `Use this agent when the user asks questions ("Can Blink...", "Does Blink...", "How do I...") about: (1) Blink (this CLI) - features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) Claude Agent SDK - building custom agents; (3) Claude API (Anthropic) - API usage, tool use, Anthropic SDK usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed claude-code-guide agent that you can continue via ${SEND_MESSAGE_TOOL_NAME}.`,
+export const TOVYR_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
+  agentType: TOVYR_CODE_GUIDE_AGENT_TYPE,
+  whenToUse: `Use this agent when the user asks questions ("Can Tovyr...", "Does Tovyr...", "How do I...") about: (1) Tovyr (this CLI) - features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) Tovyr Agent SDK - building custom agents; (3) Tovyr API (Anthropic) - API usage, tool use, Anthropic SDK usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed claude-code-guide agent that you can continue via ${SEND_MESSAGE_TOOL_NAME}.`,
   // Ant-native builds: Glob/Grep tools are removed; use Bash (with embedded
   // bfs/ugrep via find/grep aliases) for local file search instead.
   tools: hasEmbeddedSearchTools()
@@ -124,7 +124,7 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // 2. Custom agents from .blink/agents/
+    // 2. Custom agents from .tovyr/agents/
     const customAgents =
       toolUseContext.options.agentDefinitions.activeAgents.filter(
         (a: AgentDefinition) => a.source !== 'built-in',
@@ -170,7 +170,7 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
 
     // Add the feedback guideline (conditional based on whether user is using 3P services)
     const feedbackGuideline = getFeedbackGuideline()
-    const basePromptWithFeedback = `${getBlinkCodeGuideBasePrompt()}
+    const basePromptWithFeedback = `${getTovyrCodeGuideBasePrompt()}
 ${feedbackGuideline}`
 
     // If we have any context to add, append it to the base system prompt

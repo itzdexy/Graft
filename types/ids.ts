@@ -4,7 +4,7 @@
  */
 
 /**
- * A session ID uniquely identifies a Blink session.
+ * A session ID uniquely identifies a Tovyr session.
  * Returned by getSessionId().
  */
 export type SessionId = string & { readonly __brand: 'SessionId' }

@@ -11,15 +11,15 @@ import {
 import { clearPluginOutputStyleCache } from '../utils/plugins/loadPluginOutputStyles.js'
 
 /**
- * Loads markdown files from .blink/output-styles directories throughout the project
- * and from ~/.blink/output-styles directory and converts them to output styles.
+ * Loads markdown files from .tovyr/output-styles directories throughout the project
+ * and from ~/.tovyr/output-styles directory and converts them to output styles.
  *
  * Each filename becomes a style name, and the file content becomes the style prompt.
  * The frontmatter provides name and description.
  *
  * Structure:
- * - Project .blink/output-styles/*.md -> project styles
- * - User ~/.blink/output-styles/*.md -> user styles (overridden by project styles)
+ * - Project .tovyr/output-styles/*.md -> project styles
+ * - User ~/.tovyr/output-styles/*.md -> user styles (overridden by project styles)
  *
  * @param cwd Current working directory for project directory traversal
  */

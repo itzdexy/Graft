@@ -1,2 +1,3 @@
-// Shared frame interval for render throttling and animations (~60fps)
-export const FRAME_INTERVAL_MS = 16
+// Shared frame interval for render throttling and animations (~120fps)
+export const FRAME_INTERVAL_MS = 8
+

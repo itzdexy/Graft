@@ -1,4 +1,4 @@
-/** Stub for Anthropic-internal @ant/computer-use-mcp (external / Blink builds). */
+/** Stub for Anthropic-internal @ant/computer-use-mcp (external / Tovyr builds). */
 
 export * from './types.js'
 

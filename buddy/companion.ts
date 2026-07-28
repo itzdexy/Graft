@@ -1,10 +1,10 @@
 import { getGlobalConfig } from '../utils/config.js'
 import {
-  BLINK_BUDDY_BONES,
-  BLINK_BUDDY_SOUL,
-  isBlinkRuntime,
-  resolveBlinkBuddyName,
-} from './blinkBuddy.js'
+  TOVYR_BUDDY_BONES as TOVYR_BUDDY_BONES,
+  TOVYR_BUDDY_SOUL as TOVYR_BUDDY_SOUL,
+  isTovyrRuntime,
+  resolveTovyrBuddyName as resolveTovyrBuddyName,
+} from './tovyrBuddy.js'
 import {
   type Companion,
   type CompanionBones,
@@ -133,12 +133,12 @@ export function companionUserId(): string {
 export function getCompanion(): Companion | undefined {
   const stored = getGlobalConfig().companion
 
-  if (isBlinkRuntime()) {
+  if (isTovyrRuntime()) {
     return {
-      ...BLINK_BUDDY_SOUL,
+      ...TOVYR_BUDDY_SOUL,
       ...(stored ?? {}),
-      ...BLINK_BUDDY_BONES,
-      name: resolveBlinkBuddyName(stored?.name),
+      ...TOVYR_BUDDY_BONES,
+      name: resolveTovyrBuddyName(stored?.name),
       hatchedAt: stored?.hatchedAt ?? Date.now(),
     }
   }

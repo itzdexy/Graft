@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Box } from '../../ink.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 import { AnimatedClawd } from './AnimatedClawd.js'
-import { Clawd, BLINK_BUDDY_HEIGHT, type ClawdPose } from './Clawd.js'
+import { Clawd, TOVYR_BUDDY_HEIGHT, type ClawdPose } from './Clawd.js'
 
 const TALK_FRAME_MS = 160
 const CODE_FRAME_MS = 340
@@ -19,7 +19,7 @@ export type ClawdMood =
   | 'planning'
   | 'listening'
 
-/** Mouth cycle while Blink is streaming a reply. */
+/** Mouth cycle while Tovyr is streaming a reply. */
 const TALKING_POSES: readonly ClawdPose[] = [
   'talk',
   'talk-mid',
@@ -69,12 +69,12 @@ const LISTENING_POSES: readonly ClawdPose[] = [
   'look-left',
   'default',
   'look-right',
-  'blink',
+  'tovyr',
   'default',
 ]
 
 const IDLE_SEQUENCES: readonly (readonly ClawdPose[])[] = [
-  ['default', 'blink', 'default'],
+  ['default', 'tovyr', 'default'],
   ['default', 'look-left', 'look-left', 'default'],
   ['default', 'look-right', 'look-right', 'default'],
   ['default', 'arms-up', 'arms-up', 'default'],
@@ -171,7 +171,7 @@ function reducedPoseForMood(mood: ClawdMood): ClawdPose {
 }
 
 /**
- * Blink buddy with mood loops + random idle fidget. Honors reduced motion.
+ * Tovyr buddy with mood loops + random idle fidget. Honors reduced motion.
  */
 export function ActivityClawd({
   isActive = false,
@@ -235,7 +235,7 @@ export function ActivityClawd({
 
   if (!reducedMotion) {
     return (
-      <Box height={BLINK_BUDDY_HEIGHT} flexDirection="column" flexShrink={0}>
+      <Box height={TOVYR_BUDDY_HEIGHT} flexDirection="column" flexShrink={0}>
         <Clawd pose={pose} />
       </Box>
     )

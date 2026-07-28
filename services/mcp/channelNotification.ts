@@ -3,15 +3,15 @@
  * conversation. A "channel" (Discord, Slack, SMS, etc.) is just an MCP server
  * that:
  *   - exposes tools for outbound messages (e.g. `send_message`) — standard MCP
- *   - sends `notifications/blink/channel` notifications for inbound — this file
+ *   - sends `notifications/tovyr/channel` notifications for inbound — this file
  *
  * The notification handler wraps the content in a <channel> tag and
  * enqueues it. SleepTool polls hasCommandsInQueue() and wakes within 1s.
  * The model sees where the message came from and decides which tool to reply
  * with (the channel's MCP tool, SendUserMessage, or both).
  *
- * feature('BLINKS') || feature('BLINKS_CHANNELS'). Runtime gate tengu_harbor.
- * Requires blink web OAuth auth — API key users are blocked until
+ * feature('TOVYRS') || feature('TOVYRS_CHANNELS'). Runtime gate tengu_harbor.
+ * Requires tovyr web OAuth auth — API key users are blocked until
  * console gets a channelsEnabled admin surface. Teams/Enterprise orgs
  * must explicitly opt in via channelsEnabled: true in managed settings.
  */
@@ -21,7 +21,7 @@ import { z } from 'zod/v4'
 import { type ChannelEntry, getAllowedChannels } from '../../bootstrap/state.js'
 import { CHANNEL_TAG } from '../../constants/xml.js'
 import {
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   getSubscriptionType,
 } from '../../utils/auth.js'
 import { lazySchema } from '../../utils/lazySchema.js'
@@ -48,9 +48,9 @@ export const ChannelMessageNotificationSchema = lazySchema(() =>
 
 /**
  * Structured permission reply from a channel server. Servers that support
- * this declare `capabilities.experimental['blink/channel/permission']` and
+ * this declare `capabilities.experimental['tovyr/channel/permission']` and
  * emit this event INSTEAD of relaying "yes tbxkq" as text via
- * notifications/blink/channel. Explicit opt-in per server — a channel that
+ * notifications/tovyr/channel. Explicit opt-in per server — a channel that
  * just wants to relay text never becomes a permission surface by accident.
  *
  * The server parses the user's reply (spec: /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i)
@@ -174,16 +174,16 @@ export function findChannelEntry(
 
 /**
  * Gate an MCP server's channel-notification path. Caller checks
- * feature('BLINKS') || feature('BLINKS_CHANNELS') first (build-time
+ * feature('TOVYRS') || feature('TOVYRS_CHANNELS') first (build-time
  * elimination). Gate order: capability → runtime gate (tengu_harbor) →
  * auth (OAuth only) → org policy → session --channels → allowlist.
  * API key users are blocked at the auth layer — channels requires
- * blink web auth; console orgs have no admin opt-in surface yet.
+ * tovyr web auth; console orgs have no admin opt-in surface yet.
  *
  *   skip      Not a channel server, or managed org hasn't opted in, or
  *             not in session --channels. Connection stays up; handler
  *             not registered.
- *   register  Subscribe to notifications/blink/channel.
+ *   register  Subscribe to notifications/tovyr/channel.
  *
  * Which servers can connect at all is governed by allowedMcpServers —
  * this gate only decides whether the notification handler registers.
@@ -193,10 +193,10 @@ export function gateChannelServer(
   capabilities: ServerCapabilities | undefined,
   pluginSource: string | undefined,
 ): ChannelGateResult {
-  // Channel servers declare `experimental['blink/channel']: {}` (MCP's
+  // Channel servers declare `experimental['tovyr/channel']: {}` (MCP's
   // presence-signal idiom — same as `tools: {}`). Truthy covers `{}` and
   // `true`; absent/undefined/explicit-`false` all fail. Key matches the
-  // notification method namespace (notifications/blink/channel).
+  // notification method namespace (notifications/tovyr/channel).
   if (!capabilities?.experimental?.['claude/channel']) {
     return {
       action: 'skip',
@@ -219,11 +219,11 @@ export function gateChannelServer(
   // OAuth-only. API key users (console) are blocked — there's no
   // channelsEnabled admin surface in console yet, so the policy opt-in
   // flow doesn't exist for them. Drop this when console parity lands.
-  if (!getBlinkWebOAuthTokens()?.accessToken) {
+  if (!getTovyrWebOAuthTokens()?.accessToken) {
     return {
       action: 'skip',
       kind: 'auth',
-      reason: 'channels requires Blink authentication (run /login)',
+      reason: 'channels requires Tovyr authentication (run /login)',
     }
   }
 
@@ -257,8 +257,8 @@ export function gateChannelServer(
   }
 
   if (entry.kind === 'plugin') {
-    // Marketplace verification: the tag is intent (plugin:slack@blink),
-    // the runtime name is just plugin:slack:X — could be slack@blink or
+    // Marketplace verification: the tag is intent (plugin:slack@tovyr),
+    // the runtime name is just plugin:slack:X — could be slack@tovyr or
     // slack@evil depending on what's installed. Verify they match before
     // trusting the tag for the allowlist check below. Source is stashed on
     // the config at addPluginScopeToServers — undefined (non-plugin server,

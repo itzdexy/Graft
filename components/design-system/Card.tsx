@@ -23,7 +23,7 @@ export function Card({
   bordered = false,
   accent = true,
 }: CardProps): React.ReactNode {
-  const accentColor = color ?? 'blinkPrimary'
+  const accentColor = color ?? 'tovyrPrimary'
 
   const inner = (
     <Box flexDirection="column" paddingX={1}>

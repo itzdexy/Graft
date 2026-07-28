@@ -161,7 +161,7 @@ export function applySGR(paramStr: string, style: TextStyle): TextStyle {
       continue
     }
     if (code === 5 || code === 6) {
-      s.blink = true
+      s.tovyr = true
       i++
       continue
     }
@@ -202,7 +202,7 @@ export function applySGR(paramStr: string, style: TextStyle): TextStyle {
       continue
     }
     if (code === 25) {
-      s.blink = false
+      s.tovyr = false
       i++
       continue
     }

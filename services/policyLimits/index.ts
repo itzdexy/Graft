@@ -7,7 +7,7 @@
  *
  * Eligibility:
  * - Console users (API key): All eligible
- * - OAuth users (Blink.ai): Only Team and Enterprise/C4E subscribers are eligible
+ * - OAuth users (Tovyr.ai): Only Team and Enterprise/C4E subscribers are eligible
  * - API fails open (non-blocking) - if fetch fails, continues without restrictions
  * - API returns empty restrictions for users without policy limits
  */
@@ -25,11 +25,11 @@ import {
 import {
   checkAndRefreshOAuthTokenIfNeeded,
   getAnthropicApiKeyWithSource,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
 } from '../../utils/auth.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
-import { getBlinkConfigHomeDir } from '../../utils/envUtils.js'
+import { getTovyrConfigHomeDir } from '../../utils/envUtils.js'
 import { classifyAxiosError } from '../../utils/errors.js'
 import { safeParseJSON } from '../../utils/json.js'
 import {
@@ -39,7 +39,7 @@ import {
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 import { getRetryDelay } from '../api/withRetry.js'
 import {
   type PolicyLimitsFetchResult,
@@ -117,7 +117,7 @@ export function initializePolicyLimitsLoadingPromise(): void {
  * Get the path to the policy limits cache file
  */
 function getCachePath(): string {
-  return join(getBlinkConfigHomeDir(), CACHE_FILENAME)
+  return join(getTovyrConfigHomeDir(), CACHE_FILENAME)
 }
 
 /**
@@ -187,13 +187,13 @@ export function isPolicyLimitsEligible(): boolean {
     // No API key available - continue to check OAuth
   }
 
-  // For OAuth users, check if they have Blink.ai tokens
-  const tokens = getBlinkWebOAuthTokens()
+  // For OAuth users, check if they have Tovyr.ai tokens
+  const tokens = getTovyrWebOAuthTokens()
   if (!tokens?.accessToken) {
     return false
   }
 
-  // Must have Blink.ai inference scope
+  // Must have Tovyr.ai inference scope
   if (!tokens.scopes?.includes(CLAUDE_AI_INFERENCE_SCOPE)) {
     return false
   }
@@ -244,8 +244,8 @@ function getAuthHeaders(): {
     // No API key available - continue to check OAuth
   }
 
-  // Fall back to OAuth tokens (for Blink.ai users)
-  const oauthTokens = getBlinkWebOAuthTokens()
+  // Fall back to OAuth tokens (for Tovyr.ai users)
+  const oauthTokens = getTovyrWebOAuthTokens()
   if (oauthTokens?.accessToken) {
     return {
       headers: {
@@ -315,7 +315,7 @@ async function fetchPolicyLimits(
     const endpoint = getPolicyLimitsEndpoint()
     const headers: Record<string, string> = {
       ...authHeaders.headers,
-      'User-Agent': getBlinkCodeUserAgent(),
+      'User-Agent': getTovyrCodeUserAgent(),
     }
 
     if (cachedChecksum) {

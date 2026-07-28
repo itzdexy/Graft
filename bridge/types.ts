@@ -3,9 +3,9 @@ export const DEFAULT_SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000
 
 /** Reusable login guidance appended to bridge auth errors. */
 export const BRIDGE_LOGIN_INSTRUCTION =
-  'Remote Control is only available with a Blink account. Please use `/login` to sign in with your Blink web account.'
+  'Remote Control is only available with a Tovyr account. Please use `/login` to sign in with your Tovyr web account.'
 
-/** Full error printed when `blink remote-control` is run without auth. */
+/** Full error printed when `tovyr remote-control` is run without auth. */
 export const BRIDGE_LOGIN_ERROR =
   'Error: You must be logged in to use Remote Control.\n\n' +
   BRIDGE_LOGIN_INSTRUCTION
@@ -61,7 +61,7 @@ export type SessionActivity = {
 }
 
 /**
- * How `blink remote-control` chooses session working directories.
+ * How `tovyr remote-control` chooses session working directories.
  * - `single-session`: one session in cwd, bridge tears down when it ends
  * - `worktree`: persistent server, every session gets an isolated git worktree
  * - `same-dir`: persistent server, every session shares cwd (can stomp each other)
@@ -70,7 +70,7 @@ export type SpawnMode = 'single-session' | 'worktree' | 'same-dir'
 
 /**
  * Well-known worker_type values THIS codebase produces. Sent as
- * `metadata.worker_type` at environment registration so blink web can filter
+ * `metadata.worker_type` at environment registration so tovyr web can filter
  * the session picker by origin (e.g. assistant tab only shows assistant
  * workers). The backend treats this as an opaque string — desktop cowork
  * sends `"cowork"`, which isn't in this union. REPL code uses this narrow
@@ -99,7 +99,7 @@ export type BridgeConfig = {
   /**
    * Backend-issued environment_id to reuse on re-register. When set, the
    * backend treats registration as a reconnect to the existing environment
-   * instead of creating a new one. Used by `blink remote-control
+   * instead of creating a new one. Used by `tovyr remote-control
    * --session-id` resume. Must be a backend-format ID — client UUIDs are
    * rejected with 400.
    */

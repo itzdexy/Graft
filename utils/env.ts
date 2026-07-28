@@ -3,37 +3,31 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { fileSuffixForOauthConfig } from '../constants/oauth.js'
 import { isRunningWithBun } from './bundledMode.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { findExecutable } from './findExecutable.js'
 import { getFsImplementation } from './fsOperations.js'
 import { which } from './which.js'
 
 type Platform = 'win32' | 'darwin' | 'linux'
 
-// Config and data paths — prefer ~/.blink.json; keep reading legacy ~/.claude.json.
-export const getGlobalBlinkFile = memoize((): string => {
-  const home = process.env.BLINK_CONFIG_DIR || process.env.CLAUDE_CONFIG_DIR || homedir()
+// Config and data paths — prefer ~/.tovyr.json; keep reading legacy ~/.claude.json.
+export const getGlobalTovyrFile = memoize((): string => {
+  const home = process.env.TOVYR_CONFIG_DIR || homedir()
   const fs = getFsImplementation()
 
   // Legacy nested config under config home
-  if (fs.existsSync(join(getBlinkConfigHomeDir(), '.config.json'))) {
-    return join(getBlinkConfigHomeDir(), '.config.json')
+  if (fs.existsSync(join(getTovyrConfigHomeDir(), '.config.json'))) {
+    return join(getTovyrConfigHomeDir(), '.config.json')
   }
 
-  const blinkName = `.blink${fileSuffixForOauthConfig()}.json`
-  const blinkPath = join(home, blinkName)
-  if (fs.existsSync(blinkPath)) {
-    return blinkPath
-  }
-
-  const legacyName = `.claude${fileSuffixForOauthConfig()}.json`
-  const legacyPath = join(home, legacyName)
-  if (fs.existsSync(legacyPath)) {
-    return legacyPath
+  const tovyrName = `.tovyr${fileSuffixForOauthConfig()}.json`
+  const tovyrPath = join(home, tovyrName)
+  if (fs.existsSync(tovyrPath)) {
+    return tovyrPath
   }
 
   // Default write target for new installs
-  return blinkPath
+  return tovyrPath
 })
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {
@@ -345,12 +339,12 @@ export const env = {
 
 /**
  * Returns the host platform for analytics reporting.
- * If CLAUDE_CODE_HOST_PLATFORM is set to a valid platform value, that overrides
+ * If TOVYR_CODE_HOST_PLATFORM is set to a valid platform value, that overrides
  * the detected platform. This is useful for container/remote environments where
  * process.platform reports the container OS but the actual host platform differs.
  */
 export function getHostPlatformForAnalytics(): Platform {
-  const override = process.env.CLAUDE_CODE_HOST_PLATFORM
+  const override = process.env.TOVYR_CODE_HOST_PLATFORM
   if (override === 'win32' || override === 'darwin' || override === 'linux') {
     return override
   }

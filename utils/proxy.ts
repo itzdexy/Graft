@@ -148,7 +148,7 @@ function createHttpsProxyAgent(
     ...(caCerts && { ca: caCerts }),
   }
 
-  if (isEnvTruthy(process.env.CLAUDE_CODE_PROXY_RESOLVES_HOSTS)) {
+  if (isEnvTruthy(process.env.TOVYR_CODE_PROXY_RESOLVES_HOSTS)) {
     // Skip local DNS resolution - let the proxy resolve hostnames
     // This is needed for environments where DNS is not configured locally
     // and instead handled by the proxy (as in sandboxes)
@@ -275,14 +275,14 @@ export function getWebSocketProxyUrl(url: string): string | undefined {
 }
 
 /**
- * Get fetch options for the Blink SDK with proxy and mTLS configuration
+ * Get fetch options for the Tovyr SDK with proxy and mTLS configuration
  * Returns fetch options with appropriate dispatcher for proxy and/or mTLS
  *
- * @param opts.forBlinkAPI - Enables ANTHROPIC_UNIX_SOCKET tunneling. This
- *   env var is set by `blink ssh` on the remote CLI to route API calls through
+ * @param opts.forTovyrAPI - Enables ANTHROPIC_UNIX_SOCKET tunneling. This
+ *   env var is set by `tovyr ssh` on the remote CLI to route API calls through
  *   an ssh -R forwarded unix socket to a local auth proxy. It MUST NOT leak
- *   into non-Blink-API fetch paths (MCP HTTP/SSE transports, etc.) or those
- *   requests get misrouted to api.blink.com. Only the Blink SDK client
+ *   into non-Tovyr-API fetch paths (MCP HTTP/SSE transports, etc.) or those
+ *   requests get misrouted to api.tovyr.com. Only the Tovyr SDK client
  *   should pass `true` here.
  */
 export function getProxyFetchOptions(opts?: { forAnthropicAPI?: boolean }): {
@@ -294,8 +294,8 @@ export function getProxyFetchOptions(opts?: { forAnthropicAPI?: boolean }): {
 } {
   const base = keepAliveDisabled ? ({ keepalive: false } as const) : {}
 
-  // ANTHROPIC_UNIX_SOCKET tunnels through the `blink ssh` auth proxy, which
-  // hardcodes the upstream to the Blink API. Scope to the Blink API
+  // ANTHROPIC_UNIX_SOCKET tunnels through the `tovyr ssh` auth proxy, which
+  // hardcodes the upstream to the Tovyr API. Scope to the Tovyr API
   // client so MCP/SSE/other callers don't get their requests misrouted.
   if (opts?.forAnthropicAPI) {
     const unixSocket = process.env.ANTHROPIC_UNIX_SOCKET

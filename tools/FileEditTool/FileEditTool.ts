@@ -17,15 +17,15 @@ import { getCwd } from '../../utils/cwd.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { countLinesChanged, getPatchForDisplay, getPatchFromContents } from '../../utils/diff.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import {
   applyAiderBlocks,
   hasAiderBlockMarkers,
   parseAiderBlocks,
-} from '../../services/blink/edits/aiderBlocks.js'
-import { coerceEditString } from '../../services/blink/edits/normalizeEditInput.js'
-import { formatAiderRetryFeedback } from '../../services/blink/edits/aiderRetry.js'
-import { mapAiderFileEditToolResult } from '../../services/blink/edits/fileEditToolResult.js'
+} from '../../services/tovyr/edits/aiderBlocks.js'
+import { coerceEditString } from '../../services/tovyr/edits/normalizeEditInput.js'
+import { formatAiderRetryFeedback } from '../../services/tovyr/edits/aiderRetry.js'
+import { mapAiderFileEditToolResult } from '../../services/tovyr/edits/fileEditToolResult.js'
 import { isENOENT } from '../../utils/errors.js'
 import {
   FILE_NOT_FOUND_CWD_NOTE,
@@ -372,7 +372,7 @@ export const FileEditTool = buildTool({
       }
     }
 
-    // Additional validation for Blink settings files
+    // Additional validation for Tovyr settings files
     const settingsValidationResult = validateInputForSettingsFileEdit(
       fullFilePath,
       file,
@@ -437,7 +437,7 @@ export const FileEditTool = buildTool({
     // Discover skills from this file's path (fire-and-forget, non-blocking)
     // Skip in simple mode - no skills available
     const cwd = getCwd()
-    if (!isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
+    if (!isEnvTruthy(process.env.TOVYR_CODE_SIMPLE)) {
       const newSkillDirs = await discoverSkillDirsForPaths(
         [absoluteFilePath],
         cwd,
@@ -548,9 +548,9 @@ export const FileEditTool = buildTool({
       }
     }
 
-    // 3. Aider SEARCH/REPLACE blocks (Blink)
+    // 3. Aider SEARCH/REPLACE blocks (Tovyr)
     if (
-      isBlinkRuntime() &&
+      isTovyrRuntime() &&
       (hasAiderBlockMarkers(old_string) ||
         hasAiderBlockMarkers(new_string))
     ) {
@@ -678,7 +678,7 @@ export const FileEditTool = buildTool({
 
     let gitDiff: ToolUseDiff | undefined
     if (
-      isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) &&
+      isEnvTruthy(process.env.TOVYR_CODE_REMOTE) &&
       getFeatureValue_CACHED_MAY_BE_STALE('tengu_quartz_lantern', false)
     ) {
       const startTime = Date.now()

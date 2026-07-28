@@ -10,7 +10,7 @@ import {
   relative,
 } from 'path'
 import {
-  getAdditionalDirectoriesForBlinkMd,
+  getAdditionalDirectoriesForTovyrMd,
   getSessionId,
 } from '../bootstrap/state.js'
 import {
@@ -30,7 +30,7 @@ import {
   parseEffortValue,
 } from '../utils/effort.js'
 import {
-  getBlinkConfigHomeDir,
+  getTovyrConfigHomeDir,
   isBareMode,
   isEnvTruthy,
 } from '../utils/envUtils.js'
@@ -73,7 +73,7 @@ export type LoadedFrom =
   | 'mcp'
 
 /**
- * Returns a blink config directory path for a given source.
+ * Returns a tovyr config directory path for a given source.
  */
 export function getSkillsPath(
   source: SettingSource | 'plugin',
@@ -81,11 +81,11 @@ export function getSkillsPath(
 ): string {
   switch (source) {
     case 'policySettings':
-      return join(getManagedFilePath(), '.blink', dir)
+      return join(getManagedFilePath(), '.tovyr', dir)
     case 'userSettings':
-      return join(getBlinkConfigHomeDir(), dir)
+      return join(getTovyrConfigHomeDir(), dir)
     case 'projectSettings':
-      return `.blink/${dir}`
+      return `.tovyr/${dir}`
     case 'plugin':
       return 'plugin'
     default:
@@ -113,7 +113,7 @@ export function estimateSkillFrontmatterTokens(skill: Command): number {
  * Uses realpath to resolve symlinks, which is filesystem-agnostic and avoids
  * issues with filesystems that report unreliable inode values (e.g., inode 0 on
  * some virtual/container/NFS filesystems, or precision loss on ExFAT).
- * See: https://github.com/blinks/blink/issues/13893
+ * See: https://github.com/tovyrs/tovyr/issues/13893
  */
 async function getFileIdentity(filePath: string): Promise<string | null> {
   try {
@@ -637,8 +637,8 @@ async function loadSkillsFromCommandsDir(
  */
 export const getSkillDirCommands = memoize(
   async (cwd: string): Promise<Command[]> => {
-    const userSkillsDir = join(getBlinkConfigHomeDir(), 'skills')
-    const managedSkillsDir = join(getManagedFilePath(), '.blink', 'skills')
+    const userSkillsDir = join(getTovyrConfigHomeDir(), 'skills')
+    const managedSkillsDir = join(getManagedFilePath(), '.tovyr', 'skills')
     const projectSkillsDirs = getProjectDirsUpToHome('skills', cwd)
 
     logForDebugging(
@@ -646,7 +646,7 @@ export const getSkillDirCommands = memoize(
     )
 
     // Load from additional directories (--add-dir)
-    const additionalDirs = getAdditionalDirectoriesForBlinkMd()
+    const additionalDirs = getAdditionalDirectoriesForTovyrMd()
     const skillsLocked = isRestrictedToPluginOnly('skills')
     const projectSettingsEnabled =
       isSettingSourceEnabled('projectSettings') && !skillsLocked
@@ -665,7 +665,7 @@ export const getSkillDirCommands = memoize(
       const additionalSkillsNested = await Promise.all(
         additionalDirs.map(dir =>
           loadSkillsFromSkillsDir(
-            join(dir, '.blink', 'skills'),
+            join(dir, '.tovyr', 'skills'),
             'projectSettings',
           ),
         ),
@@ -691,7 +691,7 @@ export const getSkillDirCommands = memoize(
       additionalSkillsNested,
       legacyCommands,
     ] = await Promise.all([
-      isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_POLICY_SKILLS)
+      isEnvTruthy(process.env.TOVYR_CODE_DISABLE_POLICY_SKILLS)
         ? Promise.resolve([])
         : loadSkillsFromSkillsDir(managedSkillsDir, 'policySettings'),
       isSettingSourceEnabled('userSettings') && !skillsLocked
@@ -708,7 +708,7 @@ export const getSkillDirCommands = memoize(
         ? Promise.all(
             additionalDirs.flatMap(dir => [
               loadSkillsFromSkillsDir(
-                join(dir, '.blink', 'skills'),
+                join(dir, '.tovyr', 'skills'),
                 'projectSettings',
               ),
               loadSkillsFromSkillsDir(
@@ -886,7 +886,7 @@ export async function discoverSkillDirsForPaths(
     // CWD-level skills are already loaded at startup, so we only discover nested ones
     // Use prefix+separator check to avoid matching /project-backup when cwd is /project
     while (currentDir.startsWith(resolvedCwd + pathSep)) {
-      const skillDir = join(currentDir, '.blink', 'skills')
+      const skillDir = join(currentDir, '.tovyr', 'skills')
       const legacySkillDir = join(currentDir, '.claude', 'skills')
 
       for (const candidate of [skillDir, legacySkillDir]) {
@@ -898,7 +898,7 @@ export async function discoverSkillDirsForPaths(
           try {
             await fs.stat(candidate)
             // Skills dir exists. Before loading, check if the containing dir
-            // is gitignored — blocks e.g. node_modules/pkg/.blink/skills from
+            // is gitignored — blocks e.g. node_modules/pkg/.tovyr/skills from
             // loading silently. `git check-ignore` handles nested .gitignore,
             // .git/info/exclude, and global gitignore. Fails open outside a
             // git repo (exit 128 → false); the invocation-time trust dialog

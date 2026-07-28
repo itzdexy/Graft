@@ -10,7 +10,7 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import { getCompanion } from '../../buddy/companion.js'
 import { renderSprite } from '../../buddy/sprites.js'
 import { RARITY_COLORS } from '../../buddy/types.js'
-import { loadProjectMemory } from '../../services/blink/buddy/memory.js'
+import { loadProjectMemory } from '../../services/tovyr/buddy/memory.js'
 import { getCwd } from '../../utils/cwd.js'
 import { getWorktreePaths } from '../../utils/getWorktreePaths.js'
 import {
@@ -18,7 +18,7 @@ import {
   getActiveModelId,
   getProvider,
   loadState,
-} from '../../scripts/blink-providers.js'
+} from '../../scripts/tovyr-providers.js'
 import { loadSameRepoMessageLogs } from '../../utils/sessionStorage.js'
 import type { LogOption } from '../../types/logs.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
@@ -140,7 +140,7 @@ function Dash(): React.ReactNode {
       )}
       <Box flexDirection="column">
         <Text bold color="permission">
-          Blink Dashboard
+          Tovyr Dashboard
         </Text>
         <Text dimColor>{projectName}</Text>
         <Text dimColor>{cwd}</Text>

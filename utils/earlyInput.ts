@@ -2,7 +2,7 @@
  * Early Input Capture
  *
  * This module captures terminal input that is typed before the REPL is fully
- * initialized. Users often type `blink` and immediately start typing their
+ * initialized. Users often type `tovyr` and immediately start typing their
  * prompt, but those early keystrokes would otherwise be lost during startup.
  *
  * Usage:
@@ -38,7 +38,7 @@ export function startCapturingEarlyInput(): void {
   const canCapture =
     stdin.isTTY ||
     (process.platform === 'win32' &&
-      isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE))
+      isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE))
   if (
     !canCapture ||
     isCapturing ||
@@ -64,7 +64,7 @@ export function startCapturingEarlyInput(): void {
       }
       ;(stdin as { isRaw?: boolean }).isRaw = true
     }
-    // Raw mode shows a blinking caret on many Windows hosts — hide it while
+    // Raw mode shows a tovyring caret on many Windows hosts — hide it while
     // the startup loader owns the screen. Ink restores the cursor when ready.
     if (process.stderr.isTTY) {
       process.stderr.write('\x1b[?25l')

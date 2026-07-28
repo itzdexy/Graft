@@ -41,7 +41,7 @@ import {
   extractToolUseBlock,
   parseClassifierResponse,
 } from './classifierShared.js'
-import { getBlinkTempDir } from './filesystem.js'
+import { getTovyrTempDir } from './filesystem.js'
 
 // Dead code elimination: conditional imports for auto mode classifier prompts.
 // At build time, the bundler inlines .txt files as string literals. At test
@@ -56,8 +56,8 @@ const BASE_PROMPT: string = feature('TRANSCRIPT_CLASSIFIER')
   : ''
 
 // External template is loaded separately so it's available for
-// `blink auto-mode defaults` even in ant builds. Ant builds use
-// permissions_blink.txt at runtime but should dump external defaults.
+// `tovyr auto-mode defaults` even in ant builds. Ant builds use
+// permissions_tovyr.txt at runtime but should dump external defaults.
 const EXTERNAL_PERMISSIONS_TEMPLATE: string = feature('TRANSCRIPT_CLASSIFIER')
   ? txtRequire(require('./yolo-classifier-prompts/permissions_external.txt'))
   : ''
@@ -94,8 +94,8 @@ export type AutoModeRules = {
  * <user_*_to_replace> tags (user settings REPLACE these defaults), so the
  * captured tag contents ARE the defaults. Bullet items are single-line in the
  * template; each line starting with `- ` becomes one array entry.
- * Used by `blink auto-mode defaults`. Always returns external defaults,
- * never the Blink-internal template.
+ * Used by `tovyr auto-mode defaults`. Always returns external defaults,
+ * never the Tovyr-internal template.
  */
 export function getDefaultExternalAutoModeRules(): AutoModeRules {
   return {
@@ -119,7 +119,7 @@ function extractTaggedBullets(tagName: string): string[] {
 
 /**
  * Returns the full external classifier system prompt with default rules (no user
- * overrides). Used by `blink auto-mode critique` to show the model how the
+ * overrides). Used by `tovyr auto-mode critique` to show the model how the
  * classifier sees its instructions.
  */
 export function buildDefaultExternalSystemPrompt(): string {
@@ -142,12 +142,12 @@ export function buildDefaultExternalSystemPrompt(): string {
 }
 
 function getAutoModeDumpDir(): string {
-  return join(getBlinkTempDir(), 'auto-mode')
+  return join(getTovyrTempDir(), 'auto-mode')
 }
 
 /**
  * Dump the auto mode classifier request and response bodies to the per-user
- * blink temp directory when CLAUDE_CODE_DUMP_AUTO_MODE is set. Files are
+ * tovyr temp directory when TOVYR_CODE_DUMP_AUTO_MODE is set. Files are
  * named by unix timestamp: {timestamp}[.{suffix}].req.json and .res.json
  */
 async function maybeDumpAutoMode(
@@ -157,7 +157,7 @@ async function maybeDumpAutoMode(
   suffix?: string,
 ): Promise<void> {
   if (process.env.USER_TYPE !== 'ant') return
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_DUMP_AUTO_MODE)) return
+  if (!isEnvTruthy(process.env.TOVYR_CODE_DUMP_AUTO_MODE)) return
   const base = suffix ? `${timestamp}.${suffix}` : `${timestamp}`
   try {
     await mkdir(getAutoModeDumpDir(), { recursive: true })
@@ -185,7 +185,7 @@ async function maybeDumpAutoMode(
  */
 export function getAutoModeClassifierErrorDumpPath(): string {
   return join(
-    getBlinkTempDir(),
+    getTovyrTempDir(),
     'auto-mode-classifier-errors',
     `${getSessionId()}.txt`,
   )
@@ -205,7 +205,7 @@ export function getAutoModeClassifierTranscript(): string | null {
 
 /**
  * Dump classifier input prompts + context-comparison diagnostics on API error.
- * Written to a session-scoped file in the blink temp dir so /share can collect
+ * Written to a session-scoped file in the tovyr temp dir so /share can collect
  * it (replaces the old Desktop dump). Includes context numbers to help diagnose
  * projection divergence (classifier tokens >> main loop tokens).
  * Returns the dump path on success, null on failure.
@@ -450,9 +450,9 @@ export function buildTranscriptForClassifier(
  * stable cache prefix across classifier calls.
  *
  * Reads from bootstrap/state.ts cache (populated by context.ts) instead of
- * importing blinkmd.ts directly — blinkmd → permissions/filesystem →
+ * importing tovyrmd.ts directly — tovyrmd → permissions/filesystem →
  * permissions → yoloClassifier is a cycle. context.ts already gates on
- * CLAUDE_CODE_DISABLE_CLAUDE_MDS and normalizes '' to null before caching.
+ * TOVYR_CODE_DISABLE_CLAUDE_MDS and normalizes '' to null before caching.
  * If the cache is unpopulated (tests, or an entrypoint that never calls
  * getUserContext), the classifier proceeds without CLAUDE.md — same as
  * pre-PR behavior.
@@ -511,7 +511,7 @@ export async function buildYoloSystemPrompt(
   // All three sections use the same <foo_to_replace>...</foo_to_replace>
   // delimiter pattern. The external template wraps its defaults inside the
   // tags, so user-provided values REPLACE the defaults entirely. The
-  // blink template keeps its defaults outside the tags and uses an empty
+  // tovyr template keeps its defaults outside the tags and uses an empty
   // tag pair at the end of each section, so user-provided values are
   // strictly ADDITIVE.
   const userAllow = allowDescriptions.length
@@ -1315,7 +1315,7 @@ type AutoModeConfig = {
    */
   twoStageClassifier?: boolean | 'fast' | 'thinking'
   /**
-   * Ant builds normally use permissions_blink.txt; when true, use
+   * Ant builds normally use permissions_tovyr.txt; when true, use
    * permissions_external.txt instead (dogfood the external template).
    */
   forceExternalPermissions?: boolean
@@ -1333,7 +1333,7 @@ type AutoModeConfig = {
  */
 function getClassifierModel(): string {
   if (process.env.USER_TYPE === 'ant') {
-    const envModel = process.env.CLAUDE_CODE_AUTO_MODE_MODEL
+    const envModel = process.env.TOVYR_CODE_AUTO_MODE_MODEL
     if (envModel) return envModel
   }
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
@@ -1356,7 +1356,7 @@ function resolveTwoStageClassifier():
   | 'thinking'
   | undefined {
   if (process.env.USER_TYPE === 'ant') {
-    const env = process.env.CLAUDE_CODE_TWO_STAGE_CLASSIFIER
+    const env = process.env.TOVYR_CODE_TWO_STAGE_CLASSIFIER
     if (env === 'fast' || env === 'thinking') return env
     if (isEnvTruthy(env)) return true
     if (isEnvDefinedFalsy(env)) return false
@@ -1378,7 +1378,7 @@ function isTwoStageClassifierEnabled(): boolean {
 
 function isJsonlTranscriptEnabled(): boolean {
   if (process.env.USER_TYPE === 'ant') {
-    const env = process.env.CLAUDE_CODE_JSONL_TRANSCRIPT
+    const env = process.env.TOVYR_CODE_JSONL_TRANSCRIPT
     if (isEnvTruthy(env)) return true
     if (isEnvDefinedFalsy(env)) return false
   }

@@ -1,11 +1,13 @@
 import { getCompanion } from './companion.js'
-import { isBlinkRuntime } from './blinkBuddy.js'
+import { isTovyrRuntime } from './tovyrBuddy.js'
 
 type ReactionCallback = (reaction: string) => void
 
 interface MessageType {
   type: string
-  message?: { content?: Array<{ type: string; text?: string; name?: string }> }
+  message?: {
+    content?: string | Array<{ type: string; text?: string; name?: string }>
+  }
 }
 
 function isAssistantMessage(msg: MessageType): boolean {
@@ -18,7 +20,9 @@ function isUserMessage(msg: MessageType): boolean {
 
 function extractAssistantText(msg: MessageType): string {
   if (!isAssistantMessage(msg)) return ''
-  const content = msg.message?.content ?? []
+  const raw = msg.message?.content
+  if (typeof raw === 'string') return raw
+  const content = Array.isArray(raw) ? raw : []
   return content
     .filter((block: { type: string; text?: string }): block is { type: 'text'; text: string } =>
       block.type === 'text' && typeof block.text === 'string')
@@ -28,7 +32,9 @@ function extractAssistantText(msg: MessageType): string {
 
 function extractToolUses(msg: MessageType): string[] {
   if (!isAssistantMessage(msg)) return []
-  const content = msg.message?.content ?? []
+  const raw = msg.message?.content
+  if (typeof raw === 'string') return []
+  const content = Array.isArray(raw) ? raw : []
   return content
     .filter((block: { type: string }) => block.type === 'tool_use')
     .map((block: { name?: string }) => block.name ?? 'unknown')
@@ -36,7 +42,9 @@ function extractToolUses(msg: MessageType): string[] {
 
 function extractUserText(msg: MessageType): string {
   if (!isUserMessage(msg)) return ''
-  const content = msg.message?.content ?? []
+  const raw = msg.message?.content
+  if (typeof raw === 'string') return raw
+  const content = Array.isArray(raw) ? raw : []
   return content
     .filter((block: { type: string; text?: string }): block is { type: 'text'; text: string } =>
       block.type === 'text' && typeof block.text === 'string')
@@ -178,7 +186,7 @@ export function fireCompanionObserver(
   messages: MessageType[],
   onReaction: ReactionCallback,
 ): void {
-  if (!isBlinkRuntime()) return
+  if (!isTovyrRuntime()) return
 
   const companion = getCompanion()
   if (!companion) return

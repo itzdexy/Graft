@@ -11,7 +11,7 @@ export type ReservedShortcut = {
 }
 
 /**
- * Shortcuts that cannot be rebound - they are hardcoded in Blink.
+ * Shortcuts that cannot be rebound - they are hardcoded in Tovyr.
  */
 export const NON_REBINDABLE: ReservedShortcut[] = [
   {

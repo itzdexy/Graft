@@ -1,6 +1,6 @@
 /**
  * Command files with stable IDs (OpenCode pattern).
- * Stored under .blink/commands/*.md with YAML frontmatter.
+ * Stored under .tovyr/commands/*.md with YAML frontmatter.
  */
 
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -38,7 +38,7 @@ function stableId(name: string, body: string): string {
 }
 
 export function getCommandsDir(cwd: string): string {
-  return join(cwd, '.blink', 'commands')
+  return join(cwd, '.tovyr', 'commands')
 }
 
 export function loadCommandFiles(cwd: string): CommandFile[] {
@@ -115,7 +115,7 @@ export function saveCommandFile(
 export function formatCommandFileList(cwd: string): string {
   const cmds = loadCommandFiles(cwd)
   if (!cmds.length) {
-    return 'No command files in `.blink/commands/`. Add `*.md` with YAML frontmatter (id, name, description).'
+    return 'No command files in `.tovyr/commands/`. Add `*.md` with YAML frontmatter (id, name, description).'
   }
   return cmds
     .map(c => `- \`${c.id}\` **/${c.name}** — ${c.description || '(no description)'}`)

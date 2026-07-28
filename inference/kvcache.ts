@@ -39,10 +39,10 @@ export function setKvCacheConfig(patch: Partial<KvCacheConfig>): KvCacheConfig {
 }
 
 export function kvCacheFromEnv(): KvCacheConfig {
-  const q = (process.env.BLINK_KV_CACHE_QUANT ??
+  const q = (process.env.TOVYR_KV_CACHE_QUANT ??
     process.env.LLAMA_CACHE_TYPE ??
     'q8_0') as KvCacheQuantization
-  const gpuLayers = Number(process.env.BLINK_KV_GPU_LAYERS ?? -1)
+  const gpuLayers = Number(process.env.TOVYR_KV_GPU_LAYERS ?? -1)
   return setKvCacheConfig({
     quantization: q,
     gpuLayers: Number.isFinite(gpuLayers) ? gpuLayers : -1,

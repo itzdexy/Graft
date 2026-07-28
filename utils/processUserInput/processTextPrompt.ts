@@ -2,6 +2,7 @@ import type { ContentBlockParam } from '@anthropic-ai/sdk/resources'
 import { randomUUID } from 'crypto'
 import { setPromptId } from 'src/bootstrap/state.js'
 import type {
+  AssistantMessage,
   AttachmentMessage,
   SystemMessage,
   UserMessage,
@@ -25,8 +26,9 @@ export function processTextPrompt(
   permissionMode?: PermissionMode,
   isMeta?: boolean,
 ): {
-  messages: (UserMessage | AttachmentMessage | SystemMessage)[]
+  messages: (UserMessage | AssistantMessage | AttachmentMessage | SystemMessage)[]
   shouldQuery: boolean
+  resultText?: string
 } {
   const promptId = randomUUID()
   setPromptId(promptId)
@@ -39,7 +41,7 @@ export function processTextPrompt(
 
   // Emit user_prompt OTEL event for both string (CLI) and array (SDK/VS Code)
   // input shapes. Previously gated on `typeof input === 'string'`, so VS Code
-  // sessions never emitted user_prompt (blinks/blink#33301).
+  // sessions never emitted user_prompt (tovyrs/tovyr#33301).
   // For array input, use the LAST text block: createUserContent pushes the
   // user's message last (after any <ide_selection>/attachment context blocks),
   // so .findLast gets the actual prompt. userPromptText (first block) is kept

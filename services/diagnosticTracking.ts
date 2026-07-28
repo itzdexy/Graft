@@ -2,12 +2,12 @@ import figures from 'figures'
 import { logError } from 'src/utils/log.js'
 import { callIdeRpc } from '../services/mcp/client.js'
 import type { MCPServerConnection } from '../services/mcp/types.js'
-import { BlinkError } from '../utils/errors.js'
+import { TovyrError } from '../utils/errors.js'
 import { normalizePathForComparison, pathsEqual } from '../utils/file.js'
 import { getConnectedIdeClient } from '../utils/ide.js'
 import { jsonParse } from '../utils/slowOperations.js'
 
-class DiagnosticsTrackingError extends BlinkError {}
+class DiagnosticsTrackingError extends TovyrError {}
 
 const MAX_DIAGNOSTICS_SUMMARY_CHARS = 4000
 
@@ -38,7 +38,7 @@ export class DiagnosticTrackingService {
   private lastProcessedTimestamps: Map<string, number> = new Map()
 
   // Track which files have received right file diagnostics and if they've changed
-  // Map<normalizedPath, lastBlinkFsRightDiagnostics>
+  // Map<normalizedPath, lastTovyrFsRightDiagnostics>
   private rightFileDiagnosticsState: Map<string, Diagnostic[]> = new Map()
 
   static getInstance(): DiagnosticTrackingService {
@@ -182,7 +182,7 @@ export class DiagnosticTrackingService {
   }
 
   /**
-   * Get new diagnostics from file://, _blink_fs_right, and _blink_fs_ URIs that aren't in the baseline.
+   * Get new diagnostics from file://, _tovyr_fs_right, and _tovyr_fs_ URIs that aren't in the baseline.
    * Only processes diagnostics for files that have been edited.
    */
   async getNewDiagnostics(): Promise<DiagnosticFile[]> {
@@ -232,7 +232,7 @@ export class DiagnosticTrackingService {
       const normalizedPath = this.normalizeFileUri(file.uri)
       const baselineDiagnostics = this.baseline.get(normalizedPath) || []
 
-      // Get the _blink_fs_right file if it exists
+      // Get the _tovyr_fs_right file if it exists
       const claudeFsRightFile =
         diagnosticsForClaudeFsRightUrisWithBaselinesMap.get(normalizedPath)
 
@@ -243,7 +243,7 @@ export class DiagnosticTrackingService {
         const previousRightDiagnostics =
           this.rightFileDiagnosticsState.get(normalizedPath)
 
-        // Use _blink_fs_right if:
+        // Use _tovyr_fs_right if:
         // 1. We've never gotten right file diagnostics for this file (previousRightDiagnostics === undefined)
         // 2. OR the right file diagnostics have just changed
         if (

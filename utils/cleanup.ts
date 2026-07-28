@@ -4,7 +4,7 @@ import { join } from 'path'
 import { logEvent } from '../services/analytics/index.js'
 import { CACHE_PATHS } from './cachePaths.js'
 import { logForDebugging } from './debug.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
 import { type FsOperations, getFsImplementation } from './fsOperations.js'
 import { cleanupOldImageCaches } from './imageStore.js'
 import * as lockfile from './lockfile.js'
@@ -298,7 +298,7 @@ async function cleanupSingleDirectory(
 }
 
 export function cleanupOldPlanFiles(): Promise<CleanupResult> {
-  const plansDir = join(getBlinkConfigHomeDir(), 'plans')
+  const plansDir = join(getTovyrConfigHomeDir(), 'plans')
   return cleanupSingleDirectory(plansDir, '.md')
 }
 
@@ -308,7 +308,7 @@ export async function cleanupOldFileHistoryBackups(): Promise<CleanupResult> {
   const fsImpl = getFsImplementation()
 
   try {
-    const configDir = getBlinkConfigHomeDir()
+    const configDir = getTovyrConfigHomeDir()
     const fileHistoryStorageDir = join(configDir, 'file-history')
 
     let dirents
@@ -353,7 +353,7 @@ export async function cleanupOldSessionEnvDirs(): Promise<CleanupResult> {
   const fsImpl = getFsImplementation()
 
   try {
-    const configDir = getBlinkConfigHomeDir()
+    const configDir = getTovyrConfigHomeDir()
     const sessionEnvBaseDir = join(configDir, 'session-env')
 
     let dirents
@@ -388,7 +388,7 @@ export async function cleanupOldSessionEnvDirs(): Promise<CleanupResult> {
 }
 
 /**
- * Cleans up old debug log files from ~/.blink/debug/
+ * Cleans up old debug log files from ~/.tovyr/debug/
  * Preserves the 'latest' symlink which points to the current session's log.
  * Debug logs can grow very large (especially with the infinite logging loop bug)
  * and accumulate indefinitely without this cleanup.
@@ -397,7 +397,7 @@ export async function cleanupOldDebugLogs(): Promise<CleanupResult> {
   const cutoffDate = getCutoffDate()
   const result: CleanupResult = { messages: 0, errors: 0 }
   const fsImpl = getFsImplementation()
-  const debugDir = join(getBlinkConfigHomeDir(), 'debug')
+  const debugDir = join(getTovyrConfigHomeDir(), 'debug')
 
   let dirents
   try {
@@ -431,12 +431,12 @@ export async function cleanupOldDebugLogs(): Promise<CleanupResult> {
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 /**
- * Clean up old npm cache entries for Blink packages.
+ * Clean up old npm cache entries for Tovyr packages.
  * This helps reduce disk usage since we publish many dev versions per day.
  * Only runs once per day for Ant users.
  */
 export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
-  const markerPath = join(getBlinkConfigHomeDir(), '.npm-cache-cleanup')
+  const markerPath = join(getTovyrConfigHomeDir(), '.npm-cache-cleanup')
 
   try {
     const stat = await fs.stat(markerPath)
@@ -466,7 +466,7 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
     const cacache = await import('cacache')
     const cutoff = startTime - ONE_DAY_MS
 
-    // Stream index entries and collect all Blink package entries.
+    // Stream index entries and collect all Tovyr package entries.
     // Previous implementation used cacache.verify() which does a full
     // integrity check + GC of the ENTIRE cache — O(all content blobs).
     // On large caches this took 60+ seconds and blocked the event loop.
@@ -541,7 +541,7 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
  * The regular cleanupOldVersions() should still be used for installer flows.
  */
 export async function cleanupOldVersionsThrottled(): Promise<void> {
-  const markerPath = join(getBlinkConfigHomeDir(), '.version-cleanup')
+  const markerPath = join(getTovyrConfigHomeDir(), '.version-cleanup')
 
   try {
     const stat = await fs.stat(markerPath)

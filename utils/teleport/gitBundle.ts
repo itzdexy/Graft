@@ -140,7 +140,7 @@ async function _bundleWithFallback(
   return {
     ok: false,
     error:
-      'Repo is too large to bundle. Please setup GitHub on https://blink.dev/code',
+      'Repo is too large to bundle. Please setup GitHub on https://tovyr.dev/code',
     failReason: 'too_large',
   }
 }

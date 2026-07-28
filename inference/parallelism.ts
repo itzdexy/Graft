@@ -33,7 +33,7 @@ export function setTensorParallelismConfig(
 }
 
 export function tensorParallelismFromEnv(): TensorParallelismConfig {
-  const tp = Number(process.env.BLINK_TENSOR_PARALLEL ?? process.env.VLLM_TP ?? 1)
+  const tp = Number(process.env.TOVYR_TENSOR_PARALLEL ?? process.env.VLLM_TP ?? 1)
   const worldSize = Number.isFinite(tp) && tp > 1 ? tp : 1
   return setTensorParallelismConfig({
     enabled: worldSize > 1,

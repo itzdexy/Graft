@@ -102,14 +102,19 @@ export function sanitizeSurfaceKey(surfaceKey: string): string {
  */
 export function sanitizeModelName(shortName: string): string {
   // Map internal variants to public equivalents based on model family
+  if (shortName.includes('opus-4-8')) return 'claude-opus-4-8'
+  if (shortName.includes('opus-4-7')) return 'claude-opus-4-7'
   if (shortName.includes('opus-4-6')) return 'claude-opus-4-6'
   if (shortName.includes('opus-4-5')) return 'claude-opus-4-5'
   if (shortName.includes('opus-4-1')) return 'claude-opus-4-1'
   if (shortName.includes('opus-4')) return 'claude-opus-4'
-  if (shortName.includes('sonnet-4-6')) return 'claude-sonnet-4-6'
-  if (shortName.includes('sonnet-4-5')) return 'claude-sonnet-4-5'
+  if (shortName.includes('sonnet-5')) return 'claude-sonnet-5'
+  if (shortName.includes('sonnet-4-6')) return 'claude-sonnet'
+  if (shortName.includes('sonnet-4-5')) return 'claude-sonnet'
   if (shortName.includes('sonnet-4')) return 'claude-sonnet-4'
   if (shortName.includes('sonnet-3-7')) return 'claude-sonnet-3-7'
+  if (shortName.includes('fable-5')) return 'claude-fable-5'
+  if (shortName.includes('mythos-5')) return 'claude-mythos-5'
   if (shortName.includes('haiku-4-5')) return 'claude-haiku-4-5'
   if (shortName.includes('haiku-3-5')) return 'claude-haiku-3-5'
   // Unknown models get a generic name
@@ -117,7 +122,7 @@ export function sanitizeModelName(shortName: string): string {
 }
 
 /**
- * Attribution state for tracking Blink's contributions to files.
+ * Attribution state for tracking Tovyr's contributions to files.
  */
 export type AttributionState = {
   // File states keyed by relative path (from cwd)
@@ -141,7 +146,7 @@ export type AttributionState = {
 }
 
 /**
- * Summary of Blink's contribution for a commit.
+ * Summary of Tovyr's contribution for a commit.
  */
 export type AttributionSummary = {
   claudePercent: number
@@ -176,12 +181,12 @@ export type AttributionData = {
  * Get the current client surface from environment.
  */
 export function getClientSurface(): string {
-  return process.env.CLAUDE_CODE_ENTRYPOINT ?? 'cli'
+  return process.env.TOVYR_CODE_ENTRYPOINT ?? 'cli'
 }
 
 /**
  * Build a surface key that includes the model name.
- * Format: "surface/model" (e.g., "cli/blink-sonnet")
+ * Format: "surface/model" (e.g., "cli/tovyr-sonnet")
  */
 export function buildSurfaceKey(surface: string, model: ModelName): string {
   return `${surface}/${getCanonicalName(model)}`
@@ -281,7 +286,7 @@ function computeFileModificationState(
   const normalizedPath = normalizeFilePath(filePath)
 
   try {
-    // Calculate Blink's character contribution
+    // Calculate Tovyr's character contribution
     let claudeContribution: number
 
     if (oldContent === '' || newContent === '') {
@@ -345,7 +350,7 @@ export async function getFileMtime(filePath: string): Promise<number> {
 }
 
 /**
- * Track a file modification by Blink.
+ * Track a file modification by Tovyr.
  * Called after Edit/Write tool completes.
  */
 export function trackFileModification(
@@ -382,8 +387,8 @@ export function trackFileModification(
 }
 
 /**
- * Track a file creation by Blink (e.g., via bash command).
- * Used when Blink creates a new file through a non-tracked mechanism.
+ * Track a file creation by Tovyr (e.g., via bash command).
+ * Used when Tovyr creates a new file through a non-tracked mechanism.
  */
 export function trackFileCreation(
   state: AttributionState,
@@ -396,8 +401,8 @@ export function trackFileCreation(
 }
 
 /**
- * Track a file deletion by Blink (e.g., via bash rm command).
- * Used when Blink deletes a file through a non-tracked mechanism.
+ * Track a file deletion by Tovyr (e.g., via bash rm command).
+ * Used when Tovyr deletes a file through a non-tracked mechanism.
  */
 export function trackFileDeletion(
   state: AttributionState,
@@ -586,7 +591,7 @@ export async function calculateCommitAttribution(
       if (deleted) {
         // File was deleted
         if (fileState) {
-          // Blink deleted this file (tracked deletion)
+          // Tovyr deleted this file (tracked deletion)
           claudeChars = fileState.claudeContribution
           humanChars = 0
         } else {
@@ -611,7 +616,7 @@ export async function calculateCommitAttribution(
             const diffSize = await getGitDiffSize(file)
             humanChars = diffSize > 0 ? diffSize : stats.size
           } else {
-            // New file not created by Blink
+            // New file not created by Tovyr
             humanChars = stats.size
           }
         } catch {

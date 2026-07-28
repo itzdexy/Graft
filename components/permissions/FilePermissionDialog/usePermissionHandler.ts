@@ -5,9 +5,9 @@ import {
 import { sanitizeToolNameForAnalytics } from '../../../services/analytics/metadata.js'
 import type { ToolPermissionContext } from '../../../Tool.js'
 import {
-  BLINK_FOLDER_PERMISSION_PATTERN,
+  TOVYR_FOLDER_PERMISSION_PATTERN,
   FILE_EDIT_TOOL_NAME,
-  GLOBAL_BLINK_FOLDER_PERMISSION_PATTERN,
+  GLOBAL_TOVYR_FOLDER_PERMISSION_PATTERN,
 } from '../../../tools/FileEditTool/constants.js'
 import { env } from '../../../utils/env.js'
 import { generateSuggestions } from '../../../utils/permissions/filesystem.js'
@@ -101,15 +101,15 @@ function handleAcceptSession(
 
   logPermissionEvent('accept', completionType, languageName, messageId)
 
-  // For blink-folder scope, grant session-level access to all .blink/ files
+  // For tovyr-folder scope, grant session-level access to all .tovyr/ files
   if (
     options?.scope === 'claude-folder' ||
     options?.scope === 'global-claude-folder'
   ) {
     const pattern =
       options.scope === 'global-claude-folder'
-        ? GLOBAL_BLINK_FOLDER_PERMISSION_PATTERN
-        : BLINK_FOLDER_PERMISSION_PATTERN
+        ? GLOBAL_TOVYR_FOLDER_PERMISSION_PATTERN
+        : TOVYR_FOLDER_PERMISSION_PATTERN
     const suggestions: PermissionUpdate[] = [
       {
         type: 'addRules',

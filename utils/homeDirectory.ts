@@ -13,7 +13,7 @@ const PROJECT_MARKERS = [
   'build.gradle.kts',
   'Gemfile',
   'composer.json',
-  'blink.md',
+  'tovyr.md',
   'CLAUDE.md',
   'AGENTS.md',
 ] as const
@@ -47,7 +47,7 @@ export function isLikelyProjectDirectory(dir?: string): boolean {
 
 /** Block interactive launch from home root unless it is clearly a project folder. */
 export function shouldBlockHomeDirectory(dir?: string): boolean {
-  if (process.env.BLINK_ALLOW_HOME === '1') return false
+  if (process.env.TOVYR_ALLOW_HOME === '1') return false
   const cwd = dir ?? process.cwd()
   if (!isHomeDirectory(cwd)) return false
   if (isLikelyProjectDirectory(cwd)) return false

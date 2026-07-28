@@ -54,7 +54,7 @@ Analyze the project to detect what's in different subdirectories. The project ma
    - Check MCP configuration (.mcp.json) for browser automation tools:
      - Playwright MCP server
      - Chrome DevTools MCP server
-     - Blink Chrome Extension MCP (browser-use via Blink's Chrome extension)
+     - Computer-use MCP server
    - For Python projects, check for playwright, pytest-playwright
 
 ## Phase 2: Verification Tool Setup
@@ -72,7 +72,7 @@ Based on what was detected in Phase 1, help the user set up appropriate verifica
    - Options to offer:
      - **Playwright** (Recommended) - Full browser automation library, works headless, great for CI
      - **Chrome DevTools MCP** - Uses Chrome DevTools Protocol via MCP
-     - **Blink Chrome Extension** - Uses the Blink Chrome extension for browser interaction (requires the extension installed in Chrome)
+     - **Computer-use MCP** - Drives browser UI for clicking, forms, screenshots, and signed-in pages
      - **None** - Skip browser automation (will use basic HTTP checks only)
 
 3. **If user chooses to install Playwright**, run the appropriate command based on package manager:
@@ -81,10 +81,9 @@ Based on what was detected in Phase 1, help the user set up appropriate verifica
    - For pnpm: \`pnpm add -D @playwright/test && pnpm exec playwright install\`
    - For bun: \`bun add -D @playwright/test && bun playwright install\`
 
-4. **If user chooses Chrome DevTools MCP or Blink Chrome Extension**:
+4. **If user chooses Chrome DevTools MCP or Computer-use MCP**:
    - These require MCP server configuration rather than package installation
    - Ask if they want you to add the MCP server configuration to .mcp.json
-   - For Blink Chrome Extension, inform them they need the extension installed from the Chrome Web Store
 
 5. **MCP Server Setup** (if applicable):
    - If user selected an MCP-based option, configure the appropriate entry in .mcp.json
@@ -162,7 +161,7 @@ Based on the areas detected in Phase 1, you may need to create multiple verifier
 
 ## Phase 4: Generate Verifier Skill
 
-**All verifier skills are created in the project root's \`.claude/skills/\` directory.** This ensures they are automatically loaded when Blink runs in the project.
+**All verifier skills are created in the project root's \`.claude/skills/\` directory.** This ensures they are automatically loaded when Tovyr runs in the project.
 
 Write the skill file to \`.claude/skills/<verifier-name>/SKILL.md\`.
 

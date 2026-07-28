@@ -1,7 +1,7 @@
 /**
  * Terminal Launcher
  *
- * Detects the user's preferred terminal emulator and launches Blink
+ * Detects the user's preferred terminal emulator and launches Tovyr
  * inside it. Used by the deep link protocol handler when invoked by the OS
  * (i.e., not already running inside a terminal).
  *
@@ -194,7 +194,7 @@ export async function detectTerminal(): Promise<TerminalInfo | null> {
 }
 
 /**
- * Launch Blink in the detected terminal emulator.
+ * Launch Tovyr in the detected terminal emulator.
  *
  * Pure argv paths (no shell, user input never touches an interpreter):
  *   macOS — Ghostty, Alacritty, Kitty, WezTerm (via open -na --args)
@@ -206,9 +206,9 @@ export async function detectTerminal(): Promise<TerminalInfo | null> {
  *           are inherently shell-interpreted; no argv interface exists)
  *   Windows — PowerShell -Command, cmd.exe /k (no argv exec mode)
  *
- * For pure-argv paths: blinkPath, --prefill, query, cwd travel as distinct
+ * For pure-argv paths: tovyrPath, --prefill, query, cwd travel as distinct
  * argv elements end-to-end. No sh -c. No shellQuote(). The terminal does
- * chdir(cwd) and execvp(blink, argv). Spaces/quotes/metacharacters in
+ * chdir(cwd) and execvp(tovyr, argv). Spaces/quotes/metacharacters in
  * query or cwd are preserved by argv boundaries with zero interpretation.
  */
 export async function launchInTerminal(
@@ -433,7 +433,7 @@ async function launchWindowsTerminal(
 
     // --- SHELL-STRING PATHS ---
     // PowerShell -Command and cmd /k take a command string. No argv exec
-    // mode that also keeps the session interactive after blink exits.
+    // mode that also keeps the session interactive after tovyr exits.
     // User input is escaped per-shell; correctness of that escaping is
     // load-bearing here.
 
@@ -547,7 +547,7 @@ function psQuote(s: string): string {
  * cmd.exe double-quoted string). Escape % as %% to prevent environment
  * variable expansion (%PATH% etc.) which cmd.exe performs even inside
  * double quotes. Trailing backslashes are still doubled because the
- * *child process* (blink.exe) uses CommandLineToArgvW, where a trailing
+ * *child process* (tovyr.exe) uses CommandLineToArgvW, where a trailing
  * \ before our closing " would eat the close-quote.
  */
 function cmdQuote(arg: string): string {

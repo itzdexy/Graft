@@ -1,11 +1,11 @@
 import { feature } from 'bun:bundle'
 import type { PartialCompactDirection } from '../../types/message.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 
 // Dead code elimination: conditional import for proactive mode
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactiveModule =
-  feature('PROACTIVE') || feature('BLINKS')
+  feature('PROACTIVE') || feature('TOVYRS')
     ? (require('../../proactive/index.js') as typeof import('../../proactive/index.js'))
     : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -343,8 +343,8 @@ export function getCompactUserSummaryMessage(
 ): string {
   const formattedSummary = formatCompactSummary(summary)
 
-  const continuationLead = isBlinkRuntime()
-    ? `This Blink session is continuing from earlier work that ran out of context. The summary below covers the earlier portion of the session.`
+  const continuationLead = isTovyrRuntime()
+    ? `This Tovyr session is continuing from earlier work that ran out of context. The summary below covers the earlier portion of the session.`
     : `This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.`
 
   let baseSummary = `${continuationLead}
@@ -364,7 +364,7 @@ ${formattedSummary}`
 Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.`
 
     if (
-      (feature('PROACTIVE') || feature('BLINKS')) &&
+      (feature('PROACTIVE') || feature('TOVYRS')) &&
       proactiveModule?.isProactiveActive()
     ) {
       continuation += `

@@ -16,11 +16,11 @@ import { useAppState, useSetAppState } from '../state/AppState.js'
 import { gracefulShutdown } from '../utils/gracefulShutdown.js'
 import { updateSettingsForSource } from '../utils/settings/settings.js'
 import type { ThemeSetting } from '../utils/theme.js'
-import { isBlinkRuntime } from '../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 import { Select } from './CustomSelect/index.js'
 import { Byline } from './design-system/Byline.js'
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js'
-import { BlinkThemePreview } from './blink/BlinkThemePreview.js'
+import { TovyrThemePreview } from './tovyr/TovyrThemePreview.js'
 import {
   getColorModuleUnavailableReason,
   getSyntaxTheme,
@@ -115,14 +115,14 @@ export function ThemePicker({
     lines: [
       ' function greet() {',
       '-  console.log("Hello, World!");',
-      `+  console.log("Hello, ${isBlinkRuntime() ? 'Blink' : 'Blink'}!");`,
+      `+  console.log("Hello, ${isTovyrRuntime() ? 'Tovyr' : 'Tovyr'}!");`,
       ' }',
     ],
   }
 
   const syntaxStatus =
     colorModuleUnavailableReason === 'env'
-      ? `Syntax highlighting disabled (via CLAUDE_CODE_SYNTAX_HIGHLIGHT=${process.env.CLAUDE_CODE_SYNTAX_HIGHLIGHT})`
+      ? `Syntax highlighting disabled (via TOVYR_CODE_SYNTAX_HIGHLIGHT=${process.env.TOVYR_CODE_SYNTAX_HIGHLIGHT})`
       : syntaxHighlightingDisabled
         ? `Syntax highlighting disabled (${syntaxToggleShortcut} to enable)`
         : syntaxTheme
@@ -191,7 +191,7 @@ export function ThemePicker({
           />
         </Box>
         <Text dimColor> {syntaxStatus}</Text>
-        <BlinkThemePreview />
+        <TovyrThemePreview />
       </Box>
     </Box>
   )

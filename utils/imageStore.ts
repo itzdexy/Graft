@@ -3,7 +3,7 @@ import { join } from 'path'
 import { getSessionId } from '../bootstrap/state.js'
 import type { PastedContent } from './config.js'
 import { logForDebugging } from './debug.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
 import { getFsImplementation } from './fsOperations.js'
 
 const IMAGE_STORE_DIR = 'image-cache'
@@ -16,7 +16,7 @@ const storedImagePaths = new Map<number, string>()
  * Get the image store directory for the current session.
  */
 function getImageStoreDir(): string {
-  return join(getBlinkConfigHomeDir(), IMAGE_STORE_DIR, getSessionId())
+  return join(getTovyrConfigHomeDir(), IMAGE_STORE_DIR, getSessionId())
 }
 
 /**
@@ -128,7 +128,7 @@ function evictOldestIfAtCap(): void {
  */
 export async function cleanupOldImageCaches(): Promise<void> {
   const fsImpl = getFsImplementation()
-  const baseDir = join(getBlinkConfigHomeDir(), IMAGE_STORE_DIR)
+  const baseDir = join(getTovyrConfigHomeDir(), IMAGE_STORE_DIR)
   const currentSessionId = getSessionId()
 
   try {

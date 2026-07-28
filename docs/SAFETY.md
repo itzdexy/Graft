@@ -1,12 +1,12 @@
-# Blink — Security & Safety
+# Tovyr — Security & Safety
 
-How Blink protects your machine, secrets, and work. This document describes **implemented** behavior in the current codebase.
+How Tovyr protects your machine, secrets, and work. This document describes **implemented** behavior in the current codebase.
 
 ---
 
 ## Overview
 
-Blink is an AI agent with file and shell access. Safety is layered:
+Tovyr is an AI agent with file and shell access. Safety is layered:
 
 1. **Permission modes** — control what runs without asking
 2. **Tool gates** — tier-based blocks (plan vs code vs bypass)
@@ -15,7 +15,7 @@ Blink is an AI agent with file and shell access. Safety is layered:
 5. **Secret redaction** — strip keys from debug logs
 6. **Git checkpoints** — stash before first edit in a turn
 7. **Agent loop limits** — cap turns, tool calls, repeated failures
-8. **Unicode sanitization** — strip hidden characters from file reads (Blink runtime)
+8. **Unicode sanitization** — strip hidden characters from file reads (Tovyr runtime)
 
 ---
 
@@ -25,27 +25,27 @@ Blink is an AI agent with file and shell access. Safety is layered:
 
 | File | Permissions | Contents |
 |------|-------------|----------|
-| `~/.blink/providers.json` | **0o600** (owner read/write only) | Provider keys, models, endpoints |
-| `~/.blink/api-key` | **0o600** | Legacy FreeModel key (migrated to providers.json) |
-| `~/.blink/agent/*.json` | **0o600** | Agent session state |
+| `~/.tovyr/providers.json` | **0o600** (owner read/write only) | Provider keys, models, endpoints |
+| `~/.tovyr/api-key` | **0o600** | Legacy FreeModel key (migrated to providers.json) |
+| `~/.tovyr/agent/*.json` | **0o600** | Agent session state |
 
-Keys are never written into the npm package or committed to git by Blink itself.
+Keys are never written into the npm package or committed to git by Tovyr itself.
 
 ### What is never printed
 
-- `blink config` and `blink config --json` show `apiKeyConfigured: true/false`, not key values
-- `blink doctor` shows provider label, not keys
-- Environment overrides report `BLINK_API_KEY: true`, not the value
+- `tovyr config` and `tovyr config --json` show `apiKeyConfigured: true/false`, not key values
+- `tovyr doctor` shows provider label, not keys
+- Environment overrides report `TOVYR_API_KEY: true`, not the value
 
 ### Log redaction
 
-When `BLINK_SRC` or `BLINK_PACKAGE_ROOT` is set (normal Blink runs):
+When `TOVYR_SRC` or `TOVYR_PACKAGE_ROOT` is set (normal Tovyr runs):
 
 - **Debug logs** (`logForDebugging`, `--debug`) redact API keys, bearer tokens, env assignments
-- **Tool logs** redact inputs and errors via `services/blink/tools/safety.ts`
+- **Tool logs** redact inputs and errors via `services/tovyr/tools/safety.ts`
 - Patterns include: `fe_oa_…`, `sk-ant-…`, `sk-…`, `ghp_…`, `AKIA…`, `Bearer …`, `KEY=value`
 
-Redaction applies to debug output — not to intentional key entry via `blink auth login`.
+Redaction applies to debug output — not to intentional key entry via `tovyr auth login`.
 
 ---
 
@@ -53,7 +53,7 @@ Redaction applies to debug output — not to intentional key entry via `blink au
 
 ### Destructive command blocking
 
-In Blink runtime, these patterns trigger **ask** (user confirmation) unless `/bypass` mode is active:
+In Tovyr runtime, these patterns trigger **ask** (user confirmation) unless `/bypass` mode is active:
 
 | Pattern | Example |
 |---------|---------|
@@ -67,7 +67,7 @@ In Blink runtime, these patterns trigger **ask** (user confirmation) unless `/by
 | World-writable chmod | `chmod -R 777` |
 | Pipe to shell | `curl … \| bash`, `wget … \| sh` |
 
-Implementation: `services/blink/permissions/destructiveShell.ts`, wired in `tools/BashTool/BashTool.tsx`.
+Implementation: `services/tovyr/permissions/destructiveShell.ts`, wired in `tools/BashTool/BashTool.tsx`.
 
 ### Command injection defenses
 
@@ -85,7 +85,7 @@ Implementation: `services/blink/permissions/destructiveShell.ts`, wired in `tool
 | **Code / acceptEdits** | Same as Ask | Auto-accepted |
 | **Bypass** | Allowed (destructive patterns still flagged unless bypass) | Allowed |
 
-Implementation: `services/blink/permissions/toolGate.ts`.
+Implementation: `services/tovyr/permissions/toolGate.ts`.
 
 ---
 
@@ -93,7 +93,7 @@ Implementation: `services/blink/permissions/toolGate.ts`.
 
 ### Path validation
 
-Before file tools run in Blink, paths are checked (`utils/permissions/pathValidation.ts`, `services/blink/tools/safety.ts`):
+Before file tools run in Tovyr, paths are checked (`utils/permissions/pathValidation.ts`, `services/tovyr/tools/safety.ts`):
 
 - No null bytes
 - No shell expansion in paths
@@ -110,13 +110,13 @@ Auto-edit is restricted for sensitive paths (`utils/permissions/filesystem.ts`):
 
 ### Overwriting work
 
-- **Git checkpoint** before first Edit/Write in an assistant turn: stashes uncommitted changes as `blink-checkpoint` (`services/blink/git/checkpoint.ts`)
+- **Git checkpoint** before first Edit/Write in an assistant turn: stashes uncommitted changes as `tovyr-checkpoint` (`services/tovyr/git/checkpoint.ts`)
 - **Permission prompts** for secret paths and non-allowlisted / destructive shell
 - **Plan mode** prevents writes entirely
 
 ### Unicode / prompt injection from files
 
-In Blink runtime, **file read content** is passed through `partiallySanitizeUnicode()` to remove hidden Unicode tag characters and direction overrides that could inject instructions into the model (`tools/FileReadTool/FileReadTool.ts`).
+In Tovyr runtime, **file read content** is passed through `partiallySanitizeUnicode()` to remove hidden Unicode tag characters and direction overrides that could inject instructions into the model (`tools/FileReadTool/FileReadTool.ts`).
 
 MCP tool definitions are similarly sanitized (`services/mcp/client.ts`).
 
@@ -139,7 +139,7 @@ File reads also append a **malware awareness** system reminder (models are instr
 
 ## Agent loop limits
 
-Active only during `/agent` sessions (`services/blink/agent/loopGuard.ts`):
+Active only during `/agent` sessions (`services/tovyr/agent/loopGuard.ts`):
 
 | Limit | Default |
 |-------|---------|
@@ -157,11 +157,11 @@ The main REPL chat loop does **not** apply these limits unless an agent session 
 
 - **WebFetch** blocks certain domains and egress (`tools/WebFetchTool/utils.ts`)
 - **OpenAI-compat proxy** runs on localhost — keys are not sent to third-party translators for routing logic
-- Use `BLINK_PROXY_DEBUG=1` only in trusted environments (writes `.blink/proxy-debug.log`)
+- Use `TOVYR_PROXY_DEBUG=1` only in trusted environments (writes `.tovyr/proxy-debug.log`)
 
 ---
 
-## What Blink cannot guarantee
+## What Tovyr cannot guarantee
 
 - **Malicious project code** — reading `package.json` postinstall scripts or running `npm test` can still execute project code you asked for
 - **Bypass mode** — `/bypass` disables most prompts; use only in sandboxes
@@ -172,7 +172,7 @@ The main REPL chat loop does **not** apply these limits unless an agent session 
 
 ## Reporting issues
 
-Security concerns: [GitHub Issues](https://github.com/itsdexy/BlinkCode/issues) (mark as security-sensitive if applicable).
+Security concerns: [GitHub Issues](https://github.com/itsdexy/Tovyr/issues) (mark as security-sensitive if applicable).
 
 ---
 
@@ -180,14 +180,14 @@ Security concerns: [GitHub Issues](https://github.com/itsdexy/BlinkCode/issues) 
 
 | Area | Path |
 |------|------|
-| Tool safety helpers | `services/blink/tools/safety.ts` |
-| Destructive shell | `services/blink/permissions/destructiveShell.ts` |
-| Permission tiers | `services/blink/permissions/toolGate.ts` |
+| Tool safety helpers | `services/tovyr/tools/safety.ts` |
+| Destructive shell | `services/tovyr/permissions/destructiveShell.ts` |
+| Permission tiers | `services/tovyr/permissions/toolGate.ts` |
 | Path validation | `utils/permissions/pathValidation.ts` |
 | Log redaction | `bridge/debugUtils.ts`, `utils/debug.ts` |
-| Provider key storage | `scripts/blink-providers.js`, `scripts/blink-save-api-key.js` |
-| Git checkpoint | `services/blink/git/checkpoint.ts` |
-| Agent limits | `services/blink/agent/loopGuard.ts` |
+| Provider key storage | `scripts/tovyr-providers.js`, `scripts/tovyr-save-api-key.js` |
+| Git checkpoint | `services/tovyr/git/checkpoint.ts` |
+| Agent limits | `services/tovyr/agent/loopGuard.ts` |
 | Unicode sanitization | `utils/sanitization.ts` |
 
-Tests: `bridge/debugUtils.test.ts`, `services/blink/tools/safety.test.ts`, `services/blink/permissions/destructiveShell.test.ts`, `scripts/blink-cli.integration.test.ts`.
+Tests: `bridge/debugUtils.test.ts`, `services/tovyr/tools/safety.test.ts`, `services/tovyr/permissions/destructiveShell.test.ts`, `scripts/tovyr-cli.integration.test.ts`.

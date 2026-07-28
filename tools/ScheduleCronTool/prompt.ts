@@ -3,7 +3,7 @@ import { getFeatureValue_CACHED_WITH_REFRESH } from '../../services/analytics/gr
 import { DEFAULT_CRON_JITTER_CONFIG } from '../../utils/cronTasks.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 
-const BLINKS_CRON_REFRESH_MS = 5 * 60 * 1000
+const TOVYRS_CRON_REFRESH_MS = 5 * 60 * 1000
 
 export const DEFAULT_MAX_AGE_DAYS =
   DEFAULT_CRON_JITTER_CONFIG.recurringMaxAgeMs / (24 * 60 * 60 * 1000)
@@ -11,14 +11,14 @@ export const DEFAULT_MAX_AGE_DAYS =
 /**
  * Unified gate for the cron scheduling system. Combines the build-time
  * `feature('AGENT_TRIGGERS')` flag (dead code elimination) with the runtime
- * `tengu_blinks_cron` GrowthBook gate on a 5-minute refresh window.
+ * `tengu_tovyrs_cron` GrowthBook gate on a 5-minute refresh window.
  *
- * AGENT_TRIGGERS is independently shippable from BLINKS — the cron module
+ * AGENT_TRIGGERS is independently shippable from TOVYRS — the cron module
  * graph (cronScheduler/cronTasks/cronTasksLock/cron.ts + the three tools +
- * /loop skill) has zero imports into src/assistant/ and no feature('BLINKS')
- * calls. The REPL.tsx blinksEnabled read is safe:
- * blinksEnabled is unconditionally in AppStateStore with default false, so
- * when BLINKS is off the scheduler just gets assistantMode: false.
+ * /loop skill) has zero imports into src/assistant/ and no feature('TOVYRS')
+ * calls. The REPL.tsx tovyrsEnabled read is safe:
+ * tovyrsEnabled is unconditionally in AppStateStore with default false, so
+ * when TOVYRS is off the scheduler just gets assistantMode: false.
  *
  * Called from Tool.isEnabled() (lazy, post-init) and inside useEffect /
  * imperative setup, never at module scope — so the disk cache has had a
@@ -26,38 +26,38 @@ export const DEFAULT_MAX_AGE_DAYS =
  *
  * The default is `true` — /loop is GA (announced in changelog). GrowthBook
  * is disabled for Bedrock/Vertex/Foundry and when DISABLE_TELEMETRY /
- * CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC are set; a `false` default would
+ * TOVYR_CODE_DISABLE_NONESSENTIAL_TRAFFIC are set; a `false` default would
  * break /loop for those users (GH #31759). The GB gate now serves purely as
  * a fleet-wide kill switch — flipping it to `false` stops already-running
  * schedulers on their next isKilled poll tick, not just new ones.
  *
- * `CLAUDE_CODE_DISABLE_CRON` is a local override that wins over GB.
+ * `TOVYR_CODE_DISABLE_CRON` is a local override that wins over GB.
  */
-export function isBlinksCronEnabled(): boolean {
+export function isTovyrsCronEnabled(): boolean {
   return feature('AGENT_TRIGGERS')
-    ? !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_CRON) &&
+    ? !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_CRON) &&
         getFeatureValue_CACHED_WITH_REFRESH(
-          'tengu_blinks_cron',
+          'tengu_tovyrs_cron',
           true,
-          BLINKS_CRON_REFRESH_MS,
+          TOVYRS_CRON_REFRESH_MS,
         )
     : false
 }
 
 /**
  * Kill switch for disk-persistent (durable) cron tasks. Narrower than
- * {@link isBlinksCronEnabled} — flipping this off forces `durable: false` at
+ * {@link isTovyrsCronEnabled} — flipping this off forces `durable: false` at
  * the call() site, leaving session-only cron (in-memory, GA) untouched.
  *
  * Defaults to `true` so Bedrock/Vertex/Foundry and DISABLE_TELEMETRY users get
- * durable cron. Does NOT consult CLAUDE_CODE_DISABLE_CRON (that kills the whole
- * scheduler via isBlinksCronEnabled).
+ * durable cron. Does NOT consult TOVYR_CODE_DISABLE_CRON (that kills the whole
+ * scheduler via isTovyrsCronEnabled).
  */
 export function isDurableCronEnabled(): boolean {
   return getFeatureValue_CACHED_WITH_REFRESH(
-    'tengu_blinks_cron_durable',
+    'tengu_tovyrs_cron_durable',
     true,
-    BLINKS_CRON_REFRESH_MS,
+    TOVYRS_CRON_REFRESH_MS,
   )
 }
 
@@ -68,17 +68,17 @@ export const CRON_LIST_TOOL_NAME = 'CronList'
 export function buildCronCreateDescription(durableEnabled: boolean): string {
   return durableEnabled
     ? 'Schedule a prompt to run at a future time — either recurring on a cron schedule, or once at a specific time. Pass durable: true to persist to .claude/scheduled_tasks.json; otherwise session-only.'
-    : 'Schedule a prompt to run at a future time within this Blink session — either recurring on a cron schedule, or once at a specific time.'
+    : 'Schedule a prompt to run at a future time within this Tovyr session — either recurring on a cron schedule, or once at a specific time.'
 }
 
 export function buildCronCreatePrompt(durableEnabled: boolean): string {
   const durabilitySection = durableEnabled
     ? `## Durability
 
-By default (durable: false) the job lives only in this Blink session — nothing is written to disk, and the job is gone when Blink exits. Pass durable: true to write to .claude/scheduled_tasks.json so the job survives restarts. Only use durable: true when the user explicitly asks for the task to persist ("keep doing this every day", "set this up permanently"). Most "remind me in 5 minutes" / "check back in an hour" requests should stay session-only.`
+By default (durable: false) the job lives only in this Tovyr session — nothing is written to disk, and the job is gone when Tovyr exits. Pass durable: true to write to .claude/scheduled_tasks.json so the job survives restarts. Only use durable: true when the user explicitly asks for the task to persist ("keep doing this every day", "set this up permanently"). Most "remind me in 5 minutes" / "check back in an hour" requests should stay session-only.`
     : `## Session-only
 
-Jobs live only in this Blink session — nothing is written to disk, and the job is gone when Blink exits.`
+Jobs live only in this Tovyr session — nothing is written to disk, and the job is gone when Tovyr exits.`
 
   const durableRuntimeNote = durableEnabled
     ? 'Durable jobs persist to .claude/scheduled_tasks.json and survive session restarts — on next launch they resume automatically. One-shot durable tasks that were missed while the REPL was closed are surfaced for catch-up. Session-only jobs die with the process. '

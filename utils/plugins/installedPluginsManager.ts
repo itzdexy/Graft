@@ -6,7 +6,7 @@
  * - Which plugins are installed globally
  * - Installation metadata (version, timestamps, paths)
  *
- * The enabled/disabled state remains in .blink/settings.json for per-repo control.
+ * The enabled/disabled state remains in .tovyr/settings.json for per-repo control.
  *
  * Rationale: Installation is global (a plugin is either on disk or not), while
  * enabled/disabled state is per-repository (different projects may want different
@@ -184,8 +184,8 @@ export function migrateToSinglePluginFile(): void {
 /**
  * Clean up legacy non-versioned cache directories.
  *
- * Legacy cache structure: ~/.blink/plugins/cache/{plugin-name}/
- * Versioned cache structure: ~/.blink/plugins/cache/{marketplace}/{plugin}/{version}/
+ * Legacy cache structure: ~/.tovyr/plugins/cache/{plugin-name}/
+ * Versioned cache structure: ~/.tovyr/plugins/cache/{marketplace}/{plugin}/{version}/
  *
  * This function removes legacy directories that are not referenced by any installation.
  */
@@ -285,7 +285,7 @@ function migrateV1ToV2(v1Data: InstalledPluginsFileV1): InstalledPluginsFileV2 {
   const v2Plugins: InstalledPluginsMapV2 = {}
 
   for (const [pluginId, plugin] of Object.entries(v1Data.plugins)) {
-    // V2 format uses versioned cache path: ~/.blink/plugins/cache/{marketplace}/{plugin}/{version}
+    // V2 format uses versioned cache path: ~/.tovyr/plugins/cache/{marketplace}/{plugin}/{version}
     // Compute it from pluginId and version instead of using the V1 installPath
     const versionedCachePath = getVersionedCachePath(pluginId, plugin.version)
 
@@ -794,7 +794,7 @@ export function removeAllPluginsForMarketplace(marketplaceName: string): {
  * - user/managed scopes: always relevant (global)
  * - project/local scopes: only if projectPath matches the current project
  *
- * getOriginalCwd() (not getCwd()) because "current project" is where Blink
+ * getOriginalCwd() (not getCwd()) because "current project" is where Tovyr
  * Code was launched from, not wherever the working directory has drifted to.
  */
 export function isInstallationRelevantToCurrentProject(
@@ -1220,7 +1220,7 @@ export async function migrateFromEnabledPlugins(): Promise<void> {
 
           installPath = pluginCachePath
 
-          // Only read manifest if the .blink-plugin dir is present
+          // Only read manifest if the .tovyr-plugin dir is present
           if (dirEntries.includes('.claude-plugin')) {
             version = getPluginVersionFromManifest(pluginCachePath, pluginId)
           }

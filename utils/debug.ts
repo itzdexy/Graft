@@ -10,7 +10,7 @@ import {
   parseDebugFilter,
   shouldShowDebugMessage,
 } from './debugFilter.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { getFsImplementation } from './fsOperations.js'
 import { writeToStderr } from './process.js'
 import { redactSecretsForLogs } from '../bridge/debugUtils.js'
@@ -28,12 +28,12 @@ const LEVEL_ORDER: Record<DebugLogLevel, number> = {
 
 /**
  * Minimum log level to include in debug output. Defaults to 'debug', which
- * filters out 'verbose' messages. Set CLAUDE_CODE_DEBUG_LOG_LEVEL=verbose to
+ * filters out 'verbose' messages. Set TOVYR_CODE_DEBUG_LOG_LEVEL=verbose to
  * include high-volume diagnostics (e.g. full statusLine command, shell, cwd,
  * stdout/stderr) that would otherwise drown out useful debug output.
  */
 export const getMinDebugLogLevel = memoize((): DebugLogLevel => {
-  const raw = process.env.CLAUDE_CODE_DEBUG_LOG_LEVEL?.toLowerCase().trim()
+  const raw = process.env.TOVYR_CODE_DEBUG_LOG_LEVEL?.toLowerCase().trim()
   if (raw && Object.hasOwn(LEVEL_ORDER, raw)) {
     return raw as DebugLogLevel
   }
@@ -214,7 +214,7 @@ export function logForDebugging(
     return
   }
 
-  if (process.env.BLINK_SRC || process.env.BLINK_PACKAGE_ROOT) {
+  if (process.env.TOVYR_SRC || process.env.TOVYR_PACKAGE_ROOT) {
     message = redactSecretsForLogs(message)
   }
 
@@ -235,14 +235,14 @@ export function logForDebugging(
 export function getDebugLogPath(): string {
   return (
     getDebugFilePath() ??
-    process.env.CLAUDE_CODE_DEBUG_LOGS_DIR ??
-    join(getBlinkConfigHomeDir(), 'debug', `${getSessionId()}.txt`)
+    process.env.TOVYR_CODE_DEBUG_LOGS_DIR ??
+    join(getTovyrConfigHomeDir(), 'debug', `${getSessionId()}.txt`)
   )
 }
 
 /**
  * Updates the latest debug log symlink to point to the current debug log file.
- * Creates or updates a symlink at ~/.blink/debug/latest
+ * Creates or updates a symlink at ~/.tovyr/debug/latest
  */
 const updateLatestDebugLogSymlink = memoize(async (): Promise<void> => {
   try {

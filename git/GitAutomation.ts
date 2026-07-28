@@ -420,8 +420,8 @@ class GitAutomationSystem {
 
   private getDefaultConfig(): GitConfig {
     return {
-      userName: 'Blink User',
-      userEmail: 'blink@example.com',
+      userName: 'Tovyr User',
+      userEmail: 'tovyr@example.com',
       defaultBranch: 'main',
       branchNamingConvention: 'conventional',
       requireCommitMessage: true,

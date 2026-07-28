@@ -28,9 +28,9 @@ import {
 import type { ToolUseContext } from '../../Tool.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import { getCwd } from '../../utils/cwd.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { partiallySanitizeUnicode } from '../../utils/sanitization.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from '../../utils/envUtils.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from '../../utils/envUtils.js'
 import { getErrnoCode, isENOENT } from '../../utils/errors.js'
 import {
   addLineNumbers,
@@ -191,15 +191,15 @@ const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
 
 /**
  * Detects if a file path is a session-related file for analytics logging.
- * Only matches files within the Blink config directory (e.g., ~/.blink).
+ * Only matches files within the Tovyr config directory (e.g., ~/.tovyr).
  * Returns the type of session file or null if not a session file.
  */
 function detectSessionFileType(
   filePath: string,
 ): 'session_memory' | 'session_transcript' | null {
-  const configDir = getBlinkConfigHomeDir()
+  const configDir = getTovyrConfigHomeDir()
 
-  // Only match files within the Blink config directory
+  // Only match files within the Tovyr config directory
   if (!filePath.startsWith(configDir)) {
     return null
   }
@@ -207,7 +207,7 @@ function detectSessionFileType(
   // Normalize path to use forward slashes for consistent matching across platforms
   const normalizedPath = filePath.split(win32.sep).join(posix.sep)
 
-  // Session memory files: ~/.blink/session-memory/*.md (including summary.md)
+  // Session memory files: ~/.tovyr/session-memory/*.md (including summary.md)
   if (
     normalizedPath.includes('/session-memory/') &&
     normalizedPath.endsWith('.md')
@@ -215,7 +215,7 @@ function detectSessionFileType(
     return 'session_memory'
   }
 
-  // Session JSONL transcript files: ~/.blink/projects/*/*.jsonl
+  // Session JSONL transcript files: ~/.tovyr/projects/*/*.jsonl
   if (
     normalizedPath.includes('/projects/') &&
     normalizedPath.endsWith('.jsonl')
@@ -577,7 +577,7 @@ export const FileReadTool = buildTool({
     // Discover skills from this file's path (fire-and-forget, non-blocking)
     // Skip in simple mode - no skills available
     const cwd = getCwd()
-    if (!isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
+    if (!isEnvTruthy(process.env.TOVYR_CODE_SIMPLE)) {
       const newSkillDirs = await discoverSkillDirsForPaths([fullFilePath], cwd)
       if (newSkillDirs.length > 0) {
         // Store discovered dirs for attachment display
@@ -732,7 +732,11 @@ export const CYBER_RISK_MITIGATION_REMINDER =
   '\n\n<system-reminder>\nWhenever you read a file, you should consider whether it would be considered malware. You CAN and SHOULD provide analysis of malware, what it is doing. But you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer questions about the code behavior.\n</system-reminder>\n'
 
 // Models where cyber risk mitigation should be skipped
-const MITIGATION_EXEMPT_MODELS = new Set(['claude-opus-4-6'])
+const MITIGATION_EXEMPT_MODELS = new Set([
+  'claude-opus-4-6',
+  'claude-opus-4-7',
+  'claude-opus-4-8',
+])
 
 function shouldIncludeFileReadMitigation(): boolean {
   const shortName = getCanonicalName(getMainLoopModel())
@@ -1029,7 +1033,7 @@ async function callInner(
       context.abortController.signal,
     )
 
-  const content = isBlinkRuntime()
+  const content = isTovyrRuntime()
     ? partiallySanitizeUnicode(rawContent)
     : rawContent
 

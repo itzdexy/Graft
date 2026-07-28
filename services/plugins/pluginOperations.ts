@@ -2,7 +2,7 @@
  * Core plugin operations (install, uninstall, enable, disable, update)
  *
  * This module provides pure library functions that can be used by both:
- * - CLI commands (`blink plugin install/uninstall/enable/disable/update`)
+ * - CLI commands (`tovyr plugin install/uninstall/enable/disable/update`)
  * - Interactive UI (ManagePlugins.tsx)
  *
  * Functions in this module:
@@ -116,7 +116,7 @@ export function getProjectPathForScope(scope: PluginScope): string | undefined {
 }
 
 /**
- * Is this plugin enabled (value === true) in .blink/settings.json?
+ * Is this plugin enabled (value === true) in .tovyr/settings.json?
  *
  * Distinct from V2 installed_plugins.json scope: that file tracks where a
  * plugin was *installed from*, but the same plugin can also be enabled at
@@ -482,12 +482,12 @@ export async function uninstallPluginOp(
     // Try to find where the plugin is actually installed to provide a helpful error
     const { scope: actualScope } = getPluginInstallationFromV2(pluginId)
     if (actualScope !== scope && installations && installations.length > 0) {
-      // Project scope is special: .blink/settings.json is shared with the team.
+      // Project scope is special: .tovyr/settings.json is shared with the team.
       // Point users at the local-override escape hatch instead of --scope project.
       if (actualScope === 'project') {
         return {
           success: false,
-          message: `Plugin "${plugin}" is enabled at project scope (.claude/settings.json, shared with your team). To disable just for you: claude plugin disable ${plugin} --scope local`,
+          message: `Plugin "${plugin}" is enabled at project scope (.claude/settings.json, shared with your team). To disable just for you: tovyr plugin disable ${plugin} --scope local`,
         }
       }
       return {
@@ -666,7 +666,7 @@ export async function setPluginEnabledOp(
   // different scope, guide the user to the right --scope — UNLESS they're
   // writing to a higher-precedence scope to override a lower one
   // (e.g. `disable --scope local` to override a project-enabled plugin
-  // without touching the shared .blink/settings.json).
+  // without touching the shared .tovyr/settings.json).
   const SCOPE_PRECEDENCE: Record<InstallableScope, number> = {
     user: 0,
     project: 1,

@@ -7,7 +7,7 @@
 
 import type { SubscriptionType } from '../services/oauth/types.js'
 import { setMockBillingAccessOverride } from '../utils/billing.js'
-import type { OverageDisabledReason } from './blinkWebLimits.js'
+import type { OverageDisabledReason } from './tovyrWebLimits.js'
 
 type MockHeaders = {
   'anthropic-ratelimit-unified-status'?:

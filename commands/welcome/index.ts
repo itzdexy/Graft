@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const welcome: Command = {
   type: 'local-jsx',
   name: 'welcome',
-  description: 'Show the Blink welcome card and quick-start guide',
+  description: 'Show the Tovyr welcome card and quick-start guide',
   category: 'Help',
   aliases: ['start', 'getting-started'],
   load: () => import('./welcome.js'),

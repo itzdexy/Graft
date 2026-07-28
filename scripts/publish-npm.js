@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Publish the thin blinkcode launcher to npm (package.npm.json manifest).
+ * Publish the thin tovyrcode launcher to npm (package.npm.json manifest).
  * Restores package.json after publish. Does not publish devDependencies.
  */
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { join } from 'node:path'
-import { getBlinkPackageRoot } from './blink-package-root.js'
+import { dirname, join } from 'node:path'
+import { getTovyrPackageRoot } from './tovyr-package-root.js'
 
-const root = getBlinkPackageRoot()
+const root = getTovyrPackageRoot()
 const devPkgPath = join(root, 'package.json')
 const npmPkgPath = join(root, 'package.npm.json')
 const readmeNpm = join(root, 'README.npm.md')
@@ -23,11 +23,11 @@ if (!existsSync(npmPkgPath)) {
 
 const npmPkg = JSON.parse(readFileSync(npmPkgPath, 'utf8'))
 
-// Keep npm manifest version aligned with BLINK_VERSION (constants/blink.js).
+// Keep npm manifest version aligned with TOVYR_VERSION (constants/tovyr.js).
 try {
-  const blinkConstants = join(root, 'constants', 'blink.js')
-  const src = readFileSync(blinkConstants, 'utf8')
-  const match = src.match(/export const BLINK_VERSION = '([^']+)'/)
+  const tovyrConstants = join(root, 'constants', 'tovyr.js')
+  const src = readFileSync(tovyrConstants, 'utf8')
+  const match = src.match(/export const TOVYR_VERSION = '([^']+)'/)
   if (match?.[1]) {
     npmPkg.version = match[1]
   }
@@ -37,27 +37,63 @@ try {
 
 console.log(`Publishing ${npmPkg.name}@${npmPkg.version} to npm...`)
 
-function resolveNpmExecutable() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm'
+function resolveNpmInvocation() {
+  const candidates = [
+    process.env.npm_execpath,
+    join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+  ].filter(Boolean)
+  const cli = candidates.find(candidate => existsSync(candidate))
+  if (cli) {
+    return { command: process.execPath, prefix: [cli] }
+  }
+  return { command: process.platform === 'win32' ? 'npm.cmd' : 'npm', prefix: [] }
 }
 
 function spawnNpm(args, options = {}) {
-  const npm = resolveNpmExecutable()
-  // Windows .cmd launchers require shell:true (Node EINVAL otherwise).
-  const useShell = process.platform === 'win32'
-  return spawnSync(npm, args, { shell: useShell, ...options })
+  const npm = resolveNpmInvocation()
+  return spawnSync(npm.command, [...npm.prefix, ...args], {
+    shell: false,
+    ...options,
+  })
 }
 
-function runBlinkTests() {
-  const r = spawnSync(process.execPath, [join(root, 'scripts', 'blink-test.js')], {
+function runTovyrTests() {
+  const r = spawnSync(process.execPath, [join(root, 'scripts', 'tovyr-test.js')], {
     cwd: root,
     stdio: 'inherit',
     shell: false,
   })
   if (r.status !== 0) {
-    console.error('Pre-publish tests failed (node scripts/blink-test.js)')
+    console.error('Pre-publish tests failed (node scripts/tovyr-test.js)')
     throw new Error(`Pre-publish tests failed (exit ${r.status ?? 1})`)
   }
+}
+
+function runReleaseCommand(command, args, label) {
+  const r = spawnSync(command, args, {
+    cwd: root,
+    stdio: 'inherit',
+    shell: false,
+    windowsHide: true,
+  })
+  if (r.error || r.status !== 0) {
+    throw new Error(
+      `${label} failed${r.error ? `: ${r.error.message}` : ` (exit ${r.status ?? 1})`}`,
+    )
+  }
+}
+
+function runReleaseGates() {
+  runReleaseCommand(
+    process.execPath,
+    [join(root, 'scripts', 'check-tovyr-brand.js')],
+    'Brand/isolation gate',
+  )
+  runReleaseCommand(
+    process.execPath,
+    [join(root, 'scripts', 'build-npm-runtime.js')],
+    'Bun runtime build',
+  )
 }
 
 function npmWhoami() {
@@ -66,7 +102,8 @@ function npmWhoami() {
   return r.stdout.trim() || null
 }
 
-const dryRun = process.argv.includes('--dry-run')
+const packArtifact = process.argv.includes('--pack-artifact')
+const dryRun = process.argv.includes('--dry-run') || packArtifact
 if (!dryRun) {
   // Project .npmrc with ${NPM_TOKEN} overrides ~/.npmrc and breaks `npm login`.
   const localNpmrc = join(root, '.npmrc')
@@ -89,8 +126,8 @@ if (!dryRun) {
         '',
         `Then publish again: npm run publish:npm`,
         '',
-        `Package "${npmPkg.name}" on npm is owned by blink2 — use that account`,
-        '(or an npm account added as a maintainer on https://www.npmjs.com/package/blinkcode).',
+        `Package "${npmPkg.name}" on npm is owned by tovyr2 — use that account`,
+        '(or an npm account added as a maintainer on https://www.npmjs.com/package/tovyrcode).',
       ].join('\n'),
     )
     process.exit(1)
@@ -110,16 +147,23 @@ try {
 
   writeFileSync(devPkgPath, JSON.stringify(npmPkg, null, 2) + '\n')
 
+  console.log('Running release brand, isolation, and runtime gates...')
+  runReleaseGates()
+
   if (!dryRun) {
     console.log('Running pre-publish tests...')
-    runBlinkTests()
+    runTovyrTests()
   }
 
-  const args = dryRun ? ['pack', '--dry-run'] : ['publish', '--access', 'public']
+  const args = dryRun
+    ? packArtifact
+      ? ['pack']
+      : ['pack', '--dry-run']
+    : ['publish', '--access', 'public']
   result = spawnNpm(args, { cwd: root, stdio: 'inherit' })
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
+  result = { status: 1 }
 } finally {
   if (existsSync(backupPkg)) {
     copyFileSync(backupPkg, devPkgPath)
@@ -135,7 +179,11 @@ if (result.status !== 0) {
 }
 
 if (dryRun) {
-  console.log(`Dry run OK — would publish ${npmPkg.name}@${npmPkg.version}`)
+  console.log(
+    packArtifact
+      ? `Package artifact ready — ${npmPkg.name}@${npmPkg.version}`
+      : `Dry run OK — would publish ${npmPkg.name}@${npmPkg.version}`,
+  )
 } else {
   console.log(`Published ${npmPkg.name}@${npmPkg.version}`)
   console.log(`https://www.npmjs.com/package/${npmPkg.name}`)

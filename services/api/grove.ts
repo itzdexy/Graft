@@ -17,7 +17,7 @@ import {
   withOAuth401Retry,
 } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 
 // Cache expiration: 24 hours
 const GROVE_CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000
@@ -66,7 +66,7 @@ export const getGroveSettings = memoize(
           {
             headers: {
               ...authHeaders.headers,
-              'User-Agent': getBlinkCodeUserAgent(),
+              'User-Agent': getTovyrCodeUserAgent(),
             },
           },
         )
@@ -100,7 +100,7 @@ export async function markGroveNoticeViewed(): Promise<void> {
         {
           headers: {
             ...authHeaders.headers,
-            'User-Agent': getBlinkCodeUserAgent(),
+            'User-Agent': getTovyrCodeUserAgent(),
           },
         },
       )
@@ -134,7 +134,7 @@ export async function updateGroveSettings(
         {
           headers: {
             ...authHeaders.headers,
-            'User-Agent': getBlinkCodeUserAgent(),
+            'User-Agent': getTovyrCodeUserAgent(),
           },
         },
       )
@@ -305,7 +305,7 @@ export function calculateShouldShowGrove(
     return true
   }
   // Check if we need to remind the user to accept the terms and choose
-  // whether to help improve Blink.
+  // whether to help improve Tovyr.
   const reminderFrequency = config.notice_reminder_frequency
   if (reminderFrequency !== null && settings.grove_notice_viewed_at) {
     const daysSinceViewed = Math.floor(

@@ -1,5 +1,5 @@
 /**
- * Semantic design tokens for the Blink TUI redesign.
+ * Semantic design tokens for the Tovyr TUI redesign.
  *
  * These map the existing Theme color keys to a cleaner vocabulary and add
  * new surface/border tokens. The tokens are resolved against the current
@@ -37,12 +37,12 @@ export function getDesignTokens(theme: ThemeName): DesignTokens {
     surface: t.inactive,
     surfaceFocused: t.subtle,
     border: t.inactive,
-    borderFocused: t.blinkPrimary,
+    borderFocused: t.tovyrPrimary,
     textPrimary: t.text,
     textSecondary: t.subtle,
     textMuted: t.inactive,
-    accent: t.blinkPrimary,
-    accentMuted: t.blinkSecondary,
+    accent: t.tovyrPrimary,
+    accentMuted: t.tovyrSecondary,
     warning: t.warning,
     success: t.success,
     error: t.error,

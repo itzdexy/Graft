@@ -173,10 +173,10 @@ function jsonResult(data: unknown): { content: Array<{ type: 'text'; text: strin
 }
 
 /** In-process MCP server matching @modelcontextprotocol/server-memory. */
-export function createBlinkMemoryGraphMcpServer(cwd: string): Server {
+export function createTovyrMemoryGraphMcpServer(cwd: string): Server {
   const server = new Server(
     {
-      name: 'blink-memory',
+      name: 'tovyr-memory',
       version: '1.0.0',
     },
     {
@@ -196,7 +196,7 @@ export function createBlinkMemoryGraphMcpServer(cwd: string): Server {
       {
         uri: KNOWLEDGE_GRAPH_URI,
         name: 'Knowledge Graph',
-        description: 'Project knowledge graph persisted in .blink/memory-graph.json',
+        description: 'Project knowledge graph persisted in .tovyr/memory-graph.json',
         mimeType: 'application/json',
       },
     ],

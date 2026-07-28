@@ -1,21 +1,21 @@
 {
-  "name": "blinkcode",
-  "version": "1.0.0",
-  "description": "Blink — a fast, polished AI coding agent for your terminal",
+  "name": "tovyrcode",
+  "version": "1.2.0",
+  "description": "Tovyr — a fast, polished AI coding agent for your terminal",
   "type": "module",
   "license": "MIT",
   "author": "itsdexy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsdexy/BlinkCode.git"
+    "url": "git+https://github.com/itsdexy/Tovyr.git"
   },
   "bugs": {
-    "url": "https://github.com/itsdexy/BlinkCode/issues"
+    "url": "https://github.com/itsdexy/Tovyr/issues"
   },
-  "homepage": "https://github.com/itsdexy/BlinkCode#readme",
+  "homepage": "https://github.com/itsdexy/Tovyr#readme",
   "keywords": [
-    "blink",
-    "blinkcode",
+    "tovyr",
+    "tovyrcode",
     "ai",
     "coding-agent",
     "cli",
@@ -26,42 +26,43 @@
     "node": ">=18"
   },
   "bin": {
-    "blink": "./bin/blink.js"
+    "tovyr": "./bin/tovyr.js"
   },
   "files": [
-    "bin/blink.js",
-    "bin/blink.cmd",
-    "bin/blink.ps1",
-    "constants/blink.js",
-    "scripts/blink-doctor.js",
-    "scripts/blink-home.js",
-    "scripts/blink-install-checks.js",
-    "scripts/blink-launch-hints.js",
-    "scripts/blink-model-compat.js",
-    "scripts/blink-warm.js",
-    "scripts/blink-package-root.js",
-    "scripts/blink-patch-binary.js",
-    "scripts/blink-postinstall.js",
-    "scripts/blink-prep-auth.js",
-    "scripts/blink-provider-catalog-extra.js",
-    "scripts/blink-provider-models-expanded.js",
-    "scripts/blink-provider-catalog.js",
-    "scripts/blink-provider-cli.js",
-    "scripts/blink-providers.js",
-    "scripts/blink-run-claude.js",
-    "scripts/blink-save-api-key.js",
-    "scripts/blink-sync-freemodel-settings.js",
-    "scripts/blink-tune-settings.js",
-    "scripts/blink-windows-launcher.js",
+    "bin/tovyr.js",
+    "bin/tovyr.cmd",
+    "bin/tovyr.ps1",
+    "constants/*.js",
+    "runtime/",
+    "scripts/tovyr-*.js",
+    "scripts/tovyr-doctor.js",
+    "scripts/tovyr-home.js",
+    "scripts/tovyr-install-checks.js",
+    "scripts/tovyr-launch-hints.js",
+    "scripts/tovyr-model-compat.js",
+    "scripts/tovyr-warm.js",
+    "scripts/tovyr-package-root.js",
+    "scripts/tovyr-postinstall.js",
+    "scripts/tovyr-prep-auth.js",
+    "scripts/tovyr-provider-catalog-extra.js",
+    "scripts/tovyr-provider-models-expanded.js",
+    "scripts/tovyr-provider-catalog.js",
+    "scripts/tovyr-provider-cli.js",
+    "scripts/tovyr-providers.js",
+    "scripts/tovyr-save-api-key.js",
+    "scripts/tovyr-sync-freemodel-settings.js",
+    "scripts/tovyr-tune-settings.js",
+    "scripts/tovyr-windows-launcher.js",
     "docs/GUIDE.md",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
-    "postinstall": "node scripts/blink-postinstall.js",
-    "prepublishOnly": "node -e \"const fs=require('fs');['bin/blink.js','docs/GUIDE.md'].forEach(p=>fs.accessSync(p));\""
+    "postinstall": "node scripts/tovyr-postinstall.js",
+    "prepublishOnly": "node -e \"const fs=require('fs');['bin/tovyr.js','docs/GUIDE.md'].forEach(p=>fs.accessSync(p));\""
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^2.1.185"
+    "@faker-js/faker": "^10.5.0",
+    "ws": "^8.21.0"
   }
 }

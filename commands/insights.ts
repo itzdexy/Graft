@@ -20,7 +20,7 @@ import {
   LEGACY_AGENT_TOOL_NAME,
 } from '../tools/AgentTool/constants.js'
 import type { LogOption } from '../types/logs.js'
-import { getBlinkConfigHomeDir } from '../utils/envUtils.js'
+import { getTovyrConfigHomeDir } from '../utils/envUtils.js'
 import { toError } from '../utils/errors.js'
 import { execFileNoThrow } from '../utils/execFileNoThrow.js'
 import { logError } from '../utils/log.js'
@@ -377,7 +377,7 @@ const LABEL_MAP: Record<string, string> = {
   wrong_approach: 'Wrong Approach',
   buggy_code: 'Buggy Code',
   user_rejected_action: 'User Rejected Action',
-  claude_got_blocked: 'Blink Got Blocked',
+  claude_got_blocked: 'Tovyr Got Blocked',
   user_stopped_early: 'User Stopped Early',
   wrong_file_or_location: 'Wrong File/Location',
   excessive_changes: 'Excessive Changes',
@@ -414,11 +414,11 @@ const LABEL_MAP: Record<string, string> = {
   essential: 'Essential',
 }
 
-// Lazy getters: getBlinkConfigHomeDir() is memoized and reads process.env.
+// Lazy getters: getTovyrConfigHomeDir() is memoized and reads process.env.
 // Calling it at module scope would populate the memoize cache before
 // entrypoints can set CLAUDE_CONFIG_DIR, breaking all 150+ other callers.
 function getDataDir(): string {
-  return join(getBlinkConfigHomeDir(), 'usage-data')
+  return join(getTovyrConfigHomeDir(), 'usage-data')
 }
 function getFacetsDir(): string {
   return join(getDataDir(), 'facets')
@@ -427,13 +427,13 @@ function getSessionMetaDir(): string {
   return join(getDataDir(), 'session-meta')
 }
 
-const FACET_EXTRACTION_PROMPT = `Analyze this Blink session and extract structured facets.
+const FACET_EXTRACTION_PROMPT = `Analyze this Tovyr session and extract structured facets.
 
 CRITICAL GUIDELINES:
 
 1. **goal_categories**: Count ONLY what the USER explicitly asked for.
-   - DO NOT count Blink's autonomous codebase exploration
-   - DO NOT count work Blink decided to do on its own
+   - DO NOT count Tovyr's autonomous codebase exploration
+   - DO NOT count work Tovyr decided to do on its own
    - ONLY count when user says "can you...", "please...", "I need...", "let's..."
 
 2. **user_satisfaction_counts**: Base ONLY on explicit user signals.
@@ -444,7 +444,7 @@ CRITICAL GUIDELINES:
    - "this is broken", "I give up" → frustrated
 
 3. **friction_counts**: Be specific about what went wrong.
-   - misunderstood_request: Blink interpreted incorrectly
+   - misunderstood_request: Tovyr interpreted incorrectly
    - wrong_approach: Right goal, wrong solution method
    - buggy_code: Code didn't work correctly
    - user_rejected_action: User said no/stop to a tool call
@@ -867,9 +867,9 @@ function formatTranscriptForFacets(log: LogOption): string {
   return lines.join('\n')
 }
 
-const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a Blink session transcript. Focus on:
+const SUMMARIZE_CHUNK_PROMPT = `Summarize this portion of a Tovyr session transcript. Focus on:
 1. What the user asked for
-2. What Blink did (tools used, files modified)
+2. What Tovyr did (tools used, files modified)
 3. Any friction or issues
 4. The outcome
 
@@ -1055,7 +1055,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT matching this schema:
 }
 
 /**
- * Detects multi-clauding (using multiple Blink sessions concurrently).
+ * Detects multi-clauding (using multiple Tovyr sessions concurrently).
  * Uses a sliding window to find the pattern: session1 -> session2 -> session1
  * within a 30-minute window.
  */
@@ -1086,7 +1086,7 @@ export function detectMultiClauding(
   allSessionMessages.sort((a, b) => a.ts - b.ts)
 
   const multiClaudeSessionPairs = new Set<string>()
-  const messagesDuringMulticlaude = new Set<string>()
+  const messagesDuringMultitovyr = new Set<string>()
 
   // Sliding window: sessionLastIndex tracks the most recent index for each session
   let windowStart = 0
@@ -1336,12 +1336,12 @@ type InsightSection = {
 const INSIGHT_SECTIONS: InsightSection[] = [
   {
     name: 'project_areas',
-    prompt: `Analyze this Blink usage data and identify project areas.
+    prompt: `Analyze this Tovyr usage data and identify project areas.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
   "areas": [
-    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how Blink was used."}
+    {"name": "Area name", "session_count": N, "description": "2-3 sentences about what was worked on and how Tovyr was used."}
   ]
 }
 
@@ -1350,18 +1350,18 @@ Include 4-5 areas. Skip internal CC operations.`,
   },
   {
     name: 'interaction_style',
-    prompt: `Analyze this Blink usage data and describe the user's interaction style.
+    prompt: `Analyze this Tovyr usage data and describe the user's interaction style.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
-  "narrative": "2-3 paragraphs analyzing HOW the user interacts with Blink. Use second person 'you'. Describe patterns: iterate quickly vs detailed upfront specs? Interrupt often or let Blink run? Include specific examples. Use **bold** for key insights.",
+  "narrative": "2-3 paragraphs analyzing HOW the user interacts with Tovyr. Use second person 'you'. Describe patterns: iterate quickly vs detailed upfront specs? Interrupt often or let Tovyr run? Include specific examples. Use **bold** for key insights.",
   "key_pattern": "One sentence summary of most distinctive interaction style"
 }`,
     maxTokens: 8192,
   },
   {
     name: 'what_works',
-    prompt: `Analyze this Blink usage data and identify what's working well for this user. Use second person ("you").
+    prompt: `Analyze this Tovyr usage data and identify what's working well for this user. Use second person ("you").
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1376,7 +1376,7 @@ Include 3 impressive workflows.`,
   },
   {
     name: 'friction_analysis',
-    prompt: `Analyze this Blink usage data and identify friction points for this user. Use second person ("you").
+    prompt: `Analyze this Tovyr usage data and identify friction points for this user. Use second person ("you").
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1391,11 +1391,11 @@ Include 3 friction categories with 2 examples each.`,
   },
   {
     name: 'suggestions',
-    prompt: `Analyze this Blink usage data and suggest improvements.
+    prompt: `Analyze this Tovyr usage data and suggest improvements.
 
 ## CC FEATURES REFERENCE (pick from these for features_to_try):
-1. **MCP Servers**: Connect Blink to external tools, databases, and APIs via Model Context Protocol.
-   - How to use: Run \`blink mcp add <server-name> -- <command>\`
+1. **MCP Servers**: Connect Tovyr to external tools, databases, and APIs via Model Context Protocol.
+   - How to use: Run \`tovyr mcp add <server-name> -- <command>\`
    - Good for: database queries, Slack integration, GitHub issue lookup, connecting to internal APIs
 
 2. **Custom Skills**: Reusable prompts you define as markdown files that run with a single /command.
@@ -1406,18 +1406,18 @@ Include 3 friction categories with 2 examples each.`,
    - How to use: Add to \`.claude/settings.json\` under "hooks" key.
    - Good for: auto-formatting code, running type checks, enforcing conventions
 
-4. **Headless Mode**: Run Blink non-interactively from scripts and CI/CD.
-   - How to use: \`blink ask "fix lint errors"\`
+4. **Headless Mode**: Run Tovyr non-interactively from scripts and CI/CD.
+   - How to use: \`tovyr ask "fix lint errors"\`
    - Good for: CI/CD integration, batch code fixes, automated reviews
 
-5. **Task Agents**: Blink spawns focused sub-agents for complex exploration or parallel work.
-   - How to use: Blink auto-invokes when helpful, or ask "use an agent to explore X"
+5. **Task Agents**: Tovyr spawns focused sub-agents for complex exploration or parallel work.
+   - How to use: Tovyr auto-invokes when helpful, or ask "use an agent to explore X"
    - Good for: codebase exploration, understanding complex systems
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
   "claude_md_additions": [
-    {"addition": "A specific line or block to add to blink.md based on workflow patterns. E.g., 'Always run tests after modifying auth-related files'", "why": "1 sentence explaining why this would help based on actual sessions", "prompt_scaffold": "Instructions for where to add this in blink.md. E.g., 'Add under ## Testing section'"}
+    {"addition": "A specific line or block to add to tovyr.md based on workflow patterns. E.g., 'Always run tests after modifying auth-related files'", "why": "1 sentence explaining why this would help based on actual sessions", "prompt_scaffold": "Instructions for where to add this in tovyr.md. E.g., 'Add under ## Testing section'"}
   ],
   "features_to_try": [
     {"feature": "Feature name from CC FEATURES REFERENCE above", "one_liner": "What it does", "why_for_you": "Why this would help YOU based on your sessions", "example_code": "Actual command or config to copy"}
@@ -1427,14 +1427,14 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   ]
 }
 
-IMPORTANT for claude_md_additions: PRIORITIZE instructions that appear MULTIPLE TIMES in the user data. If user told Blink the same thing in 2+ sessions (e.g., 'always run tests', 'use TypeScript'), that's a PRIME candidate - they shouldn't have to repeat themselves.
+IMPORTANT for claude_md_additions: PRIORITIZE instructions that appear MULTIPLE TIMES in the user data. If user told Tovyr the same thing in 2+ sessions (e.g., 'always run tests', 'use TypeScript'), that's a PRIME candidate - they shouldn't have to repeat themselves.
 
 IMPORTANT for features_to_try: Pick 2-3 from the CC FEATURES REFERENCE above. Include 2-3 items for each category.`,
     maxTokens: 8192,
   },
   {
     name: 'on_the_horizon',
-    prompt: `Analyze this Blink usage data and identify future opportunities.
+    prompt: `Analyze this Tovyr usage data and identify future opportunities.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1451,7 +1451,7 @@ Include 3 opportunities. Think BIG - autonomous workflows, parallel agents, iter
     ? [
         {
           name: 'cc_team_improvements',
-          prompt: `Analyze this Blink usage data and suggest product improvements for the CC team.
+          prompt: `Analyze this Tovyr usage data and suggest product improvements for the CC team.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1465,7 +1465,7 @@ Include 2-3 improvements based on friction patterns observed.`,
         },
         {
           name: 'model_behavior_improvements',
-          prompt: `Analyze this Blink usage data and suggest model behavior improvements.
+          prompt: `Analyze this Tovyr usage data and suggest model behavior improvements.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1481,7 +1481,7 @@ Include 2-3 improvements based on friction patterns observed.`,
     : []),
   {
     name: 'fun_ending',
-    prompt: `Analyze this Blink usage data and find a memorable moment.
+    prompt: `Analyze this Tovyr usage data and find a memorable moment.
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
@@ -1626,7 +1626,7 @@ async function generateParallelInsights(
     .join('\n')
 
   const userInstructions = Array.from(facets.values())
-    .flatMap(f => f.user_instructions_to_claude || [])
+    .flatMap(f => f.user_instructions_to_tovyr || [])
     .slice(0, 15)
     .map(i => `- ${i}`)
     .join('\n')
@@ -1735,15 +1735,15 @@ async function generateParallelInsights(
       .join('\n') || ''
 
   // Now generate "At a Glance" with access to other sections' outputs
-  const atAGlancePrompt = `You're writing an "At a Glance" summary for a Blink usage insights report for Blink users. The goal is to help them understand their usage and improve how they can use Blink better, especially as models improve.
+  const atAGlancePrompt = `You're writing an "At a Glance" summary for a Tovyr usage insights report for Tovyr users. The goal is to help them understand their usage and improve how they can use Tovyr better, especially as models improve.
 
 Use this 4-part structure:
 
-1. **What's working** - What is the user's unique style of interacting with Blink and what are some impactful things they've done? You can include one or two details, but keep it high level since things might not be fresh in the user's memory. Don't be fluffy or overly complimentary. Also, don't focus on the tool calls they use.
+1. **What's working** - What is the user's unique style of interacting with Tovyr and what are some impactful things they've done? You can include one or two details, but keep it high level since things might not be fresh in the user's memory. Don't be fluffy or overly complimentary. Also, don't focus on the tool calls they use.
 
-2. **What's hindering you** - Split into (a) Blink's fault (misunderstandings, wrong approaches, bugs) and (b) user-side friction (not providing enough context, environment issues -- ideally more general than just one project). Be honest but constructive.
+2. **What's hindering you** - Split into (a) Tovyr's fault (misunderstandings, wrong approaches, bugs) and (b) user-side friction (not providing enough context, environment issues -- ideally more general than just one project). Be honest but constructive.
 
-3. **Quick wins to try** - Specific Blink features they could try from the examples below, or a workflow technique if you think it's really compelling. (Avoid stuff like "Ask Blink to confirm before taking actions" or "Type out more context up front" which are less compelling.)
+3. **Quick wins to try** - Specific Tovyr features they could try from the examples below, or a workflow technique if you think it's really compelling. (Avoid stuff like "Ask Tovyr to confirm before taking actions" or "Type out more context up front" which are less compelling.)
 
 4. **Ambitious workflows for better models** - As we move to much more capable models over the next 3-6 months, what should they prepare for? What workflows that seem impossible now will become possible? Draw from the appropriate section below.
 
@@ -2006,7 +2006,7 @@ function generateHtmlReport(
   const interactionStyle = insights.interaction_style
   const interactionHtml = interactionStyle?.narrative
     ? `
-    <h2 id="section-usage">How You Use Blink</h2>
+    <h2 id="section-usage">How You Use Tovyr</h2>
     <div class="narrative">
       ${markdownToHtml(interactionStyle.narrative)}
       ${interactionStyle.key_pattern ? `<div class="key-insight"><strong>Key pattern:</strong> ${escapeHtml(interactionStyle.key_pattern)}</div>` : ''}
@@ -2069,16 +2069,16 @@ function generateHtmlReport(
         ? `
     <h2 id="section-features">Existing CC Features to Try</h2>
     <div class="claude-md-section">
-      <h3>Suggested blink.md Additions</h3>
-      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into Blink to add it to your blink.md.</p>
+      <h3>Suggested tovyr.md Additions</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into Tovyr to add it to your tovyr.md.</p>
       <div class="claude-md-actions">
-        <button class="copy-all-btn" onclick="copyAllCheckedBlinkMd()">Copy All Checked</button>
+        <button class="copy-all-btn" onclick="copyAllCheckedTovyrMd()">Copy All Checked</button>
       </div>
       ${suggestions.claude_md_additions
         .map(
           (add, i) => `
         <div class="claude-md-item">
-          <input type="checkbox" id="cmd-${i}" class="cmd-checkbox" checked data-text="${escapeHtml(add.prompt_scaffold || add.where || 'Add to blink.md')}\\n\\n${escapeHtml(add.addition)}">
+          <input type="checkbox" id="cmd-${i}" class="cmd-checkbox" checked data-text="${escapeHtml(add.prompt_scaffold || add.where || 'Add to tovyr.md')}\\n\\n${escapeHtml(add.addition)}">
           <label for="cmd-${i}">
             <code class="cmd-code">${escapeHtml(add.addition)}</code>
             <button class="copy-btn" onclick="copyCmdItem(${i})">Copy</button>
@@ -2095,7 +2095,7 @@ function generateHtmlReport(
     ${
       suggestions.features_to_try && suggestions.features_to_try.length > 0
         ? `
-    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Blink and it'll set it up for you.</p>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Tovyr and it'll set it up for you.</p>
     <div class="features-section">
       ${suggestions.features_to_try
         .map(
@@ -2129,8 +2129,8 @@ function generateHtmlReport(
     ${
       suggestions.usage_patterns && suggestions.usage_patterns.length > 0
         ? `
-    <h2 id="section-patterns">New Ways to Use Blink</h2>
-    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Blink and it'll walk you through it.</p>
+    <h2 id="section-patterns">New Ways to Use Tovyr</h2>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Tovyr and it'll walk you through it.</p>
     <div class="patterns-section">
       ${suggestions.usage_patterns
         .map(
@@ -2143,7 +2143,7 @@ function generateHtmlReport(
             pat.copyable_prompt
               ? `
           <div class="copyable-prompt-section">
-            <div class="prompt-label">Paste into Blink:</div>
+            <div class="prompt-label">Paste into Tovyr:</div>
             <div class="copyable-prompt-row">
               <code class="copyable-prompt">${escapeHtml(pat.copyable_prompt)}</code>
               <button class="copy-btn" onclick="copyText(this)">Copy</button>
@@ -2178,7 +2178,7 @@ function generateHtmlReport(
           <div class="horizon-title">${escapeHtml(opp.title || '')}</div>
           <div class="horizon-possible">${escapeHtml(opp.whats_possible || '')}</div>
           ${opp.how_to_try ? `<div class="horizon-tip"><strong>Getting started:</strong> ${escapeHtml(opp.how_to_try)}</div>` : ''}
-          ${opp.copyable_prompt ? `<div class="pattern-prompt"><div class="prompt-label">Paste into Blink:</div><code>${escapeHtml(opp.copyable_prompt)}</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>` : ''}
+          ${opp.copyable_prompt ? `<div class="pattern-prompt"><div class="prompt-label">Paste into Tovyr:</div><code>${escapeHtml(opp.copyable_prompt)}</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>` : ''}
         </div>
       `,
         )
@@ -2271,7 +2271,7 @@ function generateHtmlReport(
 
   const css = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #334155; line-height: 1.65; padding: 48px 24px; }
+    body { font-family: 'Inter', -apple-system, TovyrMacSystemFont, sans-serif; background: #f8fafc; color: #334155; line-height: 1.65; padding: 48px 24px; }
     .container { max-width: 800px; margin: 0 auto; }
     h1 { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
     h2 { font-size: 20px; font-weight: 600; color: #0f172a; margin-top: 48px; margin-bottom: 16px; }
@@ -2406,7 +2406,7 @@ function generateHtmlReport(
         });
       }
     }
-    function copyAllCheckedBlinkMd() {
+    function copyAllCheckedTovyrMd() {
       const checkboxes = document.querySelectorAll('.cmd-checkbox:checked');
       const texts = [];
       checkboxes.forEach(cb => {
@@ -2485,13 +2485,13 @@ function generateHtmlReport(
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Blink Insights</title>
+  <title>Tovyr Insights</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>${css}</style>
 </head>
 <body>
   <div class="container">
-    <h1>Blink Insights</h1>
+    <h1>Tovyr Insights</h1>
     <p class="subtitle">${data.total_messages.toLocaleString()} messages across ${data.total_sessions} sessions${data.total_sessions_scanned && data.total_sessions_scanned > data.total_sessions ? ` (${data.total_sessions_scanned.toLocaleString()} total)` : ''} | ${data.date_range.start} to ${data.date_range.end}</p>
 
     ${atAGlanceHtml}
@@ -2557,7 +2557,7 @@ function generateHtmlReport(
         data.multi_clauding.overlap_events === 0
           ? `
         <p style="font-size: 14px; color: #64748b; padding: 8px 0;">
-          No parallel session usage detected. You typically work with one Blink session at a time.
+          No parallel session usage detected. You typically work with one Tovyr session at a time.
         </p>
       `
           : `
@@ -2576,7 +2576,7 @@ function generateHtmlReport(
           </div>
         </div>
         <p style="font-size: 13px; color: #475569; margin-top: 12px;">
-          You run multiple Blink sessions simultaneously. Multi-clauding is detected when sessions
+          You run multiple Tovyr sessions simultaneously. Multi-clauding is detected when sessions
           overlap in time, suggesting parallel workflows.
         </p>
       `
@@ -2610,7 +2610,7 @@ function generateHtmlReport(
 
     <div class="charts-row">
       <div class="chart-card">
-        <div class="chart-title">What Helped Most (Blink's Capabilities)</div>
+        <div class="chart-title">What Helped Most (Tovyr's Capabilities)</div>
         ${generateBarChart(data.success, '#16a34a')}
       </div>
       <div class="chart-card">
@@ -2650,7 +2650,7 @@ function generateHtmlReport(
 // ============================================================================
 
 /**
- * Structured export format for blinkscope consumption
+ * Structured export format for tovyrscope consumption
  */
 export type InsightsExport = {
   metadata: {
@@ -2806,7 +2806,7 @@ export async function generateUsageReport(options?: {
 
   // Optionally collect data from remote hosts first (ant-only)
   if (process.env.USER_TYPE === 'ant' && options?.collectRemote) {
-    const destDir = join(getBlinkConfigHomeDir(), 'projects')
+    const destDir = join(getTovyrConfigHomeDir(), 'projects')
     const { hosts, totalCopied } = await collectAllRemoteHostData(destDir)
     remoteStats = { hosts, totalCopied }
   }
@@ -2994,7 +2994,7 @@ export async function generateUsageReport(options?: {
   const aggregated = aggregateData(substantiveSessions, substantiveFacets)
   aggregated.total_sessions_scanned = totalSessionsScanned
 
-  // Generate parallel insights from Blink (6 sections)
+  // Generate parallel insights from Tovyr (6 sections)
   const insights = await generateParallelInsights(aggregated, facets)
 
   // Generate HTML report
@@ -3039,7 +3039,7 @@ function safeKeys(obj: Record<string, unknown> | undefined | null): string[] {
 const usageReport: Command = {
   type: 'prompt',
   name: 'insights',
-  description: 'Generate a report analyzing your Blink sessions',
+  description: 'Generate a report analyzing your Tovyr sessions',
   contentLength: 0, // Dynamic content
   progressMessage: 'analyzing your sessions',
   source: 'builtin',
@@ -3141,7 +3141,7 @@ ${atAGlance.quick_wins ? `**Quick wins to try:** ${atAGlance.quick_wins} See _Fe
 ${atAGlance.ambitious_workflows ? `**Ambitious workflows:** ${atAGlance.ambitious_workflows} See _On the Horizon_.` : ''}`
       : '_No insights generated_'
 
-    const header = `# Blink Insights
+    const header = `# Tovyr Insights
 
 ${stats}
 ${data.date_range.start} to ${data.date_range.end}
@@ -3152,11 +3152,11 @@ ${remoteInfo}
 
 Your full shareable insights report is ready: ${reportUrl}${uploadHint}`
 
-    // Return prompt for Blink to respond to
+    // Return prompt for Tovyr to respond to
     return [
       {
         type: 'text',
-        text: `The user just ran /insights to generate a usage report analyzing their Blink sessions.
+        text: `The user just ran /insights to generate a usage report analyzing their Tovyr sessions.
 
 Here is the full insights data:
 ${jsonStringify(insights, null, 2)}

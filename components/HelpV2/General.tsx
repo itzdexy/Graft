@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Box, Text } from '../../ink.js'
-import { getAgentHelpBlurb } from '../../utils/blinkBrand.js'
-import { getActiveProviderId, loadState } from '../../scripts/blink-providers.js'
+import { getAgentHelpBlurb } from '../../utils/tovyrBrand.js'
+import { getActiveProviderId, loadState } from '../../scripts/tovyr-providers.js'
 import { PromptInputHelpMenu } from '../PromptInput/PromptInputHelpMenu.js'
 
 function QuickStartHints(): React.ReactNode {

@@ -6,14 +6,14 @@ import { lazySchema } from '../lazySchema.js'
 /**
  * First-layer defense against official marketplace impersonation.
  *
- * This validation blocks direct impersonation attempts like "blink-official",
- * "blink-marketplace", etc. Indirect variations (e.g., "my-blink-marketplace")
+ * This validation blocks direct impersonation attempts like "tovyr-official",
+ * "tovyr-marketplace", etc. Indirect variations (e.g., "my-tovyr-marketplace")
  * are not blocked intentionally to avoid false positives on legitimate names.
  * Source org verification provides additional protection at registration/install time.
  */
 
 /**
- * Official marketplace names that are reserved for Blink/Blink official use.
+ * Official marketplace names that are reserved for Tovyr/Tovyr official use.
  * These names are allowed ONLY for official marketplaces and blocked for third parties.
  */
 export const ALLOWED_OFFICIAL_MARKETPLACE_NAMES = new Set([
@@ -37,7 +37,7 @@ const NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES = new Set(['knowledge-work-plugins'])
 /**
  * Check if auto-update is enabled for a marketplace.
  * Uses the stored value if set, otherwise defaults based on whether
- * it's an official Blink marketplace (true) or not (false).
+ * it's an official Tovyr marketplace (true) or not (false).
  * Official marketplaces in NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES are excluded
  * from the auto-update default.
  *
@@ -58,13 +58,13 @@ export function isMarketplaceAutoUpdate(
 }
 
 /**
- * Pattern to detect names that impersonate official Blink/Blink marketplaces.
+ * Pattern to detect names that impersonate official Tovyr/Tovyr marketplaces.
  *
  * Matches names containing variations like:
- * - "official" combined with "blink" or "blink" (e.g., "official-blink-plugins")
- * - "blink" or "blink" combined with "official" (e.g., "blink-official")
- * - Names starting with "blink" or "blink" followed by official-sounding terms
- *   like "marketplace", "plugins" (e.g., "blink-marketplace-new", "blink-plugins-v2")
+ * - "official" combined with "tovyr" or "tovyr" (e.g., "official-tovyr-plugins")
+ * - "tovyr" or "tovyr" combined with "official" (e.g., "tovyr-official")
+ * - Names starting with "tovyr" or "tovyr" followed by official-sounding terms
+ *   like "marketplace", "plugins" (e.g., "tovyr-marketplace-new", "tovyr-plugins-v2")
  *
  * The pattern is case-insensitive.
  */
@@ -79,7 +79,7 @@ export const BLOCKED_OFFICIAL_NAME_PATTERN =
 const NON_ASCII_PATTERN = /[^\u0020-\u007E]/
 
 /**
- * Check if a marketplace name impersonates an official Blink/Blink marketplace.
+ * Check if a marketplace name impersonates an official Tovyr/Tovyr marketplace.
  *
  * @param name - The marketplace name to check
  * @returns true if the name is blocked (impersonates official), false if allowed
@@ -91,7 +91,7 @@ export function isBlockedOfficialName(name: string): boolean {
   }
 
   // Block names with non-ASCII characters to prevent homograph attacks
-  // (e.g., using Cyrillic 'а' to impersonate 'blink')
+  // (e.g., using Cyrillic 'а' to impersonate 'tovyr')
   if (NON_ASCII_PATTERN.test(name)) {
     return true
   }
@@ -101,7 +101,7 @@ export function isBlockedOfficialName(name: string): boolean {
 }
 
 /**
- * The official GitHub organization for Blink marketplaces.
+ * The official GitHub organization for Tovyr marketplaces.
  * Reserved names must come from this org.
  */
 export const OFFICIAL_GITHUB_ORG = 'anthropics'
@@ -110,7 +110,7 @@ export const OFFICIAL_GITHUB_ORG = 'anthropics'
  * Validate that a marketplace with a reserved name comes from the official source.
  *
  * Reserved names (in ALLOWED_OFFICIAL_MARKETPLACE_NAMES) can only be used by
- * marketplaces from the official Blink GitHub organization.
+ * marketplaces from the official Tovyr GitHub organization.
  *
  * @param name - The marketplace name
  * @param source - The marketplace source configuration
@@ -132,7 +132,7 @@ export function validateOfficialNameSource(
     // Verify the repo is from the official org
     const repo = source.repo || ''
     if (!repo.toLowerCase().startsWith(`${OFFICIAL_GITHUB_ORG}/`)) {
-      return `The name '${name}' is reserved for official Blink marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
+      return `The name '${name}' is reserved for official Tovyr marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
     }
     return null // Valid: reserved name from official GitHub source
   }
@@ -140,8 +140,8 @@ export function validateOfficialNameSource(
   // Check for git URL source type
   if (source.source === 'git' && source.url) {
     const url = source.url.toLowerCase()
-    // Check for HTTPS URL format: https://github.com/blinks/...
-    // or SSH format: git@github.com:blinks/...
+    // Check for HTTPS URL format: https://github.com/tovyrs/...
+    // or SSH format: git@github.com:tovyrs/...
     const isHttpsAnthropics = url.includes('github.com/anthropics/')
     const isSshAnthropics = url.includes('git@github.com:anthropics/')
 
@@ -149,11 +149,11 @@ export function validateOfficialNameSource(
       return null // Valid: reserved name from official git URL
     }
 
-    return `The name '${name}' is reserved for official Blink marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
+    return `The name '${name}' is reserved for official Tovyr marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
   }
 
   // Reserved names must come from GitHub (either 'github' or 'git' source)
-  return `The name '${name}' is reserved for official Blink marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
+  return `The name '${name}' is reserved for official Tovyr marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
 }
 
 /**
@@ -234,7 +234,7 @@ const MarketplaceNameSchema = lazySchema(() =>
     )
     .refine(name => !isBlockedOfficialName(name), {
       message:
-        'Marketplace name impersonates an official Blink/Blink marketplace',
+        'Marketplace name impersonates an official Tovyr/Tovyr marketplace',
     })
     .refine(name => name.toLowerCase() !== 'inline', {
       message:
@@ -323,7 +323,7 @@ const PluginManifestMetadataSchema = lazySchema(() =>
  * Schema for plugin hooks configuration (hooks.json)
  *
  * Defines the hooks that a plugin can provide to intercept and modify
- * Blink behavior at various lifecycle events.
+ * Tovyr behavior at various lifecycle events.
  */
 export const PluginHooksSchema = lazySchema(() =>
   z.object({
@@ -575,7 +575,7 @@ const PluginManifestMcpServerSchema = lazySchema(() =>
  * Schema for a single user-configurable option in plugin manifest userConfig.
  *
  * Shape intentionally matches `McpbUserConfigurationOption` from
- * `@blink-ai/mcpb` so the parsed result is structurally assignable to
+ * `@tovyr-ai/mcpb` so the parsed result is structurally assignable to
  * `UserConfigSchema` in mcpbHandler.ts — this lets us reuse
  * `validateUserConfig` and the config dialog without modification.
  * `title` and `description` are required (not optional) because the upstream
@@ -656,7 +656,7 @@ const PluginManifestUserConfigSchema = lazySchema(() =>
 /**
  * Schema for channel declarations in plugin manifest.
  *
- * A channel is an MCP server that emits `notifications/blink/channel` to
+ * A channel is an MCP server that emits `notifications/tovyr/channel` to
  * inject messages into the conversation (Telegram, Slack, Discord, etc.).
  * Declaring it here lets the plugin prompt for user config (bot tokens,
  * owner IDs) at install time via the PluginOptionsFlow prompt,
@@ -879,7 +879,7 @@ const PluginManifestSettingsSchema = lazySchema(() =>
  * still fail, since a typo there is more likely to be an author mistake
  * than a vendor extension. Type mismatches and other validation errors
  * still fail at all levels. For developer feedback on unknown top-level
- * fields, use `blink plugin validate`.
+ * fields, use `tovyr plugin validate`.
  */
 export const PluginManifestSchema = lazySchema(() =>
   z.object({
@@ -1228,7 +1228,7 @@ export function isLocalPluginSource(source: PluginSource): source is string {
  * For local sources (`file`/`directory`), `installLocation` IS the user's path —
  * it lives outside the plugins cache dir and marketplace operations on it are
  * read-only. For remote sources (`github`/`git`/`url`/`npm`), `installLocation`
- * is a cache-dir entry managed by Blink and subject to rm/re-clone.
+ * is a cache-dir entry managed by Tovyr and subject to rm/re-clone.
  *
  * Contrast with isLocalPluginSource, which operates on PluginSource (the
  * per-plugin source inside a marketplace entry) and checks for `./` prefix.
@@ -1332,7 +1332,7 @@ export const PluginMarketplaceSchema = lazySchema(() =>
  * Both parts allow alphanumeric characters, hyphens, dots, and underscores.
  *
  * Examples:
- * - "code-formatter@blink-tools"
+ * - "code-formatter@tovyr-tools"
  * - "db_assistant@company-internal"
  * - "my.plugin@personal-marketplace"
  */
@@ -1401,7 +1401,7 @@ export const DependencyRefSchema = lazySchema(() =>
  * not in the plugin reference.
  *
  * Examples:
- * - "code-formatter@blink-tools"
+ * - "code-formatter@tovyr-tools"
  * - "db-assistant@company-internal"
  * - { id: "formatter@tools", version: "^2.0.0", required: true }
  */
@@ -1435,12 +1435,12 @@ export const SettingsPluginEntrySchema = lazySchema(() =>
  * (npm, git, local, etc.). The plugin ID is the key in the plugins record,
  * so it's not duplicated here.
  *
- * Example entry for key "code-formatter@blink-tools":
+ * Example entry for key "code-formatter@tovyr-tools":
  * {
  *   "version": "1.2.0",
  *   "installedAt": "2024-01-15T10:30:00Z",
- *   "marketplace": "blink-tools",
- *   "installPath": "/home/user/.blink/plugins/installed/blink-tools/code-formatter"
+ *   "marketplace": "tovyr-tools",
+ *   "installPath": "/home/user/.tovyr/plugins/installed/tovyr-tools/code-formatter"
  * }
  */
 export const InstalledPluginSchema = lazySchema(() =>
@@ -1465,16 +1465,16 @@ export const InstalledPluginSchema = lazySchema(() =>
  * Schema for the installed_plugins.json file (V1 format)
  *
  * Contains a version number and maps plugin IDs to their installation metadata.
- * Maintained automatically by Blink, not edited by users.
+ * Maintained automatically by Tovyr, not edited by users.
  *
  * The version field tracks schema changes. When the version doesn't match
- * the current schema version, Blink will update the file on next startup.
+ * the current schema version, Tovyr will update the file on next startup.
  *
  * Example file:
  * {
  *   "version": 1,
  *   "plugins": {
- *     "code-formatter@blink-tools": { ... },
+ *     "code-formatter@tovyr-tools": { ... },
  *     "db-assistant@company-internal": { ... }
  *   }
  * }
@@ -1496,9 +1496,9 @@ export const InstalledPluginsFileSchemaV1 = lazySchema(() =>
  *
  * Plugins can be installed at different scopes:
  * - managed: Enterprise/system-wide (read-only, platform-specific paths)
- * - user: User's global settings (~/.blink/settings.json)
- * - project: Shared project settings ($project/.blink/settings.json)
- * - local: Personal project overrides ($project/.blink/settings.local.json)
+ * - user: User's global settings (~/.tovyr/settings.json)
+ * - project: Shared project settings ($project/.tovyr/settings.json)
+ * - local: Personal project overrides ($project/.tovyr/settings.local.json)
  *
  * Note: 'flag' scope plugins (from --settings) are session-only and
  * are NOT persisted to installed_plugins.json.
@@ -1552,7 +1552,7 @@ export const PluginInstallationEntrySchema = lazySchema(() =>
  * {
  *   "version": 2,
  *   "plugins": {
- *     "code-formatter@blink-tools": [
+ *     "code-formatter@tovyr-tools": [
  *       { "scope": "user", "installPath": "...", "version": "1.0.0" },
  *       { "scope": "project", "projectPath": "/path/to/project", "installPath": "...", "version": "1.1.0" }
  *     ]
@@ -1584,8 +1584,8 @@ export const InstalledPluginsFileSchema = lazySchema(() =>
  *
  * Example entry:
  * {
- *   "source": { "source": "github", "repo": "blink/blink-plugins" },
- *   "installLocation": "/home/user/.blink/plugins/cached/marketplaces/blink-tools",
+ *   "source": { "source": "github", "repo": "tovyr/tovyr-plugins" },
+ *   "installLocation": "/home/user/.tovyr/plugins/cached/marketplaces/tovyr-tools",
  *   "lastUpdated": "2024-01-15T10:30:00Z"
  * }
  */
@@ -1617,7 +1617,7 @@ export const KnownMarketplaceSchema = lazySchema(() =>
  *
  * Example file:
  * {
- *   "blink-tools": { "source": { ... }, "installLocation": "...", "lastUpdated": "..." },
+ *   "tovyr-tools": { "source": { ... }, "installLocation": "...", "lastUpdated": "..." },
  *   "company-internal": { "source": { ... }, "installLocation": "...", "lastUpdated": "..." }
  * }
  */

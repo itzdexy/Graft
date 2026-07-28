@@ -54,7 +54,7 @@ export type TextStyle = {
   dim: boolean
   italic: boolean
   underline: UnderlineStyle
-  blink: boolean
+  tovyr: boolean
   inverse: boolean
   hidden: boolean
   strikethrough: boolean
@@ -71,7 +71,7 @@ export function defaultStyle(): TextStyle {
     dim: false,
     italic: false,
     underline: 'none',
-    blink: false,
+    tovyr: false,
     inverse: false,
     hidden: false,
     strikethrough: false,
@@ -89,7 +89,7 @@ export function stylesEqual(a: TextStyle, b: TextStyle): boolean {
     a.dim === b.dim &&
     a.italic === b.italic &&
     a.underline === b.underline &&
-    a.blink === b.blink &&
+    a.tovyr === b.tovyr &&
     a.inverse === b.inverse &&
     a.hidden === b.hidden &&
     a.strikethrough === b.strikethrough &&
@@ -137,7 +137,7 @@ export type CursorAction =
   | {
       type: 'style'
       style: 'block' | 'underline' | 'bar'
-      blinking: boolean
+      tovyring: boolean
     }
   | { type: 'nextLine'; count: number }
   | { type: 'prevLine'; count: number }

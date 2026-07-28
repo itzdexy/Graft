@@ -19,7 +19,7 @@ export type Theme = {
   autoAccept: string
   bashBorder: string
   claude: string
-  claudeShimmer: string // Lighter version of blink color for shimmer effect
+  claudeShimmer: string // Lighter version of tovyr color for shimmer effect
   claudeBlue_FOR_SYSTEM_SPINNER: string
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: string
   permission: string
@@ -63,10 +63,10 @@ export type Theme = {
   professionalBlue: string
   // Chrome colors
   chromeYellow: string
-  // Blink-specific colors
-  blinkPrimary: string
-  blinkSecondary: string
-  blinkAccent: string
+  // Tovyr-specific colors
+  tovyrPrimary: string
+  tovyrSecondary: string
+  tovyrAccent: string
   // TUI V2 colors
   clawd_body: string
   clawd_background: string
@@ -180,10 +180,10 @@ const lightTheme: Theme = {
   professionalBlue: 'rgb(106,155,204)',
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'rgb(0,150,160)', // Teal/Cyan
-  blinkSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
-  blinkAccent: 'rgb(255,106,0)', // Electric orange
+  // Tovyr-specific colors
+  tovyrPrimary: 'rgb(0,150,160)', // Teal/Cyan
+  tovyrSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
+  tovyrAccent: 'rgb(255,106,0)', // Electric orange
   // TUI V2 colors
   clawd_body: 'rgb(0,150,160)',
   clawd_background: 'rgb(0,0,0)',
@@ -271,10 +271,10 @@ const lightAnsiTheme: Theme = {
   professionalBlue: 'ansi:blueBright',
   // Chrome colors
   chromeYellow: 'ansi:yellow', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'ansi:cyan',
-  blinkSecondary: 'ansi:brightBlack',
-  blinkAccent: 'ansi:redBright',
+  // Tovyr-specific colors
+  tovyrPrimary: 'ansi:cyan',
+  tovyrSecondary: 'ansi:brightBlack',
+  tovyrAccent: 'ansi:redBright',
   // TUI V2 colors
   clawd_body: 'ansi:cyanBright',
   clawd_background: 'ansi:black',
@@ -361,10 +361,10 @@ const darkAnsiTheme: Theme = {
   professionalBlue: 'rgb(106,155,204)',
   // Chrome colors
   chromeYellow: 'ansi:yellowBright', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'ansi:cyan',
-  blinkSecondary: 'ansi:brightBlack',
-  blinkAccent: 'ansi:redBright',
+  // Tovyr-specific colors
+  tovyrPrimary: 'ansi:cyan',
+  tovyrSecondary: 'ansi:brightBlack',
+  tovyrAccent: 'ansi:redBright',
   // TUI V2 colors
   clawd_body: 'ansi:cyanBright',
   clawd_background: 'ansi:black',
@@ -451,10 +451,10 @@ const lightDaltonizedTheme: Theme = {
   professionalBlue: 'rgb(106,155,204)',
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'rgb(0,150,160)', // Teal/Cyan
-  blinkSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
-  blinkAccent: 'rgb(255,106,0)', // Electric orange
+  // Tovyr-specific colors
+  tovyrPrimary: 'rgb(0,150,160)', // Teal/Cyan
+  tovyrSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
+  tovyrAccent: 'rgb(255,106,0)', // Electric orange
   // TUI V2 colors
   clawd_body: 'rgb(215,119,87)',
   clawd_background: 'rgb(0,0,0)',
@@ -473,7 +473,7 @@ const lightDaltonizedTheme: Theme = {
   fastMode: 'rgb(255,106,0)', // Electric orange (color-blind safe)
   fastModeShimmer: 'rgb(255,150,50)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(37,99,235)', // Blue
-  briefLabelClaude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia (matches blink)
+  briefLabelClaude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia (matches tovyr)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',
@@ -499,7 +499,7 @@ const darkTheme: Theme = {
   border: { thin: '─', medium: '═', thick: '█' },
   autoAccept: 'rgb(180, 70, 255)', // Bright Purple
   bashBorder: 'rgb(253,93,177)', // Bright pink
-  claude: 'rgb(0,150,160)', // Blink teal (primary brand)
+  claude: 'rgb(0,150,160)', // Tovyr teal (primary brand)
   claudeShimmer: 'rgb(0,190,200)', // Lighter teal shimmer
   claudeBlue_FOR_SYSTEM_SPINNER: 'rgb(0, 240, 255)', // Electric Cyan
   claudeBlueShimmer_FOR_SYSTEM_SPINNER: 'rgb(100, 250, 255)', // Lighter Electric Cyan
@@ -541,12 +541,12 @@ const darkTheme: Theme = {
   professionalBlue: 'rgb(106,155,204)',
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'rgb(0,150,160)', // Teal/Cyan
-  blinkSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
-  blinkAccent: 'rgb(255,106,0)', // Electric orange
+  // Tovyr-specific colors
+  tovyrPrimary: 'rgb(0,150,160)', // Teal/Cyan
+  tovyrSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
+  tovyrAccent: 'rgb(255,106,0)', // Electric orange
   // TUI V2 colors
-  clawd_body: 'rgb(0,190,200)', // Blink accent on mascot
+  clawd_body: 'rgb(0,190,200)', // Tovyr accent on mascot
   clawd_background: 'rgb(0,0,0)',
   userMessageBackground: 'rgb(40, 44, 52)', // Darker blue-grey for better contrast with assistant messages
   userMessageBackgroundHover: 'rgb(50, 54, 62)',
@@ -563,7 +563,7 @@ const darkTheme: Theme = {
   fastMode: 'rgb(255,120,20)', // Electric orange for dark bg
   fastModeShimmer: 'rgb(255,165,70)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(122,180,232)', // Light blue
-  briefLabelClaude: 'rgb(0,150,160)', // Blink teal
+  briefLabelClaude: 'rgb(0,150,160)', // Tovyr teal
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',
@@ -631,10 +631,10 @@ const darkDaltonizedTheme: Theme = {
   professionalBlue: 'rgb(106,155,204)',
   // Chrome colors
   chromeYellow: 'rgb(251,188,4)', // Chrome yellow
-  // Blink-specific colors
-  blinkPrimary: 'rgb(0,150,160)', // Teal/Cyan
-  blinkSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
-  blinkAccent: 'rgb(255,106,0)', // Electric orange
+  // Tovyr-specific colors
+  tovyrPrimary: 'rgb(0,150,160)', // Teal/Cyan
+  tovyrSecondary: 'rgb(100,120,130)', // Muted slate (shimmer accent)
+  tovyrAccent: 'rgb(255,106,0)', // Electric orange
   // TUI V2 colors
   clawd_body: 'rgb(215,119,87)',
   clawd_background: 'rgb(0,0,0)',
@@ -653,7 +653,7 @@ const darkDaltonizedTheme: Theme = {
   fastMode: 'rgb(255,120,20)', // Electric orange for dark bg (color-blind safe)
   fastModeShimmer: 'rgb(255,165,70)', // Lighter orange for shimmer
   briefLabelYou: 'rgb(122,180,232)', // Light blue
-  briefLabelClaude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia (matches blink)
+  briefLabelClaude: 'rgb(255,153,51)', // Orange adjusted for deuteranopia (matches tovyr)
   rainbow_red: 'rgb(235,95,87)',
   rainbow_orange: 'rgb(245,139,87)',
   rainbow_yellow: 'rgb(250,195,95)',

@@ -1,8 +1,8 @@
 export const PRODUCT_URL = 'https://freemodel.dev'
 
-export const PRODUCT_NAME = 'Blink'
+export const PRODUCT_NAME = 'TOVYR'
 
-// Blink Remote session URLs
+// Tovyr Remote session URLs
 export const CLAUDE_AI_BASE_URL = 'https://claude.ai'
 export const CLAUDE_AI_STAGING_BASE_URL = 'https://claude-ai.staging.ant.dev'
 export const CLAUDE_AI_LOCAL_BASE_URL = 'http://localhost:4000'
@@ -36,9 +36,9 @@ export function isRemoteSessionLocal(
 }
 
 /**
- * Get the base URL for Blink AI based on environment.
+ * Get the base URL for Tovyr AI based on environment.
  */
-export function getBlinkWebBaseUrl(
+export function getTovyrWebBaseUrl(
   sessionId?: string,
   ingressUrl?: string,
 ): string {
@@ -56,7 +56,7 @@ export function getBlinkWebBaseUrl(
  *
  * The cse_→session_ translation is a temporary shim gated by
  * tengu_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
- * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the blink web
+ * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the tovyr web
  * frontend currently routes on `session_*` (compat/convert.go:27 validates
  * TagSession). Same UUID body, different tag prefix. Once the server tags by
  * environment_kind and the frontend accepts `cse_*` directly, flip the gate
@@ -73,6 +73,6 @@ export function getRemoteSessionUrl(
     require('../bridge/sessionIdCompat.js') as typeof import('../bridge/sessionIdCompat.js')
   /* eslint-enable @typescript-eslint/no-require-imports */
   const compatId = toCompatSessionId(sessionId)
-  const baseUrl = getBlinkWebBaseUrl(compatId, ingressUrl)
+  const baseUrl = getTovyrWebBaseUrl(compatId, ingressUrl)
   return `${baseUrl}/code/${compatId}`
 }

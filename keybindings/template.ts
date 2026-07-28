@@ -1,6 +1,6 @@
 /**
  * Keybindings template generator.
- * Generates a well-documented template file for ~/.blink/keybindings.json
+ * Generates a well-documented template file for ~/.tovyr/keybindings.json
  */
 
 import { jsonStringify } from '../utils/slowOperations.js'
@@ -44,7 +44,7 @@ export function generateKeybindingsTemplate(): string {
   // Format as object wrapper with bindings array
   const config = {
     $schema: 'https://www.schemastore.org/claude-code-keybindings.json',
-    $docs: 'https://github.com/itsdexy/BlinkCode/blob/main/docs/GUIDE.md',
+    $docs: 'https://github.com/itsdexy/Tovyr/blob/main/docs/GUIDE.md',
     bindings,
   }
 

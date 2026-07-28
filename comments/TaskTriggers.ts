@@ -1,6 +1,6 @@
 /**
  * Comment-based task triggering (Aider pattern).
- * Scans TODO/FIXME/AI/BLINK comments and can auto-submit as agent tasks.
+ * Scans TODO/FIXME/AI/TOVYR comments and can auto-submit as agent tasks.
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
@@ -9,13 +9,13 @@ import { join, relative } from 'node:path'
 export interface CommentTask {
   file: string
   line: number
-  kind: 'todo' | 'fixme' | 'ai' | 'blink' | 'hack'
+  kind: 'todo' | 'fixme' | 'ai' | 'tovyr' | 'hack'
   text: string
   priority: 'low' | 'medium' | 'high'
 }
 
 const TASK_RE =
-  /\/\/\s*(TODO|FIXME|HACK|AI|BLINK)[\s:.-]*(.*)|#\s*(TODO|FIXME|HACK|AI|BLINK)[\s:.-]*(.*)/gi
+  /\/\/\s*(TODO|FIXME|HACK|AI|TOVYR)[\s:.-]*(.*)|#\s*(TODO|FIXME|HACK|AI|TOVYR)[\s:.-]*(.*)/gi
 
 const SKIP_DIRS = new Set([
   'node_modules',
@@ -33,13 +33,13 @@ export function extractTasksFromLine(
   lineNum: number,
 ): CommentTask | null {
   const m =
-    line.match(/\/\/\s*(TODO|FIXME|HACK|AI|BLINK)[\s:.-]*(.*)/i) ??
-    line.match(/#\s*(TODO|FIXME|HACK|AI|BLINK)[\s:.-]*(.*)/i)
+    line.match(/\/\/\s*(TODO|FIXME|HACK|AI|TOVYR)[\s:.-]*(.*)/i) ??
+    line.match(/#\s*(TODO|FIXME|HACK|AI|TOVYR)[\s:.-]*(.*)/i)
   if (!m) return null
   const kind = m[1]!.toLowerCase() as CommentTask['kind']
   const text = (m[2] ?? m[4] ?? '').trim()
   const priority: CommentTask['priority'] =
-    kind === 'fixme' || kind === 'hack' ? 'high' : kind === 'blink' || kind === 'ai' ? 'medium' : 'low'
+    kind === 'fixme' || kind === 'hack' ? 'high' : kind === 'tovyr' || kind === 'ai' ? 'medium' : 'low'
   return { file, line: lineNum, kind, text, priority }
 }
 
@@ -112,7 +112,7 @@ export function formatTasksForPrompt(tasks: CommentTask[], cwd: string): string 
 
 /** Build agent prompt from highest-priority comment task. */
 export function promptFromTopTask(tasks: CommentTask[], cwd: string): string | null {
-  const top = tasks.find(t => t.kind === 'blink' || t.kind === 'ai') ?? tasks[0]
+  const top = tasks.find(t => t.kind === 'tovyr' || t.kind === 'ai') ?? tasks[0]
   if (!top) return null
   const rel = relative(cwd, top.file)
   return `Implement the ${top.kind.toUpperCase()} at ${rel}:${top.line}: ${top.text}`

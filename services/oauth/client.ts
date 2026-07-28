@@ -1,4 +1,4 @@
-// OAuth client for handling authentication flows with Blink services
+// OAuth client for handling authentication flows with Tovyr services
 import axios from 'axios'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -12,9 +12,9 @@ import {
 } from '../../constants/oauth.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   hasProfileScope,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
   saveApiKey,
 } from '../../utils/auth.js'
 import type { AccountInfo } from '../../utils/config.js'
@@ -32,10 +32,10 @@ import type {
 } from './types.js'
 
 /**
- * Check if the user has Blink.ai authentication scope
+ * Check if the user has Tovyr.ai authentication scope
  * @private Only call this if you're OAuth / auth related code!
  */
-export function shouldUseBlinkWebAuth(scopes: string[] | undefined): boolean {
+export function shouldUseTovyrWebAuth(scopes: string[] | undefined): boolean {
   return Boolean(scopes?.includes(CLAUDE_AI_INFERENCE_SCOPE))
 }
 
@@ -69,7 +69,7 @@ export function buildAuthUrl({
     : getOauthConfig().CONSOLE_AUTHORIZE_URL
 
   const authUrl = new URL(authUrlBase)
-  authUrl.searchParams.append('code', 'true') // this tells the login page to show Blink Max upsell
+  authUrl.searchParams.append('code', 'true') // this tells the login page to show Tovyr Max upsell
   authUrl.searchParams.append('client_id', getOauthConfig().CLIENT_ID)
   authUrl.searchParams.append('response_type', 'code')
   authUrl.searchParams.append(
@@ -151,7 +151,7 @@ export async function refreshOAuthToken(
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
     client_id: getOauthConfig().CLIENT_ID,
-    // Request specific scopes, defaulting to the full Blink AI set. The
+    // Request specific scopes, defaulting to the full Tovyr AI set. The
     // backend's refresh-token grant allows scope expansion beyond what the
     // initial authorize granted (see ALLOWED_SCOPE_EXPANSIONS), so this is
     // safe even for tokens issued before scopes were added to the app's
@@ -189,7 +189,7 @@ export async function refreshOAuthToken(
     // Routine refreshes satisfy both, so we cut ~7M req/day fleet-wide.
     //
     // Checking secure storage (not just config) matters for the
-    // CLAUDE_CODE_OAUTH_REFRESH_TOKEN re-login path: installOAuthTokens runs
+    // TOVYR_CODE_OAUTH_REFRESH_TOKEN re-login path: installOAuthTokens runs
     // performLogout() AFTER we return, wiping secure storage. If we returned
     // null for subscriptionType here, saveOAuthTokensIfNeeded would persist
     // null ?? (wiped) ?? null = null, and every future refresh would see the
@@ -198,7 +198,7 @@ export async function refreshOAuthToken(
     // the re-login path writes cached ?? wiped ?? null = cached; and if secure
     // storage was already empty we fall through to the fetch.
     const config = getGlobalConfig()
-    const existing = getBlinkWebOAuthTokens()
+    const existing = getTovyrWebOAuthTokens()
     const haveProfileAlready =
       config.oauthAccount?.billingType !== undefined &&
       config.oauthAccount?.accountCreatedAt !== undefined &&
@@ -432,7 +432,7 @@ export async function getOrganizationUUID(): Promise<string | null> {
   }
 
   // Fall back to fetching from profile (requires user:profile scope)
-  const accessToken = getBlinkWebOAuthTokens()?.accessToken
+  const accessToken = getTovyrWebOAuthTokens()?.accessToken
   if (accessToken === undefined || !hasProfileScope()) {
     return null
   }
@@ -454,9 +454,9 @@ export async function populateOAuthAccountInfoIfNeeded(): Promise<boolean> {
   // eliminates the race condition where early telemetry events lack account info.
   // NB: If/when adding additional SDK-relevant functionality requiring _other_ OAuth account properties,
   // please reach out to #proj-cowork so the team can add additional env var fallbacks.
-  const envAccountUuid = process.env.CLAUDE_CODE_ACCOUNT_UUID
-  const envUserEmail = process.env.CLAUDE_CODE_USER_EMAIL
-  const envOrganizationUuid = process.env.CLAUDE_CODE_ORGANIZATION_UUID
+  const envAccountUuid = process.env.TOVYR_CODE_ACCOUNT_UUID
+  const envUserEmail = process.env.TOVYR_CODE_USER_EMAIL
+  const envOrganizationUuid = process.env.TOVYR_CODE_ORGANIZATION_UUID
   const hasEnvVars = Boolean(
     envAccountUuid && envUserEmail && envOrganizationUuid,
   )
@@ -480,13 +480,13 @@ export async function populateOAuthAccountInfoIfNeeded(): Promise<boolean> {
       config.oauthAccount.billingType !== undefined &&
       config.oauthAccount.accountCreatedAt !== undefined &&
       config.oauthAccount.subscriptionCreatedAt !== undefined) ||
-    !isBlinkWebSubscriber() ||
+    !isTovyrWebSubscriber() ||
     !hasProfileScope()
   ) {
     return false
   }
 
-  const tokens = getBlinkWebOAuthTokens()
+  const tokens = getTovyrWebOAuthTokens()
   if (tokens?.accessToken) {
     const profile = await getOauthProfileFromOauthToken(tokens.accessToken)
     if (profile) {

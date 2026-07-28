@@ -14,12 +14,12 @@ import { SpinnerGlyph } from './SpinnerGlyph.js';
 import type { SpinnerMode } from './types.js';
 import { useStalledAnimation } from './useStalledAnimation.js';
 import { interpolateColor, toRGBColor } from './utils.js';
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js';
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js';
 
 const SEP_WIDTH = stringWidth(' \u00B7 ');
 const THINKING_BARE_WIDTH = stringWidth('thinking');
 const SHOW_TOKENS_AFTER_MS = 30_000;
-const SHOW_TIMER_AFTER_MS = isBlinkRuntime() ? 2_000 : SHOW_TOKENS_AFTER_MS;
+const SHOW_TIMER_AFTER_MS = isTovyrRuntime() ? 2_000 : SHOW_TOKENS_AFTER_MS;
 
 const THINKING_INACTIVE = { r: 120, g: 160, b: 220 };
 const THINKING_INACTIVE_SHIMMER = { r: 160, g: 200, b: 255 };

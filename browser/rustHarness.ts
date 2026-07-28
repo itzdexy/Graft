@@ -1,6 +1,6 @@
 /**
  * Rust core browser harness bridge (Browser Use pattern).
- * Spawns optional native helper when BLINK_BROWSER_RUST=1.
+ * Spawns optional native helper when TOVYR_BROWSER_RUST=1.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process'
@@ -17,9 +17,9 @@ const sessions = new Map<string, RustHarnessSession>()
 
 function findRustBinary(): string | null {
   const candidates = [
-    process.env.BLINK_BROWSER_RUST_BIN,
-    join(process.cwd(), 'native', 'blink-browser', 'target', 'release', 'blink-browser'),
-    join(process.cwd(), 'native', 'blink-browser', 'target', 'debug', 'blink-browser'),
+    process.env.TOVYR_BROWSER_RUST_BIN,
+    join(process.cwd(), 'native', 'tovyr-browser', 'target', 'release', 'tovyr-browser'),
+    join(process.cwd(), 'native', 'tovyr-browser', 'target', 'debug', 'tovyr-browser'),
   ].filter(Boolean) as string[]
   for (const p of candidates) {
     if (existsSync(p)) return p
@@ -33,7 +33,7 @@ export async function startRustBrowserHarness(
   if (sessions.has(sessionId)) return sessions.get(sessionId)!
 
   const bin = findRustBinary()
-  if (!bin || process.env.BLINK_BROWSER_RUST !== '1') {
+  if (!bin || process.env.TOVYR_BROWSER_RUST !== '1') {
     const fallback: RustHarnessSession = {
       id: sessionId,
       process: null,
@@ -66,7 +66,7 @@ export async function rustHarnessNavigate(
     return {
       ok: true,
       mode: 'fallback',
-      detail: 'Use Chrome MCP or Playwright MCP (set BLINK_BROWSER_RUST=1 and build native/blink-browser for Rust harness).',
+      detail: 'Use Chrome MCP or Playwright MCP (set TOVYR_BROWSER_RUST=1 and build native/tovyr-browser for Rust harness).',
     }
   }
   return new Promise(resolve => {
@@ -95,7 +95,7 @@ export function getRustHarnessStatus(): {
   activeSessions: number
 } {
   return {
-    enabled: process.env.BLINK_BROWSER_RUST === '1',
+    enabled: process.env.TOVYR_BROWSER_RUST === '1',
     binaryFound: findRustBinary() !== null,
     activeSessions: sessions.size,
   }

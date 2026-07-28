@@ -9,7 +9,7 @@ import { getCwd } from '../../utils/cwd.js'
 import { findCanonicalGitRoot } from '../../utils/git.js'
 import { sanitizePath } from '../../utils/path.js'
 
-// Persistent agent memory scope: 'user' (~/.blink/agent-memory/), 'project' (.blink/agent-memory/), or 'local' (.blink/agent-memory-local/)
+// Persistent agent memory scope: 'user' (~/.tovyr/agent-memory/), 'project' (.tovyr/agent-memory/), or 'local' (.tovyr/agent-memory-local/)
 export type AgentMemoryScope = 'user' | 'project' | 'local'
 
 /**
@@ -23,14 +23,14 @@ function sanitizeAgentTypeForPath(agentType: string): string {
 
 /**
  * Returns the local agent memory directory, which is project-specific and not checked into VCS.
- * When CLAUDE_CODE_REMOTE_MEMORY_DIR is set, persists to the mount with project namespacing.
- * Otherwise, uses <cwd>/.blink/agent-memory-local/<agentType>/.
+ * When TOVYR_CODE_REMOTE_MEMORY_DIR is set, persists to the mount with project namespacing.
+ * Otherwise, uses <cwd>/.tovyr/agent-memory-local/<agentType>/.
  */
 function getLocalAgentMemoryDir(dirName: string): string {
-  if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
+  if (process.env.TOVYR_CODE_REMOTE_MEMORY_DIR) {
     return (
       join(
-        process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR,
+        process.env.TOVYR_CODE_REMOTE_MEMORY_DIR,
         'projects',
         sanitizePath(
           findCanonicalGitRoot(getProjectRoot()) ?? getProjectRoot(),
@@ -40,13 +40,13 @@ function getLocalAgentMemoryDir(dirName: string): string {
       ) + sep
     )
   }
-  return join(getCwd(), '.blink', 'agent-memory-local', dirName) + sep
+  return join(getCwd(), '.tovyr', 'agent-memory-local', dirName) + sep
 }
 
 /**
  * Returns the agent memory directory for a given agent type and scope.
  * - 'user' scope: <memoryBase>/agent-memory/<agentType>/
- * - 'project' scope: <cwd>/.blink/agent-memory/<agentType>/
+ * - 'project' scope: <cwd>/.tovyr/agent-memory/<agentType>/
  * - 'local' scope: see getLocalAgentMemoryDir()
  */
 export function getAgentMemoryDir(
@@ -56,7 +56,7 @@ export function getAgentMemoryDir(
   const dirName = sanitizeAgentTypeForPath(agentType)
   switch (scope) {
     case 'project':
-      return join(getCwd(), '.blink', 'agent-memory', dirName) + sep
+      return join(getCwd(), '.tovyr', 'agent-memory', dirName) + sep
     case 'local':
       return getLocalAgentMemoryDir(dirName)
     case 'user':
@@ -77,25 +77,25 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
 
   // Project scope: always cwd-based (not redirected)
   if (
-    normalizedPath.startsWith(join(getCwd(), '.blink', 'agent-memory') + sep) ||
+    normalizedPath.startsWith(join(getCwd(), '.tovyr', 'agent-memory') + sep) ||
     normalizedPath.startsWith(join(getCwd(), '.claude', 'agent-memory') + sep)
   ) {
     return true
   }
 
-  // Local scope: persisted to mount when CLAUDE_CODE_REMOTE_MEMORY_DIR is set, otherwise cwd-based
-  if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
+  // Local scope: persisted to mount when TOVYR_CODE_REMOTE_MEMORY_DIR is set, otherwise cwd-based
+  if (process.env.TOVYR_CODE_REMOTE_MEMORY_DIR) {
     if (
       normalizedPath.includes(sep + 'agent-memory-local' + sep) &&
       normalizedPath.startsWith(
-        join(process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR, 'projects') + sep,
+        join(process.env.TOVYR_CODE_REMOTE_MEMORY_DIR, 'projects') + sep,
       )
     ) {
       return true
     }
   } else if (
     normalizedPath.startsWith(
-      join(getCwd(), '.blink', 'agent-memory-local') + sep,
+      join(getCwd(), '.tovyr', 'agent-memory-local') + sep,
     ) ||
     normalizedPath.startsWith(
       join(getCwd(), '.claude', 'agent-memory-local') + sep,
@@ -124,7 +124,7 @@ export function getMemoryScopeDisplay(
     case 'user':
       return `User (${join(getMemoryBaseDir(), 'agent-memory')}/)`
     case 'project':
-      return 'Project (.blink/agent-memory/)'
+      return 'Project (.tovyr/agent-memory/)'
     case 'local':
       return `Local (${getLocalAgentMemoryDir('...')})`
     default:
@@ -137,7 +137,7 @@ export function getMemoryScopeDisplay(
  * Creates the memory directory if needed and returns a prompt with memory contents.
  *
  * @param agentType The agent's type name (used as directory name)
- * @param scope 'user' for ~/.blink/agent-memory/ or 'project' for .blink/agent-memory/
+ * @param scope 'user' for ~/.tovyr/agent-memory/ or 'project' for .tovyr/agent-memory/
  */
 export function loadAgentMemoryPrompt(
   agentType: string,

@@ -1,11 +1,11 @@
 /**
  * Undercover mode — safety utilities for contributing to public/open-source repos.
  *
- * When active, Blink strips attribution and adds safety instructions so commits
+ * When active, Tovyr strips attribution and adds safety instructions so commits
  * and PRs do not leak internal model names or tooling details.
  *
  * Activation:
- *   - CLAUDE_CODE_UNDERCOVER=1 — force ON
+ *   - TOVYR_CODE_UNDERCOVER=1 — force ON
  *   - Otherwise AUTO: active unless the repo remote matches the internal
  *     allowlist in commitAttribution.ts. Safe default is ON.
  *
@@ -18,7 +18,7 @@ import { isEnvTruthy } from './envUtils.js'
 
 export function isUndercover(): boolean {
   if (process.env.USER_TYPE === 'ant') {
-    if (isEnvTruthy(process.env.CLAUDE_CODE_UNDERCOVER)) return true
+    if (isEnvTruthy(process.env.TOVYR_CODE_UNDERCOVER)) return true
     return getRepoClassCached() !== 'internal'
   }
   return false
@@ -35,7 +35,7 @@ NEVER include in commit messages or PR descriptions:
 - Unreleased model version numbers or internal codenames
 - Internal repo, project, or tooling names
 - Private Slack channels or internal short links
-- The phrase "Blink" or any mention that you are an AI
+- The phrase "Tovyr" or any mention that you are an AI
 - Co-Authored-By lines or other AI attribution
 
 Write commit messages as a human developer would — describe only what the code
@@ -50,7 +50,7 @@ change does.
  */
 export function shouldShowUndercoverAutoNotice(): boolean {
   if (process.env.USER_TYPE === 'ant') {
-    if (isEnvTruthy(process.env.CLAUDE_CODE_UNDERCOVER)) return false
+    if (isEnvTruthy(process.env.TOVYR_CODE_UNDERCOVER)) return false
     if (!isUndercover()) return false
     if (getGlobalConfig().hasSeenUndercoverAutoNotice) return false
     return true

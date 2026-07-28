@@ -43,7 +43,7 @@ import {
   getMemoryFilesForNestedDirectory,
   getConditionalRulesForCwdLevelDirectory,
   type MemoryFileInfo,
-} from './blinkmd.js'
+} from './tovyrmd.js'
 import { dirname, parse, relative, resolve } from 'path'
 import { getCwd } from 'src/utils/cwd.js'
 import { getViewedTeammateTask } from '../state/selectors.js'
@@ -156,7 +156,7 @@ import {
   setNeedsAutoModeExitAttachment,
   getLastEmittedDate,
   setLastEmittedDate,
-  getBlinksActive,
+  getTovyrsActive,
 } from '../bootstrap/state.js'
 import type { QuerySource } from '../constants/querySource.js'
 import {
@@ -192,16 +192,16 @@ import {
   isThinkingMessage,
 } from './messages.js'
 import { isHumanTurn } from './messagePredicates.js'
-import { isEnvTruthy, getBlinkConfigHomeDir } from './envUtils.js'
+import { isEnvTruthy, getTovyrConfigHomeDir } from './envUtils.js'
 import { feature } from 'bun:bundle'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const BRIEF_TOOL_NAME: string | null =
-  feature('BLINKS') || feature('BLINKS_BRIEF')
+  feature('TOVYRS') || feature('TOVYRS_BRIEF')
     ? (
         require('../tools/BriefTool/prompt.js') as typeof import('../tools/BriefTool/prompt.js')
       ).BRIEF_TOOL_NAME
     : null
-const sessionTranscriptModule = feature('BLINKS')
+const sessionTranscriptModule = feature('TOVYRS')
   ? (require('../services/sessionTranscript/sessionTranscript.js') as typeof import('../services/sessionTranscript/sessionTranscript.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -748,8 +748,8 @@ export async function getAttachments(
   options?: { skipSkillDiscovery?: boolean },
 ): Promise<Attachment[]> {
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_ATTACHMENTS) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)
+    isEnvTruthy(process.env.TOVYR_CODE_DISABLE_ATTACHMENTS) ||
+    isEnvTruthy(process.env.TOVYR_CODE_SIMPLE)
   ) {
     // query.ts:removeFromQueue dequeues these unconditionally after
     // getAttachmentMessages runs — returning [] here silently drops them.
@@ -1432,8 +1432,8 @@ export function getDateChangeAttachments(
   // the /dream skill (1–5am local) finds it even if no compaction fires
   // today. Fire-and-forget; writeSessionTranscriptSegment buckets by
   // message timestamp so a multi-day gap flushes each day correctly.
-  if (feature('BLINKS')) {
-    if (getBlinksActive() && messages !== undefined) {
+  if (feature('TOVYRS')) {
+    if (getTovyrsActive() && messages !== undefined) {
       sessionTranscriptModule?.flushOnDateChange(messages, currentDate)
     }
   }
@@ -2604,7 +2604,7 @@ export function resetSentSkillNames(): void {
  * on --resume when a skill_listing attachment already exists in the
  * transcript.
  *
- * `sentSkillNames` is module-scope — process-local. Each `blink -p` spawn
+ * `sentSkillNames` is module-scope — process-local. Each `tovyr -p` spawn
  * starts with an empty Map, so without this every resume re-injects the
  * full ~600-token listing even though it's already in the conversation from
  * the prior process. Shows up on every --resume; particularly loud for
@@ -2626,7 +2626,7 @@ let suppressNext = false
 const FILTERED_LISTING_MAX = 30
 
 /**
- * Filter skills to bundled (Blink-curated) + MCP (user-connected) only.
+ * Filter skills to bundled (Tovyr-curated) + MCP (user-connected) only.
  * Used when skill-search is enabled to resolve the turn-0 gap for subagents:
  * these sources are small, intent-signaled, and won't hit the truncation budget.
  * User/project/plugin skills (the long tail — 200+) go through discovery instead.
@@ -3504,7 +3504,7 @@ async function getAsyncHookResponseAttachments(): Promise<Attachment[]> {
 
 /**
  * Get teammate mailbox attachments for agent swarm communication
- * Teammates are independent Blink sessions running in parallel (swarms),
+ * Teammates are independent Tovyr sessions running in parallel (swarms),
  * not parent-child subagent relationships.
  *
  * This function checks two sources for messages:
@@ -3773,7 +3773,7 @@ function getTeamContextAttachment(messages: Message[]): Attachment[] {
     return []
   }
 
-  const configDir = getBlinkConfigHomeDir()
+  const configDir = getTovyrConfigHomeDir()
   const teamConfigPath = `${configDir}/teams/${teamName}/config.json`
   const taskListPath = `${configDir}/tasks/${teamName}/`
 
@@ -3793,7 +3793,7 @@ function getTokenUsageAttachment(
   messages: Message[],
   model: string,
 ): Attachment[] {
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_ENABLE_TOKEN_USAGE_ATTACHMENT)) {
+  if (!isEnvTruthy(process.env.TOVYR_CODE_ENABLE_TOKEN_USAGE_ATTACHMENT)) {
     return []
   }
 
@@ -3882,7 +3882,7 @@ async function getVerifyPlanReminderAttachment(
 ): Promise<Attachment[]> {
   if (
     process.env.USER_TYPE !== 'ant' ||
-    !isEnvTruthy(process.env.CLAUDE_CODE_VERIFY_PLAN)
+    !isEnvTruthy(process.env.TOVYR_CODE_VERIFY_PLAN)
   ) {
     return []
   }

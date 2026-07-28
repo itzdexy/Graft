@@ -5,10 +5,10 @@ import {
   logEvent,
 } from '../../services/analytics/index.js'
 import { queryHaiku } from '../../services/api/claude.js'
-import { htmlToMarkdown } from '../../services/blink/web/htmlToMarkdown.js'
+import { htmlToMarkdown } from '../../services/tovyr/web/htmlToMarkdown.js'
 import { AbortError } from '../../utils/errors.js'
 import { getWebFetchUserAgent } from '../../utils/http.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { logError } from '../../utils/log.js'
 import {
   isBinaryContentType,
@@ -22,7 +22,7 @@ import { makeSecondaryModelPrompt } from './prompt.js'
 // Custom error classes for domain blocking
 class DomainBlockedError extends Error {
   constructor(domain: string) {
-    super(`Blink is unable to fetch from ${domain}`)
+    super(`Tovyr is unable to fetch from ${domain}`)
     this.name = 'DomainBlockedError'
   }
 }
@@ -30,7 +30,7 @@ class DomainBlockedError extends Error {
 class DomainCheckFailedError extends Error {
   constructor(domain: string) {
     super(
-      `Unable to verify if domain ${domain} is safe to fetch. This may be due to network restrictions or enterprise security policies blocking Blink.`,
+      `Unable to verify if domain ${domain} is safe to fetch. This may be due to network restrictions or enterprise security policies blocking Tovyr.`,
     )
     this.name = 'DomainCheckFailedError'
   }
@@ -72,7 +72,7 @@ const URL_CACHE = new LRUCache<string, CacheEntry>({
 
 // Separate cache for preflight domain checks. URL_CACHE is URL-keyed, so
 // fetching two paths on the same domain triggers two identical preflight
-// HTTP round-trips to api.blink.com. This hostname-keyed cache avoids
+// HTTP round-trips to api.tovyr.com. This hostname-keyed cache avoids
 // that. Only 'allowed' is cached — blocked/failed re-check on next attempt.
 const DOMAIN_CHECK_CACHE = new LRUCache<string, true>({
   max: 128,
@@ -88,7 +88,7 @@ export function clearWebFetchCache(): void {
 // for a data exfiltration. However, this is too restrictive for some customers'
 // legitimate use cases, such as JWT-signed URLs (e.g., cloud service signed URLs)
 // that can be much longer. We already require user approval for each domain,
-// which provides a primary security boundary. In addition, Blink has
+// which provides a primary security boundary. In addition, Tovyr has
 // other data exfil channels, and this one does not seem relatively high risk,
 // so I'm removing that length restriction. -ab
 const MAX_URL_LENGTH = 2000
@@ -370,9 +370,9 @@ export async function getURLMarkdownContent(
 
     // Check if the user has opted to skip the blocklist check
     // This is for enterprise customers with restrictive security policies
-    // that prevent outbound connections to blink web
+    // that prevent outbound connections to tovyr web
     const settings = getSettings_DEPRECATED()
-    // Blink / FreeModel users often cannot reach Anthropic's domain_info
+    // Tovyr / FreeModel users often cannot reach Anthropic's domain_info
     // endpoint — treat check failures as allow (still require user permission).
     if (!settings.skipWebFetchPreflight) {
       const checkResult = await checkDomainBlocklist(hostname)
@@ -382,7 +382,7 @@ export async function getURLMarkdownContent(
         case 'blocked':
           throw new DomainBlockedError(hostname)
         case 'check_failed':
-          if (!isBlinkRuntime()) {
+          if (!isTovyrRuntime()) {
             throw new DomainCheckFailedError(hostname)
           }
           break
@@ -414,9 +414,9 @@ export async function getURLMarkdownContent(
       isPermittedRedirect,
     )
   } catch (error) {
-    // Sites like openai.com often 403 bot UAs — try Jina reader for Blink.
+    // Sites like openai.com often 403 bot UAs — try Jina reader for Tovyr.
     if (
-      isBlinkRuntime() &&
+      isTovyrRuntime() &&
       axios.isAxiosError(error) &&
       error.response &&
       [401, 403, 429].includes(error.response.status)
@@ -443,7 +443,7 @@ export async function getURLMarkdownContent(
   ;(response as { data: unknown }).data = null
   const contentType = response.headers['content-type'] ?? ''
 
-  // Binary content: save raw bytes to disk with a proper extension so Blink
+  // Binary content: save raw bytes to disk with a proper extension so Tovyr
   // can inspect the file later. We still fall through to the utf-8 decode +
   // Haiku path below — for PDFs in particular the decoded string has enough
   // ASCII structure (/Title, text streams) that Haiku can summarize it, and

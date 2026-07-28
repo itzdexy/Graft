@@ -38,7 +38,7 @@ export const capybara = c(
 ) as 'capybara'
 export const cactus = c(0x63, 0x61, 0x63, 0x74, 0x75, 0x73) as 'cactus'
 export const robot = c(0x72, 0x6f, 0x62, 0x6f, 0x74) as 'robot'
-export const blink = c(0x6b, 0x61, 0x69, 0x72, 0x6f) as 'blink'
+export const tovyr = c(0x6b, 0x61, 0x69, 0x72, 0x6f) as 'tovyr'
 export const rabbit = c(0x72, 0x61, 0x62, 0x62, 0x69, 0x74) as 'rabbit'
 export const mushroom = c(
   0x6d,
@@ -68,7 +68,7 @@ export const SPECIES = [
   capybara,
   cactus,
   robot,
-  blink,
+  tovyr,
   rabbit,
   mushroom,
   chonk,

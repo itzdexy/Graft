@@ -6,19 +6,19 @@ import {
 } from './spinnerVerbs.js'
 
 describe('spinnerVerbs', () => {
-  test('includes Blinking and tungtungtungshaur', () => {
-    expect(SPINNER_VERBS).toContain('Blinking')
+  test('includes Tovyring and tungtungtungshaur', () => {
+    expect(SPINNER_VERBS).toContain('Tovyring')
     expect(SPINNER_VERBS).toContain('tungtungtungshaur')
     expect(SPINNER_VERBS).not.toContain('Clauding')
   })
 
   test('accurate spinner is on by default', async () => {
-    const { isBlinkAccurateSpinnerEnabled } = await import('./spinnerVerbs.js')
-    delete process.env.BLINK_ACCURATE_SPINNER
-    expect(isBlinkAccurateSpinnerEnabled()).toBe(true)
-    process.env.BLINK_ACCURATE_SPINNER = '0'
-    expect(isBlinkAccurateSpinnerEnabled()).toBe(false)
-    delete process.env.BLINK_ACCURATE_SPINNER
+    const { isTovyrAccurateSpinnerEnabled } = await import('./spinnerVerbs.js')
+    delete process.env.TOVYR_ACCURATE_SPINNER
+    expect(isTovyrAccurateSpinnerEnabled()).toBe(true)
+    process.env.TOVYR_ACCURATE_SPINNER = '0'
+    expect(isTovyrAccurateSpinnerEnabled()).toBe(false)
+    delete process.env.TOVYR_ACCURATE_SPINNER
   })
 
   test('pickSpinnerVerb returns a known verb', () => {

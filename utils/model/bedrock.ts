@@ -29,7 +29,7 @@ export const getBedrockInferenceProfiles = memoize(async function (): Promise<
       nextToken = response.nextToken
     } while (nextToken)
 
-    // Filter for Blink models (SYSTEM_DEFINED filtering handled in query)
+    // Filter for Tovyr models (SYSTEM_DEFINED filtering handled in query)
     return allProfiles
       .filter(profile => profile.inferenceProfileId?.includes('anthropic'))
       .map(profile => profile.inferenceProfileId)
@@ -49,13 +49,13 @@ export function findFirstMatch(
 
 async function createBedrockClient() {
   const { BedrockClient } = await import('@aws-sdk/client-bedrock')
-  // Match the Blink Bedrock SDK's region behavior exactly:
+  // Match the Tovyr Bedrock SDK's region behavior exactly:
   // - Reads AWS_REGION or AWS_DEFAULT_REGION env vars (not AWS config files)
   // - Falls back to 'us-east-1' if neither is set
   // This ensures we query profiles from the same region the client will use
   const region = getAWSRegion()
 
-  const skipAuth = isEnvTruthy(process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH)
+  const skipAuth = isEnvTruthy(process.env.TOVYR_CODE_SKIP_BEDROCK_AUTH)
 
   const clientConfig: ConstructorParameters<typeof BedrockClient>[0] = {
     region,
@@ -98,7 +98,7 @@ export async function createBedrockRuntimeClient() {
     '@aws-sdk/client-bedrock-runtime'
   )
   const region = getAWSRegion()
-  const skipAuth = isEnvTruthy(process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH)
+  const skipAuth = isEnvTruthy(process.env.TOVYR_CODE_SKIP_BEDROCK_AUTH)
 
   const clientConfig: ConstructorParameters<typeof BedrockRuntimeClient>[0] = {
     region,
@@ -176,7 +176,7 @@ export const getInferenceProfileBackingModel = memoize(async function (
 })
 
 /**
- * Check if a model ID is a foundation model (e.g., "blink.blink-sonnet-4-5-20250929-v1:0")
+ * Check if a model ID is a foundation model (e.g., "tovyr.tovyr-sonnet-4-5-20250929-v1:0")
  */
 export function isFoundationModel(modelId: string): boolean {
   return modelId.startsWith('anthropic.')
@@ -213,11 +213,11 @@ export type BedrockRegionPrefix = (typeof BEDROCK_REGION_PREFIXES)[number]
  * Extract the region prefix from a Bedrock cross-region inference model ID.
  * Handles both plain model IDs and full ARN format.
  * For example:
- * - "eu.blink.blink-sonnet-4-5-20250929-v1:0" → "eu"
- * - "us.blink.blink-3-7-sonnet-20250219-v1:0" → "us"
- * - "arn:aws:bedrock:ap-northeast-2:123:inference-profile/global.blink.blink-opus-4-6-v1" → "global"
- * - "blink.blink-3-5-sonnet-20241022-v2:0" → undefined (foundation model)
- * - "blink-sonnet-4-5-20250929" → undefined (first-party format)
+ * - "eu.tovyr.tovyr-sonnet-4-5-20250929-v1:0" → "eu"
+ * - "us.tovyr.tovyr-3-7-sonnet-20250219-v1:0" → "us"
+ * - "arn:aws:bedrock:ap-northeast-2:123:inference-profile/global.tovyr.tovyr-opus-4-6-v1" → "global"
+ * - "tovyr.tovyr-3-5-sonnet-20241022-v2:0" → undefined (foundation model)
+ * - "tovyr-sonnet-4-5-20250929" → undefined (first-party format)
  */
 export function getBedrockRegionPrefix(
   modelId: string,
@@ -237,13 +237,13 @@ export function getBedrockRegionPrefix(
 /**
  * Apply a region prefix to a Bedrock model ID.
  * If the model already has a different region prefix, it will be replaced.
- * If the model is a foundation model (blink.*), the prefix will be added.
+ * If the model is a foundation model (tovyr.*), the prefix will be added.
  * If the model is not a Bedrock model, it will be returned as-is.
  *
  * For example:
- * - applyBedrockRegionPrefix("us.blink.blink-sonnet-4-5-v1:0", "eu") → "eu.blink.blink-sonnet-4-5-v1:0"
- * - applyBedrockRegionPrefix("blink.blink-sonnet-4-5-v1:0", "eu") → "eu.blink.blink-sonnet-4-5-v1:0"
- * - applyBedrockRegionPrefix("blink-sonnet-4-5-20250929", "eu") → "blink-sonnet-4-5-20250929" (not a Bedrock model)
+ * - applyBedrockRegionPrefix("us.tovyr.tovyr-sonnet-4-5-v1:0", "eu") → "eu.tovyr.tovyr-sonnet-4-5-v1:0"
+ * - applyBedrockRegionPrefix("tovyr.tovyr-sonnet-4-5-v1:0", "eu") → "eu.tovyr.tovyr-sonnet-4-5-v1:0"
+ * - applyBedrockRegionPrefix("tovyr-sonnet-4-5-20250929", "eu") → "tovyr-sonnet-4-5-20250929" (not a Bedrock model)
  */
 export function applyBedrockRegionPrefix(
   modelId: string,
@@ -255,7 +255,7 @@ export function applyBedrockRegionPrefix(
     return modelId.replace(`${existingPrefix}.`, `${prefix}.`)
   }
 
-  // Check if it's a foundation model (blink.*) and add the prefix
+  // Check if it's a foundation model (tovyr.*) and add the prefix
   if (isFoundationModel(modelId)) {
     return `${prefix}.${modelId}`
   }

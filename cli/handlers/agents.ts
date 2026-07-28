@@ -1,6 +1,6 @@
 /**
  * Agents subcommand handler — prints the list of configured agents.
- * Dynamically imported only when `blink agents` runs.
+ * Dynamically imported only when `tovyr agents` runs.
  */
 
 import {

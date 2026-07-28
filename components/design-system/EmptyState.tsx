@@ -90,7 +90,7 @@ export function EmptyState({ sprite, title, children, hint, color }: EmptyStateP
         <Text dimColor>{children}</Text>
         {hint && (
           <Text dimColor color="subtle">
-            <Text color={color ?? 'blinkPrimary'} bold>{'>'}</Text> {hint}
+            <Text color={color ?? 'tovyrPrimary'} bold>{'>'}</Text> {hint}
           </Text>
         )}
       </Box>

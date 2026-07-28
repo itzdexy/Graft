@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react'
 import { onGrowthBookRefresh } from '../services/analytics/growthbook.js'
 import { useAppState } from '../state/AppState.js'
-import { isBlinkRuntime } from '../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 import {
   getDefaultMainLoopModelSetting,
   getMainLoopModel,
@@ -30,7 +30,7 @@ export function useMainLoopModel(): ModelName {
   const model = parseUserSpecifiedModel(
     mainLoopModelForSession ??
       mainLoopModel ??
-      (isBlinkRuntime()
+      (isTovyrRuntime()
         ? getMainLoopModel()
         : getDefaultMainLoopModelSetting()),
   )

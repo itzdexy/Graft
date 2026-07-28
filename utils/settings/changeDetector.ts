@@ -40,7 +40,7 @@ const FILE_STABILITY_POLL_INTERVAL_MS = 500
 /**
  * Time window in milliseconds to consider a file change as internal.
  * If a file change occurs within this window after markInternalWrite() is called,
- * it's assumed to be from Blink itself and won't trigger a notification.
+ * it's assumed to be from Tovyr itself and won't trigger a notification.
  */
 const INTERNAL_WRITE_WINDOW_MS = 5000
 
@@ -190,7 +190,7 @@ async function getWatchTargets(): Promise<{
     // Skip flagSettings - they're provided via CLI and won't change during the session.
     // Additionally, they may be temp files in $TMPDIR which can contain special files
     // (FIFOs, sockets) that cause the file watcher to hang or error.
-    // See: https://github.com/blinks/blink/issues/16469
+    // See: https://github.com/tovyrs/tovyr/issues/16469
     if (source === 'flagSettings') {
       continue
     }

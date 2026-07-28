@@ -153,7 +153,7 @@ async function loadAgentFromFile(
     // permissionMode, hooks, and mcpServers are intentionally NOT parsed for
     // plugin agents. Plugins are third-party marketplace code; these fields
     // escalate what the agent can do beyond what the user approved at install
-    // time. For this level of control, define the agent in .blink/agents/
+    // time. For this level of control, define the agent in .tovyr/agents/
     // where the user explicitly wrote the frontmatter. (Note: plugins can
     // still ship hooks and MCP servers at the manifest level — that's the
     // install-time trust boundary. Per-agent declarations would let a single

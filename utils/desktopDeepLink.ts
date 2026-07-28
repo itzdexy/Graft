@@ -28,9 +28,9 @@ function isDevMode(): boolean {
 }
 
 /**
- * Builds a deep link URL for Blink Desktop to resume a CLI session.
- * Format: blink://resume?session={sessionId}&cwd={cwd}
- * In dev mode: blink-dev://resume?session={sessionId}&cwd={cwd}
+ * Builds a deep link URL for Tovyr Desktop to resume a CLI session.
+ * Format: tovyr://resume?session={sessionId}&cwd={cwd}
+ * In dev mode: tovyr-dev://resume?session={sessionId}&cwd={cwd}
  */
 function buildDesktopDeepLink(sessionId: string): string {
   const protocol = isDevMode() ? 'claude-dev' : 'claude'
@@ -41,9 +41,9 @@ function buildDesktopDeepLink(sessionId: string): string {
 }
 
 /**
- * Check if Blink Desktop app is installed.
- * On macOS, checks for /Applications/Blink.app.
- * On Linux, checks if xdg-open can handle blink:// protocol.
+ * Check if Tovyr Desktop app is installed.
+ * On macOS, checks for /Applications/Tovyr.app.
+ * On Linux, checks if xdg-open can handle tovyr:// protocol.
  * On Windows, checks if the protocol handler exists.
  * In dev mode, always returns true (assumes dev Desktop is running).
  */
@@ -56,10 +56,10 @@ async function isDesktopInstalled(): Promise<boolean> {
   const platform = process.platform
 
   if (platform === 'darwin') {
-    // Check for Blink.app in /Applications
-    return pathExists('/Applications/Blink.app')
+    // Check for Tovyr.app in /Applications
+    return pathExists('/Applications/Tovyr.app')
   } else if (platform === 'linux') {
-    // Check if xdg-mime can find a handler for blink://
+    // Check if xdg-mime can find a handler for tovyr://
     // Note: xdg-mime returns exit code 0 even with no handler, so check stdout too
     const { code, stdout } = await execFileNoThrow('xdg-mime', [
       'query',
@@ -81,7 +81,7 @@ async function isDesktopInstalled(): Promise<boolean> {
 }
 
 /**
- * Detect the installed Blink Desktop version.
+ * Detect the installed Tovyr Desktop version.
  * On macOS, reads CFBundleShortVersionString from the app plist.
  * On Windows, finds the highest app-X.Y.Z directory in the Squirrel install.
  * Returns null if version cannot be determined.
@@ -92,7 +92,7 @@ async function getDesktopVersion(): Promise<string | null> {
   if (platform === 'darwin') {
     const { code, stdout } = await execFileNoThrow('defaults', [
       'read',
-      '/Applications/Blink.app/Contents/Info.plist',
+      '/Applications/Tovyr.app/Contents/Info.plist',
       'CFBundleShortVersionString',
     ])
     if (code !== 0) {
@@ -105,7 +105,7 @@ async function getDesktopVersion(): Promise<string | null> {
     if (!localAppData) {
       return null
     }
-    const installDir = join(localAppData, 'BlinkBlink')
+    const installDir = join(localAppData, 'TovyrTovyr')
     try {
       const entries = await readdir(installDir)
       const versions = entries
@@ -200,7 +200,7 @@ async function openDeepLink(deepLinkUrl: string): Promise<boolean> {
 }
 
 /**
- * Build and open a deep link to resume the current session in Blink Desktop.
+ * Build and open a deep link to resume the current session in Tovyr Desktop.
  * Returns an object with success status and any error message.
  */
 export async function openCurrentSessionInDesktop(): Promise<{
@@ -216,7 +216,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
     return {
       success: false,
       error:
-        'Blink Desktop is not installed. Install it from https://blink.dev/download',
+        'Tovyr Desktop is not installed. Install it from https://tovyr.dev/download',
     }
   }
 
@@ -227,7 +227,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
   if (!opened) {
     return {
       success: false,
-      error: 'Failed to open Blink Desktop. Please try opening it manually.',
+      error: 'Failed to open Tovyr Desktop. Please try opening it manually.',
       deepLinkUrl,
     }
   }

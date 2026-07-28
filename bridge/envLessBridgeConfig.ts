@@ -1,7 +1,7 @@
 import { z } from 'zod/v4'
 import { getFeatureValue_DEPRECATED } from '../services/analytics/growthbook.js'
 import { lazySchema } from '../utils/lazySchema.js'
-import { blinkCmd } from '../constants/blink.js'
+import { tovyrCmd } from '../constants/tovyr.js'
 import { lt } from '../utils/semver.js'
 import { isEnvLessBridgeEnabled } from './bridgeEnabled.js'
 
@@ -36,7 +36,7 @@ export type EnvLessBridgeConfig = {
   // tengu_bridge_min_version config so a v2-specific bug can force upgrades
   // without blocking v1 (env-based) clients, and vice versa.
   min_version: string
-  // When true, tell users their blink web app may be too old to see v2
+  // When true, tell users their tovyr web app may be too old to see v2
   // sessions — lets us roll the v2 bridge before the app ships the new
   // session-list query.
   should_show_app_upgrade_message: boolean
@@ -148,13 +148,13 @@ export async function getEnvLessBridgeConfig(): Promise<EnvLessBridgeConfig> {
 export async function checkEnvLessBridgeMinVersion(): Promise<string | null> {
   const cfg = await getEnvLessBridgeConfig()
   if (cfg.min_version && lt(MACRO.VERSION, cfg.min_version)) {
-    return `Your version of Blink (${MACRO.VERSION}) is too old for Remote Control.\nVersion ${cfg.min_version} or higher is required. Run \`${blinkCmd('update')}\` to update.`
+    return `Your version of Tovyr (${MACRO.VERSION}) is too old for Remote Control.\nVersion ${cfg.min_version} or higher is required. Run \`${tovyrCmd('update')}\` to update.`
   }
   return null
 }
 
 /**
- * Whether to nudge users toward upgrading their blink web app when a
+ * Whether to nudge users toward upgrading their tovyr web app when a
  * Remote Control session starts. True only when the v2 bridge is active
  * AND the should_show_app_upgrade_message config bit is set — lets us
  * roll the v2 bridge before the app ships the new session-list query.

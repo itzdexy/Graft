@@ -6,7 +6,7 @@
  *
  * TODO(#22051): pass useBundleMode once landed so local-only / uncommitted
  * repo state is captured. The GitHub-clone path (current) only works for
- * pushed branches on repos with the Blink GitHub app installed.
+ * pushed branches on repos with the Tovyr GitHub app installed.
  */
 
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.js'
@@ -134,7 +134,7 @@ export async function launchRemoteReview(
   // Synthetic DEFAULT_CODE_REVIEW_ENVIRONMENT_ID works without per-org CCR
   // setup, so no_remote_environment isn't a blocker. Server-side quota
   // consume at session creation routes billing: first N zero-rate, then
-  // blink:cccr org-service-key (overage-only).
+  // tovyr:cccr org-service-key (overage-only).
   if (!eligibility.eligible) {
     const blockers = eligibility.errors.filter(
       e => e.type !== 'no_remote_environment',
@@ -305,7 +305,7 @@ export async function launchRemoteReview(
   logEvent('tengu_review_remote_launched', {})
   const sessionUrl = getRemoteTaskSessionUrl(session.id)
   // Concise — the tool-output block is visible to the user, so the model
-  // shouldn't echo the same info. Just enough for Blink to acknowledge the
+  // shouldn't echo the same info. Just enough for Tovyr to acknowledge the
   // launch without restating the target/URL (both already printed above).
   return [
     {

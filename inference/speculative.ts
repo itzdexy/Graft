@@ -31,11 +31,11 @@ export function setSpeculativeDecodingConfig(
 
 export function speculativeDecodingFromEnv(): SpeculativeDecodingConfig {
   const enabled =
-    process.env.BLINK_SPECULATIVE_DECODING === '1' ||
+    process.env.TOVYR_SPECULATIVE_DECODING === '1' ||
     process.env.LLAMA_SPECULATIVE === '1'
   const draftModel =
-    process.env.BLINK_DRAFT_MODEL ?? process.env.LLAMA_DRAFT_MODEL
-  const draftTokens = Number(process.env.BLINK_DRAFT_TOKENS ?? 5)
+    process.env.TOVYR_DRAFT_MODEL ?? process.env.LLAMA_DRAFT_MODEL
+  const draftTokens = Number(process.env.TOVYR_DRAFT_TOKENS ?? 5)
   return setSpeculativeDecodingConfig({
     enabled,
     draftModel,

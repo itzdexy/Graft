@@ -1,7 +1,7 @@
 import type { ToolUseContext } from '../../Tool.js'
 
 import { logForDebugging } from '../debug.js'
-import { getAssistantName } from '../blinkBrand.js'
+import { getAssistantName } from '../tovyrBrand.js'
 import { errorMessage } from '../errors.js'
 import { withResolvers } from '../withResolvers.js'
 import { isLockHeldLocally, releaseComputerUseLock } from './computerUseLock.js'

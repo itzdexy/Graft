@@ -4,7 +4,7 @@ import type { RenderOptions } from '../ink.js'
 import { isEnvTruthy } from './envUtils.js'
 import { logError } from './log.js'
 import { setWindowsConsoleRawMode } from './windowsConsoleMode.js'
-import { isBlinkRuntime } from './blinkRuntime.js'
+import { isTovyrRuntime } from './tovyrRuntime.js'
 
 // Cached stdin override - computed once per process
 let cachedStdinOverride: ReadStream | undefined | null = null
@@ -14,12 +14,12 @@ let cachedSkipTerminalQueries: boolean | null = null
 type PatchedStdin = NodeJS.ReadStream & {
   isRaw?: boolean
   setRawMode?: (raw: boolean) => void
-  __blinkNativeRawMode?: boolean
-  __blinkFakeRawMode?: boolean
+  __tovyrNativeRawMode?: boolean
+  __tovyrFakeRawMode?: boolean
 }
 
 function usesFakeRawMode(stream: NodeJS.ReadStream): boolean {
-  return !!(stream as PatchedStdin).__blinkFakeRawMode
+  return !!(stream as PatchedStdin).__tovyrFakeRawMode
 }
 
 /** Native setRawMode works (no swallowing errors). */
@@ -42,18 +42,18 @@ function nativeRawModeWorks(stream: NodeJS.ReadStream): boolean {
 function patchWindowsInteractiveStdin(stream: NodeJS.ReadStream): NodeJS.ReadStream {
   if (
     process.platform !== 'win32' ||
-    !isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE)
+    !isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE)
   ) {
     return stream
   }
 
   const tty = stream as PatchedStdin
-  if (tty.__blinkNativeRawMode !== undefined) {
+  if (tty.__tovyrNativeRawMode !== undefined) {
     return tty
   }
 
   if (nativeRawModeWorks(stream)) {
-    tty.__blinkNativeRawMode = true
+    tty.__tovyrNativeRawMode = true
     return tty
   }
 
@@ -75,13 +75,13 @@ function patchWindowsInteractiveStdin(stream: NodeJS.ReadStream): NodeJS.ReadStr
       realRaw = setWindowsConsoleRawMode(raw)
     }
     tty.isRaw = raw
-    tty.__blinkFakeRawMode = raw && !realRaw
-    if (tty.__blinkFakeRawMode) {
-      process.env.BLINK_SKIP_TERMINAL_QUERIES = '1'
+    tty.__tovyrFakeRawMode = raw && !realRaw
+    if (tty.__tovyrFakeRawMode) {
+      process.env.TOVYR_SKIP_TERMINAL_QUERIES = '1'
       cachedSkipTerminalQueries = true
     }
   }
-  tty.__blinkNativeRawMode = false
+  tty.__tovyrNativeRawMode = false
   return tty
 }
 
@@ -150,28 +150,28 @@ function getStdinOverride(): ReadStream | undefined {
     return undefined
   }
 
-  // Windows + Blink launcher: fall back to CONIN$ only when inherited stdin
+  // Windows + Tovyr launcher: fall back to CONIN$ only when inherited stdin
   // cannot enable raw mode (piped npm wrapper, etc.).
   if (
     process.platform === 'win32' &&
-    isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE)
+    isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE)
   ) {
     const winStdin = openWindowsConsoleStdin()
     if (winStdin) {
       cachedStdinOverride = winStdin
       cachedUsesFakeRawMode = usesFakeRawMode(winStdin)
       if (cachedUsesFakeRawMode) {
-        process.env.BLINK_SKIP_TERMINAL_QUERIES = '1'
+        process.env.TOVYR_SKIP_TERMINAL_QUERIES = '1'
         cachedSkipTerminalQueries = true
       }
       return winStdin
     }
   }
 
-  // Skip in CI environments (unless Blink explicitly forces interactive UI)
+  // Skip in CI environments (unless Tovyr explicitly forces interactive UI)
   if (
     isEnvTruthy(process.env.CI) &&
-    !isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE)
+    !isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE)
   ) {
     cachedStdinOverride = undefined
     cachedUsesFakeRawMode = false
@@ -185,7 +185,7 @@ function getStdinOverride(): ReadStream | undefined {
     return undefined
   }
 
-  // Windows fallback when not launched via Blink (e.g. raw bun cli.tsx).
+  // Windows fallback when not launched via Tovyr (e.g. raw bun cli.tsx).
   if (process.platform === 'win32') {
     const winStdin = openWindowsConsoleStdin()
     cachedStdinOverride = winStdin
@@ -224,7 +224,7 @@ export function shouldSkipTerminalQueries(): boolean {
   if (cachedSkipTerminalQueries !== null) {
     return cachedSkipTerminalQueries
   }
-  if (isEnvTruthy(process.env.BLINK_SKIP_TERMINAL_QUERIES)) {
+  if (isEnvTruthy(process.env.TOVYR_SKIP_TERMINAL_QUERIES)) {
     cachedSkipTerminalQueries = true
     return true
   }
@@ -234,7 +234,7 @@ export function shouldSkipTerminalQueries(): boolean {
   }
   // Windows + alt-screen: DA1 round-trips echo as ^[[?61;...c when raw mode
   // is flaky (Bun, integrated terminals, fullscreen resize).
-  if (process.platform === 'win32' && isBlinkRuntime()) {
+  if (process.platform === 'win32' && isTovyrRuntime()) {
     cachedSkipTerminalQueries = true
     return true
   }
@@ -258,7 +258,7 @@ export function hasInteractiveStdin(): boolean {
   }
   if (
     process.platform === 'win32' &&
-    isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE)
+    isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE)
   ) {
     return (
       getStdinOverride() !== undefined ||
@@ -287,7 +287,7 @@ export function getBaseRenderOptions(
 
   if (
     process.platform === 'win32' &&
-    isEnvTruthy(process.env.BLINK_FORCE_INTERACTIVE)
+    isEnvTruthy(process.env.TOVYR_FORCE_INTERACTIVE)
   ) {
     options.stdin = getInteractiveStdin()
   }

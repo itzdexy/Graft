@@ -58,7 +58,7 @@ import { createAbortController } from '../../utils/abortController.js'
 import { count } from '../../utils/array.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   handleOAuth401Error,
 } from '../../utils/auth.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
@@ -127,11 +127,11 @@ import { classifyMcpToolForCollapse } from '../../tools/MCPTool/classifyForColla
 import { clearKeychainCache } from '../../utils/secureStorage/macOsKeychainHelpers.js'
 import { sleep } from '../../utils/sleep.js'
 import {
-  BlinkAuthProvider,
+  TovyrAuthProvider,
   hasMcpDiscoveryButNoToken,
   wrapFetchWithStepUpDetection,
 } from './auth.js'
-import { markBlinkWebMcpConnected } from './claudeai.js'
+import { markTovyrWebMcpConnected } from './claudeai.js'
 import { getAllMcpConfigs, isMcpServerDisabled } from './config.js'
 import { getMcpServerHeaders } from './headersHelper.js'
 import { SdkControlClientTransport } from './SdkControlTransport.js'
@@ -229,8 +229,8 @@ function getMcpToolTimeoutMs(): number {
 }
 
 import {
-  isBlinkMemoryGraphServer,
-  isBlinkSequentialThinkingServer,
+  isTovyrMemoryGraphServer,
+  isTovyrSequentialThinkingServer,
 } from '../../mcp/builtin/names.js'
 
 
@@ -249,7 +249,7 @@ const isComputerUseMCPServer = feature('CHICAGO_MCP')
 
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
-import { getBlinkConfigHomeDir } from '../../utils/envUtils.js'
+import { getTovyrConfigHomeDir } from '../../utils/envUtils.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js'
 
@@ -258,7 +258,7 @@ const MCP_AUTH_CACHE_TTL_MS = 15 * 60 * 1000 // 15 min
 type McpAuthCacheData = Record<string, { timestamp: number }>
 
 function getMcpAuthCachePath(): string {
-  return join(getBlinkConfigHomeDir(), 'mcp-needs-auth-cache.json')
+  return join(getTovyrConfigHomeDir(), 'mcp-needs-auth-cache.json')
 }
 
 // Memoized so N concurrent isMcpAuthCached() calls during batched connection
@@ -332,7 +332,7 @@ function mcpBaseUrlAnalytics(serverRef: ScopedMcpServerConfig): {
 }
 
 /**
- * Shared handler for sse/http/blinkai-proxy auth failures during connect:
+ * Shared handler for sse/http/tovyrai-proxy auth failures during connect:
  * emits tengu_mcp_server_needs_auth, caches the needs-auth entry, and returns
  * the needs-auth connection result.
  */
@@ -349,7 +349,7 @@ function handleRemoteAuthFailure(
   const label: Record<typeof transportType, string> = {
     sse: 'SSE',
     http: 'HTTP',
-    'claudeai-proxy': 'Blink proxy',
+    'claudeai-proxy': 'Tovyr proxy',
   }
   logMCPDebug(
     name,
@@ -360,19 +360,19 @@ function handleRemoteAuthFailure(
 }
 
 /**
- * Fetch wrapper for blink web proxy connections. Attaches the OAuth bearer
+ * Fetch wrapper for tovyr web proxy connections. Attaches the OAuth bearer
  * token and retries once on 401 via handleOAuth401Error (force-refresh).
  *
- * The Blink API path has this retry (withRetry.ts, grove.ts) to handle
+ * The Tovyr API path has this retry (withRetry.ts, grove.ts) to handle
  * memoize-cache staleness and clock drift. Without the same here, a single
- * stale token mass-401s every blink web connector and sticks them all in the
+ * stale token mass-401s every tovyr web connector and sticks them all in the
  * 15-min needs-auth cache.
  */
 export function createClaudeAiProxyFetch(innerFetch: FetchLike): FetchLike {
   return async (url, init) => {
     const doRequest = async () => {
       await checkAndRefreshOAuthTokenIfNeeded()
-      const currentTokens = getBlinkWebOAuthTokens()
+      const currentTokens = getTovyrWebOAuthTokens()
       if (!currentTokens) {
         throw new Error('No claude.ai OAuth token available')
       }
@@ -380,7 +380,7 @@ export function createClaudeAiProxyFetch(innerFetch: FetchLike): FetchLike {
       const headers = new Headers(init?.headers)
       headers.set('Authorization', `Bearer ${currentTokens.accessToken}`)
       const response = await innerFetch(url, { ...init, headers })
-      // Return the exact token that was sent. Reading getBlinkAIOAuthTokens()
+      // Return the exact token that was sent. Reading getTovyrAIOAuthTokens()
       // again after the request is wrong under concurrent 401s: another
       // connector's handleOAuth401Error clears the memoize cache, so we'd read
       // the NEW token from keychain, pass it to handleOAuth401Error, which
@@ -405,7 +405,7 @@ export function createClaudeAiProxyFetch(innerFetch: FetchLike): FetchLike {
     })
     if (!tokenChanged) {
       // ELOCKED contention: another connector may have won the lockfile and refreshed — check if token changed underneath us
-      const now = getBlinkWebOAuthTokens()?.accessToken
+      const now = getTovyrWebOAuthTokens()?.accessToken
       if (!now || now === sentToken) {
         return response
       }
@@ -479,7 +479,7 @@ const MCP_STREAMABLE_HTTP_ACCEPT = 'application/json, text/event-stream'
  * present on POSTs. The MCP SDK sets this inside StreamableHTTPClientTransport.send(),
  * but it is attached to a Headers instance that passes through an object spread here,
  * and some runtimes/agents have been observed dropping it before it reaches the wire.
- * See https://github.com/blinks/blink-agent-sdk-typescript/issues/202.
+ * See https://github.com/tovyrs/tovyr-agent-sdk-typescript/issues/202.
  * Normalizing here (the last wrapper before fetch()) guarantees it is sent.
  *
  * GET requests are excluded from the timeout since, for MCP transports, they are
@@ -617,7 +617,7 @@ export const connectToServer = memoize(
 
       if (serverRef.type === 'sse') {
         // Create an auth provider for this server
-        const authProvider = new BlinkAuthProvider(name, serverRef)
+        const authProvider = new TovyrAuthProvider(name, serverRef)
 
         // Get combined headers (static + dynamic)
         const combinedHeaders = await getMcpServerHeaders(name, serverRef)
@@ -798,7 +798,7 @@ export const connectToServer = memoize(
         )
 
         // Create an auth provider for this server
-        const authProvider = new BlinkAuthProvider(name, serverRef)
+        const authProvider = new TovyrAuthProvider(name, serverRef)
 
         // Get combined headers (static + dynamic)
         const combinedHeaders = await getMcpServerHeaders(name, serverRef)
@@ -870,7 +870,7 @@ export const connectToServer = memoize(
           `Initializing claude.ai proxy transport for server ${serverRef.id}`,
         )
 
-        const tokens = getBlinkWebOAuthTokens()
+        const tokens = getTovyrWebOAuthTokens()
         if (!tokens) {
           throw new Error('No claude.ai OAuth token found')
         }
@@ -922,39 +922,39 @@ export const connectToServer = memoize(
         logMCPDebug(name, `In-process Computer Use MCP server started`)
       } else if (
         (serverRef.type === 'stdio' || !serverRef.type) &&
-        isBlinkSequentialThinkingServer(name)
+        isTovyrSequentialThinkingServer(name)
       ) {
-        const { createBlinkSequentialThinkingMcpServer } = await import(
+        const { createTovyrSequentialThinkingMcpServer } = await import(
           '../../mcp/builtin/sequentialThinkingMcpServer.js'
         )
         const { createLinkedTransportPair } = await import(
           './InProcessTransport.js'
         )
-        inProcessServer = createBlinkSequentialThinkingMcpServer()
+        inProcessServer = createTovyrSequentialThinkingMcpServer()
         const [clientTransport, serverTransport] = createLinkedTransportPair()
         await inProcessServer.connect(serverTransport)
         transport = clientTransport
-        logMCPDebug(name, `In-process Blink sequential thinking MCP server started`)
+        logMCPDebug(name, `In-process Tovyr sequential thinking MCP server started`)
       } else if (
         (serverRef.type === 'stdio' || !serverRef.type) &&
-        isBlinkMemoryGraphServer(name)
+        isTovyrMemoryGraphServer(name)
       ) {
-        const { createBlinkMemoryGraphMcpServer } = await import(
+        const { createTovyrMemoryGraphMcpServer } = await import(
           '../../mcp/builtin/memoryGraphMcpServer.js'
         )
         const { createLinkedTransportPair } = await import(
           './InProcessTransport.js'
         )
         const { getCwd } = await import('../../utils/cwd.js')
-        inProcessServer = createBlinkMemoryGraphMcpServer(getCwd())
+        inProcessServer = createTovyrMemoryGraphMcpServer(getCwd())
         const [clientTransport, serverTransport] = createLinkedTransportPair()
         await inProcessServer.connect(serverTransport)
         transport = clientTransport
-        logMCPDebug(name, `In-process Blink memory graph MCP server started`)
+        logMCPDebug(name, `In-process Tovyr memory graph MCP server started`)
       } else if (serverRef.type === 'stdio' || !serverRef.type) {
         const finalCommand =
-          process.env.CLAUDE_CODE_SHELL_PREFIX || serverRef.command
-        const finalArgs = process.env.CLAUDE_CODE_SHELL_PREFIX
+          process.env.TOVYR_CODE_SHELL_PREFIX || serverRef.command
+        const finalArgs = process.env.TOVYR_CODE_SHELL_PREFIX
           ? [[serverRef.command, ...serverRef.args].join(' ')]
           : serverRef.args
         transport = new StdioClientTransport({
@@ -995,9 +995,9 @@ export const connectToServer = memoize(
       const client = new Client(
         {
           name: 'claude-code',
-          title: 'Blink',
+          title: 'Tovyr',
           version: MACRO.VERSION ?? 'unknown',
-          description: "Blink's agentic coding tool",
+          description: "Tovyr's agentic coding tool",
           websiteUrl: PRODUCT_URL,
         },
         {
@@ -2167,7 +2167,7 @@ export async function reconnectMcpServerImpl(
     }
 
     if (config.type === 'claudeai-proxy') {
-      markBlinkWebMcpConnected(name)
+      markTovyrWebMcpConnected(name)
     }
 
     const supportsResources = !!client.capabilities?.resources
@@ -2340,7 +2340,7 @@ export async function getMcpToolsCommandsAndResources(
       }
 
       if (config.type === 'claudeai-proxy') {
-        markBlinkWebMcpConnected(name)
+        markTovyrWebMcpConnected(name)
       }
 
       const supportsResources = !!client.capabilities?.resources
@@ -3284,9 +3284,9 @@ export async function setupSdkMcpClients(
       const client = new Client(
         {
           name: 'claude-code',
-          title: 'Blink',
+          title: 'Tovyr',
           version: MACRO.VERSION ?? 'unknown',
-          description: "Blink's agentic coding tool",
+          description: "Tovyr's agentic coding tool",
           websiteUrl: PRODUCT_URL,
         },
         {

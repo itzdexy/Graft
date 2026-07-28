@@ -7,7 +7,7 @@ import {
 } from '../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
-  getBlinkConfigHomeDir,
+  getTovyrConfigHomeDir,
   isEnvDefinedFalsy,
   isEnvTruthy,
 } from '../utils/envUtils.js'
@@ -21,14 +21,14 @@ import {
 /**
  * Whether auto-memory features are enabled (memdir, agent memory, past session search).
  * Enabled by default. Priority chain (first defined wins):
- *   1. CLAUDE_CODE_DISABLE_AUTO_MEMORY env var (1/true → OFF, 0/false → ON)
- *   2. CLAUDE_CODE_SIMPLE (--bare) → OFF
- *   3. CCR without persistent storage → OFF (no CLAUDE_CODE_REMOTE_MEMORY_DIR)
+ *   1. TOVYR_CODE_DISABLE_AUTO_MEMORY env var (1/true → OFF, 0/false → ON)
+ *   2. TOVYR_CODE_SIMPLE (--bare) → OFF
+ *   3. CCR without persistent storage → OFF (no TOVYR_CODE_REMOTE_MEMORY_DIR)
  *   4. autoMemoryEnabled in settings.json (supports project-level opt-out)
  *   5. Default: enabled
  */
 export function isAutoMemoryEnabled(): boolean {
-  const envVal = process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY
+  const envVal = process.env.TOVYR_CODE_DISABLE_AUTO_MEMORY
   if (isEnvTruthy(envVal)) {
     return false
   }
@@ -38,12 +38,12 @@ export function isAutoMemoryEnabled(): boolean {
   // --bare / SIMPLE: prompts.ts already drops the memory section from the
   // system prompt via its SIMPLE early-return; this gate stops the other half
   // (extractMemories turn-end fork, autoDream, /remember, /dream, team sync).
-  if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
+  if (isEnvTruthy(process.env.TOVYR_CODE_SIMPLE)) {
     return false
   }
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) &&
-    !process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR
+    isEnvTruthy(process.env.TOVYR_CODE_REMOTE) &&
+    !process.env.TOVYR_CODE_REMOTE_MEMORY_DIR
   ) {
     return false
   }
@@ -79,14 +79,14 @@ export function isExtractModeActive(): boolean {
 /**
  * Returns the base directory for persistent memory storage.
  * Resolution order:
- *   1. CLAUDE_CODE_REMOTE_MEMORY_DIR env var (explicit override, set in CCR)
- *   2. ~/.blink (default config home)
+ *   1. TOVYR_CODE_REMOTE_MEMORY_DIR env var (explicit override, set in CCR)
+ *   2. ~/.tovyr (default config home)
  */
 export function getMemoryBaseDir(): string {
-  if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
-    return process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR
+  if (process.env.TOVYR_CODE_REMOTE_MEMORY_DIR) {
+    return process.env.TOVYR_CODE_REMOTE_MEMORY_DIR
   }
-  return getBlinkConfigHomeDir()
+  return getTovyrConfigHomeDir()
 }
 
 const AUTO_MEM_DIRNAME = 'memory'
@@ -169,7 +169,7 @@ function getAutoMemPathOverride(): string | undefined {
  * Settings.json override for the full auto-memory directory path.
  * Supports ~/ expansion for user convenience.
  *
- * SECURITY: projectSettings (.blink/settings.json committed to the repo) is
+ * SECURITY: projectSettings (.tovyr/settings.json committed to the repo) is
  * intentionally excluded — a malicious repo could otherwise set
  * autoMemoryDirectory: "~/.ssh" and gain silent write access to sensitive
  * directories via the filesystem.ts write carve-out (which fires when
@@ -198,7 +198,7 @@ export function hasAutoMemPathOverride(): boolean {
 /**
  * Returns the canonical git repo root if available, otherwise falls back to
  * the stable project root. Uses findCanonicalGitRoot so all worktrees of the
- * same repo share one auto-memory directory (blinks/blink#24382).
+ * same repo share one auto-memory directory (tovyrs/tovyr#24382).
  */
 function getAutoMemBase(): string {
   return findCanonicalGitRoot(getProjectRoot()) ?? getProjectRoot()
@@ -238,7 +238,7 @@ export const getAutoMemPath = memoize(
  * Returns the daily log file path for the given date (defaults to today).
  * Shape: <autoMemPath>/logs/YYYY/MM/YYYY-MM-DD.md
  *
- * Used by assistant mode (feature('BLINKS')): rather than maintaining
+ * Used by assistant mode (feature('TOVYRS')): rather than maintaining
  * MEMORY.md as a live index, the agent appends to a date-named log file
  * as it works. A separate nightly /dream skill distills these logs into
  * topic files + MEMORY.md.

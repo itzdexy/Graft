@@ -1,15 +1,15 @@
 /* eslint-disable custom-rules/no-process-exit -- CLI subcommand handler intentionally exits */
 
 import {
-  BLINK_CLI_NAME,
-  BLINK_PRODUCT_NAME,
-  BLINK_PROVIDER_NAME,
-} from '../../constants/blink.js'
+  TOVYR_CLI_NAME,
+  TOVYR_PRODUCT_NAME,
+  TOVYR_PROVIDER_NAME,
+} from '../../constants/tovyr.js'
 import { performLogout } from '../../commands/logout/logout.js'
 import {
-  getBlinkConnectionSummary,
-  loginWithBlinkApiKey,
-} from '../../services/blink/provider.js'
+  getTovyrConnectionSummary,
+  loginWithTovyrApiKey,
+} from '../../services/tovyr/provider.js'
 import {
   getAnthropicApiKeyWithSource,
   removeApiKey,
@@ -28,17 +28,17 @@ export async function authLogin({
 }): Promise<void> {
   if (!key) {
     process.stderr.write(
-      `Provide your ${BLINK_PROVIDER_NAME} API key:\n` +
-        `  ${BLINK_CLI_NAME} auth login --key fe_oa_...\n` +
-        `Or run /login inside an interactive ${BLINK_PRODUCT_NAME} session.\n`,
+      `Provide your ${TOVYR_PROVIDER_NAME} API key:\n` +
+        `  ${TOVYR_CLI_NAME} auth login --key fe_oa_...\n` +
+        `Or run /login inside an interactive ${TOVYR_PRODUCT_NAME} session.\n`,
     )
     process.exit(1)
   }
 
   try {
-    await loginWithBlinkApiKey(key)
+    await loginWithTovyrApiKey(key)
     process.stdout.write(
-      `${BLINK_PRODUCT_NAME} connected to ${BLINK_PROVIDER_NAME}.\n`,
+      `${TOVYR_PRODUCT_NAME} connected to ${TOVYR_PROVIDER_NAME}.\n`,
     )
     process.exit(0)
   } catch (err) {
@@ -54,15 +54,15 @@ export async function authStatus(opts: {
 }): Promise<void> {
   const { key, source } = getAnthropicApiKeyWithSource()
   const loggedIn = !!key
-  const connection = getBlinkConnectionSummary()
+  const connection = getTovyrConnectionSummary()
 
   if (opts.text) {
     if (loggedIn) {
-      process.stdout.write(`Provider: ${connection ?? BLINK_PROVIDER_NAME}\n`)
+      process.stdout.write(`Provider: ${connection ?? TOVYR_PROVIDER_NAME}\n`)
       process.stdout.write(`API key source: ${source}\n`)
     } else {
       process.stdout.write(
-        `Not connected. Run ${BLINK_CLI_NAME} auth login --key <api-key> or /login.\n`,
+        `Not connected. Run ${TOVYR_CLI_NAME} auth login --key <api-key> or /login.\n`,
       )
     }
   } else {
@@ -92,7 +92,7 @@ export async function authLogout(): Promise<void> {
     process.stderr.write('Failed to log out.\n')
     process.exit(1)
   }
-  process.stdout.write(`Disconnected from ${BLINK_PROVIDER_NAME}.\n`)
+  process.stdout.write(`Disconnected from ${TOVYR_PROVIDER_NAME}.\n`)
   process.exit(0)
 }
 

@@ -1,10 +1,10 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { CONTEXT_1M_BETA_HEADER } from '../constants/betas.js'
-import { getBlinkMaxOutputLimits, getBlinkModelContextWindow } from '../services/blink/modelContext.js'
-import { modelLooksLikeClaude } from '../scripts/blink-model-compat.js'
+import { getTovyrMaxOutputLimits, getTovyrModelContextWindow } from '../services/tovyr/modelContext.js'
+import { modelLooksLikeClaude } from '../scripts/tovyr-model-compat.js'
 import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
-import { isBlinkRuntime } from './blinkRuntime.js'
+import { isTovyrRuntime } from './tovyrRuntime.js'
 import { getCanonicalName } from './model/model.js'
 import { getModelCapability } from './model/modelCapabilities.js'
 
@@ -22,7 +22,7 @@ const MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000
 // tokens, so 32k/64k defaults over-reserve 8-16× slot capacity. With the cap
 // enabled, <1% of requests hit the limit; those get one clean retry at 64k
 // (see query.ts max_output_tokens_escalate). Cap is applied in
-// blink.ts:getMaxOutputTokensForModel to avoid the growthbook→betas→context
+// tovyr.ts:getMaxOutputTokensForModel to avoid the growthbook→betas→context
 // import cycle.
 export const CAPPED_DEFAULT_MAX_TOKENS = 8_000
 export const ESCALATED_MAX_TOKENS = 64_000
@@ -32,7 +32,7 @@ export const ESCALATED_MAX_TOKENS = 64_000
  * Used by C4E admins to disable 1M context for HIPAA compliance.
  */
 export function is1mContextDisabled(): boolean {
-  return isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_1M_CONTEXT)
+  return isEnvTruthy(process.env.TOVYR_CODE_DISABLE_1M_CONTEXT)
 }
 
 export function has1mContext(model: string): boolean {
@@ -61,9 +61,9 @@ export function getContextWindowForModel(
   // while still using a 1M-capable endpoint.
   if (
     process.env.USER_TYPE === 'ant' &&
-    process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS
+    process.env.TOVYR_CODE_MAX_CONTEXT_TOKENS
   ) {
-    const override = parseInt(process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, 10)
+    const override = parseInt(process.env.TOVYR_CODE_MAX_CONTEXT_TOKENS, 10)
     if (!isNaN(override) && override > 0) {
       return override
     }
@@ -91,8 +91,8 @@ export function getContextWindowForModel(
   if (getSonnet1mExpTreatmentEnabled(model)) {
     return 1_000_000
   }
-  if (isBlinkRuntime() && !modelLooksLikeClaude(model)) {
-    return getBlinkModelContextWindow(model)
+  if (isTovyrRuntime() && !modelLooksLikeClaude(model)) {
+    return getTovyrModelContextWindow(model)
   }
   if (process.env.USER_TYPE === 'ant') {
     const antModel = resolveAntModel(model)
@@ -201,8 +201,8 @@ export function getModelMaxOutputTokens(model: string): {
   } else if (m.includes('3-7-sonnet')) {
     defaultTokens = 32_000
     upperLimit = 64_000
-  } else if (isBlinkRuntime() && !modelLooksLikeClaude(model)) {
-    const limits = getBlinkMaxOutputLimits(getBlinkModelContextWindow(model))
+  } else if (isTovyrRuntime() && !modelLooksLikeClaude(model)) {
+    const limits = getTovyrMaxOutputLimits(getTovyrModelContextWindow(model))
     defaultTokens = limits.default
     upperLimit = limits.upperLimit
   } else {

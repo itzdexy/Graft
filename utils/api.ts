@@ -194,13 +194,13 @@ export async function toolToAPISchema(
     // Enable fine-grained tool streaming via per-tool API field.
     // Without FGTS, the API buffers entire tool input parameters before sending
     // input_json_delta events, causing multi-minute hangs on large tool inputs.
-    // Gated to direct api.blink.com: proxies (LiteLLM etc.) and Bedrock/Vertex
-    // with Blink 4.5 reject this field with 400. See GH#32742, PR #21729.
+    // Gated to direct api.tovyr.com: proxies (LiteLLM etc.) and Bedrock/Vertex
+    // with Tovyr 4.5 reject this field with 400. See GH#32742, PR #21729.
     if (
       getAPIProvider() === 'firstParty' &&
       isFirstPartyAnthropicBaseUrl() &&
       (getFeatureValue_CACHED_MAY_BE_STALE('tengu_fgts', false) ||
-        isEnvTruthy(process.env.CLAUDE_CODE_ENABLE_FINE_GRAINED_TOOL_STREAMING))
+        isEnvTruthy(process.env.TOVYR_CODE_ENABLE_FINE_GRAINED_TOOL_STREAMING))
     ) {
       base.eager_input_streaming = true
     }
@@ -229,7 +229,7 @@ export async function toolToAPISchema(
     schema.cache_control = options.cacheControl
   }
 
-  // CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS is the kill switch for beta API
+  // TOVYR_CODE_DISABLE_EXPERIMENTAL_BETAS is the kill switch for beta API
   // shapes. Proxy gateways (ANTHROPIC_BASE_URL → LiteLLM → Bedrock) reject
   // fields like defer_loading with "Extra inputs are not permitted". The gates
   // above each field are scattered and not all provider-aware, so this strips
@@ -239,8 +239,8 @@ export async function toolToAPISchema(
   // standard prompt caching (Bedrock/Vertex supported); the beta sub-fields
   // (scope, ttl) are already gated upstream by shouldIncludeFirstPartyOnlyBetas
   // which independently respects this kill switch.
-  // github.com/blinks/blink/issues/20031
-  if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS)) {
+  // github.com/tovyrs/tovyr/issues/20031
+  if (isEnvTruthy(process.env.TOVYR_CODE_DISABLE_EXPERIMENTAL_BETAS)) {
     const allowed = new Set([
       'name',
       'description',
@@ -270,13 +270,13 @@ function logStripOnce(stripped: string[]): void {
   if (loggedStrip) return
   loggedStrip = true
   logForDebugging(
-    `[betas] Stripped from tool schemas: [${stripped.join(', ')}] (CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1)`,
+    `[betas] Stripped from tool schemas: [${stripped.join(', ')}] (TOVYR_CODE_DISABLE_EXPERIMENTAL_BETAS=1)`,
   )
 }
 
 /**
  * Log stats about first block for analyzing prefix matching config
- * (see https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/blink_cli_system_prompt_prefixes)
+ * (see https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/tovyr_cli_system_prompt_prefixes)
  */
 export function logAPIPrefix(systemPrompt: SystemPrompt): void {
   const [firstSyspromptBlock] = splitSysPromptPrefix(systemPrompt)
@@ -295,7 +295,7 @@ export function logAPIPrefix(systemPrompt: SystemPrompt): void {
 
 /**
  * Split system prompt blocks by content type for API matching and cache control.
- * See https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/blink_cli_system_prompt_prefixes
+ * See https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/tovyr_cli_system_prompt_prefixes
  *
  * Behavior depends on feature flags and options:
  *
@@ -594,12 +594,12 @@ export function normalizeToolInput<T extends Tool>(
       // Replace \\; with \; (commonly needed for find -exec commands)
       normalizedCommand = normalizedCommand.replace(/\\\\;/g, '\\;')
 
-      // Logging for commands that are only echoing a string. This is to help us understand how often  Blink talks via bash
+      // Logging for commands that are only echoing a string. This is to help us understand how often  Tovyr talks via bash
       if (/^echo\s+["']?[^|&;><]*["']?$/i.test(normalizedCommand.trim())) {
         logEvent('tengu_bash_tool_simple_echo', {})
       }
 
-      // Check for run_in_background (may not exist in schema if CLAUDE_CODE_DISABLE_BACKGROUND_TASKS is set)
+      // Check for run_in_background (may not exist in schema if TOVYR_CODE_DISABLE_BACKGROUND_TASKS is set)
       const run_in_background =
         'run_in_background' in parsed ? parsed.run_in_background : undefined
 
@@ -623,7 +623,7 @@ export function normalizeToolInput<T extends Tool>(
       // Validated upstream, won't throw
       const parsedInput = FileEditTool.inputSchema.parse(input)
 
-      // This is a workaround for tokens blink can't see
+      // This is a workaround for tokens tovyr can't see
       const { file_path, edits } = normalizeFileEditInput({
         file_path: parsedInput.file_path,
         edits: [

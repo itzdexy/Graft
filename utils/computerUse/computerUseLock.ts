@@ -3,7 +3,7 @@ import { join } from 'path'
 import { getSessionId } from '../../bootstrap/state.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
-import { getBlinkConfigHomeDir } from '../../utils/envUtils.js'
+import { getTovyrConfigHomeDir } from '../../utils/envUtils.js'
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js'
 import { getErrnoCode } from '../errors.js'
 
@@ -42,7 +42,7 @@ function isComputerUseLock(value: unknown): value is ComputerUseLock {
 }
 
 function getLockPath(): string {
-  return join(getBlinkConfigHomeDir(), LOCK_FILENAME)
+  return join(getTovyrConfigHomeDir(), LOCK_FILENAME)
 }
 
 async function readLock(): Promise<ComputerUseLock | undefined> {
@@ -153,7 +153,7 @@ export async function tryAcquireComputerUseLock(): Promise<AcquireResult> {
     acquiredAt: Date.now(),
   }
 
-  await mkdir(getBlinkConfigHomeDir(), { recursive: true })
+  await mkdir(getTovyrConfigHomeDir(), { recursive: true })
 
   // Fresh acquisition.
   if (await tryCreateExclusive(lock)) {

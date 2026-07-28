@@ -10,7 +10,7 @@ import {
 } from 'src/services/analytics/index.js'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { logForDebugging } from './debug.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { isFsInaccessible } from './errors.js'
 import { normalizePathForComparison } from './file.js'
 import type { FrontmatterData } from './frontmatterParser.js'
@@ -25,8 +25,8 @@ import {
 import { getManagedFilePath } from './settings/managedPath.js'
 import { isRestrictedToPluginOnly } from './settings/pluginOnlyPolicy.js'
 
-// Blink configuration directory names
-export const BLINK_CONFIG_DIRECTORIES = [
+// Tovyr configuration directory names
+export const TOVYR_CONFIG_DIRECTORIES = [
   'commands',
   'agents',
   'output-styles',
@@ -35,7 +35,7 @@ export const BLINK_CONFIG_DIRECTORIES = [
   ...(feature('TEMPLATES') ? (['templates'] as const) : []),
 ] as const
 
-export type BlinkConfigDirectory = (typeof BLINK_CONFIG_DIRECTORIES)[number]
+export type TovyrConfigDirectory = (typeof TOVYR_CONFIG_DIRECTORIES)[number]
 
 export type MarkdownFile = {
   filePath: string
@@ -151,7 +151,7 @@ export function parseSlashCommandToolsFromFrontmatter(
  * Uses bigint: true to handle filesystems with large inodes (e.g., ExFAT)
  * that exceed JavaScript's Number precision (53 bits). Without bigint, different
  * large inodes can round to the same Number, causing false duplicate detection.
- * See: https://github.com/blinks/blink/issues/13893
+ * See: https://github.com/tovyrs/tovyr/issues/13893
  *
  * @param filePath - Path to the file
  * @returns A string identifier "device:inode" or null if file can't be identified
@@ -177,14 +177,14 @@ async function getFileIdentity(filePath: string): Promise<string | null> {
  * Normally the walk stops at the nearest `.git` above `cwd`. But if the Bash
  * tool has cd'd into a nested git repo inside the session's project (submodule,
  * vendored dep with its own `.git`), that nested root isn't the right boundary —
- * stopping there makes the parent project's `.blink/` unreachable (#31905).
+ * stopping there makes the parent project's `.tovyr/` unreachable (#31905).
  *
  * The boundary is widened to the session's git root only when BOTH:
  *   - the nearest `.git` from cwd belongs to a *different* canonical repo
  *     (submodule/vendored clone — not a worktree, which resolves back to main)
  *   - that nearest `.git` sits *inside* the session's project tree
  *
- * Worktrees (under `.blink/worktrees/`) stay on the old behavior: their `.git`
+ * Worktrees (under `.tovyr/worktrees/`) stay on the old behavior: their `.git`
  * file is the stop, and loadMarkdownFilesForSubdir's fallback adds the main-repo
  * copy only when the worktree lacks one.
  */
@@ -221,18 +221,18 @@ function resolveStopBoundary(cwd: string): string | null {
 
 /**
  * Traverses from the current directory up to the git root (or home directory if not in a git repo),
- * collecting all .blink directories along the way.
+ * collecting all .tovyr directories along the way.
  *
  * Stopping at git root prevents commands/skills from parent directories outside the repository
- * from leaking into projects. For example, if ~/projects/.blink/commands/ exists, it won't
+ * from leaking into projects. For example, if ~/projects/.tovyr/commands/ exists, it won't
  * appear in ~/projects/my-repo/ if my-repo is a git repository.
  *
  * @param subdir Subdirectory (eg. "commands", "agents")
  * @param cwd Current working directory to start from
- * @returns Array of directory paths containing .blink/subdir, from most specific (cwd) to least specific
+ * @returns Array of directory paths containing .tovyr/subdir, from most specific (cwd) to least specific
  */
 export function getProjectDirsUpToHome(
-  subdir: BlinkConfigDirectory,
+  subdir: TovyrConfigDirectory,
   cwd: string,
 ): string[] {
   const home = resolve(homedir()).normalize('NFC')
@@ -250,10 +250,10 @@ export function getProjectDirsUpToHome(
       break
     }
 
-    const blinkSubdir = join(current, '.blink', subdir)
+    const tovyrSubdir = join(current, '.tovyr', subdir)
     const claudeSubdir = join(current, '.claude', subdir)
-    // Prefer .blink; still load legacy .claude for compatibility.
-    for (const candidate of [blinkSubdir, claudeSubdir]) {
+    // Prefer .tovyr; still load legacy .tovyr for compatibility.
+    for (const candidate of [tovyrSubdir, claudeSubdir]) {
       try {
         statSync(candidate)
         dirs.push(candidate)
@@ -294,32 +294,32 @@ export function getProjectDirsUpToHome(
  */
 export const loadMarkdownFilesForSubdir = memoize(
   async function (
-    subdir: BlinkConfigDirectory,
+    subdir: TovyrConfigDirectory,
     cwd: string,
   ): Promise<MarkdownFile[]> {
     const searchStartTime = Date.now()
-    const userDir = join(getBlinkConfigHomeDir(), subdir)
-    const managedDir = join(getManagedFilePath(), '.blink', subdir)
+    const userDir = join(getTovyrConfigHomeDir(), subdir)
+    const managedDir = join(getManagedFilePath(), '.tovyr', subdir)
     const projectDirs = getProjectDirsUpToHome(subdir, cwd)
 
-    // For git worktrees where the worktree does NOT have .blink/<subdir> checked
+    // For git worktrees where the worktree does NOT have .tovyr/<subdir> checked
     // out (e.g. sparse-checkout), fall back to the main repository's copy.
     // getProjectDirsUpToHome stops at the worktree root (where the .git file is),
     // so it never sees the main repo on its own.
     //
-    // Only add the main repo's copy when the worktree root's .blink/<subdir>
+    // Only add the main repo's copy when the worktree root's .tovyr/<subdir>
     // is absent. A standard `git worktree add` checks out the full tree, so the
-    // worktree already has identical .blink/<subdir> content — loading the main
+    // worktree already has identical .tovyr/<subdir> content — loading the main
     // repo's copy too would duplicate every command/agent/skill
-    // (blinks/blink#29599, #28182, #26992).
+    // (tovyrs/tovyr#29599, #28182, #26992).
     //
     // projectDirs already reflects existence (getProjectDirsUpToHome checked
     // each dir), so we compare against that instead of stat'ing again.
     const gitRoot = findGitRoot(cwd)
     const canonicalRoot = findCanonicalGitRoot(cwd)
     if (gitRoot && canonicalRoot && canonicalRoot !== gitRoot) {
-      const worktreeSubdirBlink = normalizePathForComparison(
-        join(gitRoot, '.blink', subdir),
+      const worktreeSubdirTovyr = normalizePathForComparison(
+        join(gitRoot, '.tovyr', subdir),
       )
       const worktreeSubdirClaude = normalizePathForComparison(
         join(gitRoot, '.claude', subdir),
@@ -327,11 +327,11 @@ export const loadMarkdownFilesForSubdir = memoize(
       const worktreeHasSubdir = projectDirs.some(
         dir => {
           const n = normalizePathForComparison(dir)
-          return n === worktreeSubdirBlink || n === worktreeSubdirClaude
+          return n === worktreeSubdirTovyr || n === worktreeSubdirClaude
         },
       )
       if (!worktreeHasSubdir) {
-        for (const name of ['.blink', '.claude'] as const) {
+        for (const name of ['.tovyr', '.claude'] as const) {
           const mainSubdir = join(canonicalRoot, name, subdir)
           if (!projectDirs.includes(mainSubdir)) {
             projectDirs.push(mainSubdir)
@@ -384,7 +384,7 @@ export const loadMarkdownFilesForSubdir = memoize(
     const allFiles = [...managedFiles, ...userFiles, ...projectFiles]
 
     // Deduplicate files that resolve to the same physical file (same inode).
-    // This prevents the same file from appearing multiple times when ~/.blink is
+    // This prevents the same file from appearing multiple times when ~/.tovyr is
     // symlinked to a directory within the project hierarchy, causing the same
     // physical file to be discovered through different paths.
     const fileIdentities = await Promise.all(
@@ -432,7 +432,7 @@ export const loadMarkdownFilesForSubdir = memoize(
     return deduplicatedFiles
   },
   // Custom resolver creates cache key from both subdir and cwd parameters
-  (subdir: BlinkConfigDirectory, cwd: string) => `${subdir}:${cwd}`,
+  (subdir: TovyrConfigDirectory, cwd: string) => `${subdir}:${cwd}`,
 )
 
 /**
@@ -441,7 +441,7 @@ export const loadMarkdownFilesForSubdir = memoize(
  * This implementation exists alongside ripgrep for the following reasons:
  * 1. Ripgrep has poor startup performance in native builds (noticeable on app startup)
  * 2. Provides a fallback when ripgrep is unavailable
- * 3. Can be explicitly enabled via CLAUDE_CODE_USE_NATIVE_FILE_SEARCH env var
+ * 3. Can be explicitly enabled via TOVYR_CODE_USE_NATIVE_FILE_SEARCH env var
  *
  * Symlink handling:
  * - Follows symlinks (equivalent to ripgrep's --follow flag)
@@ -469,7 +469,7 @@ async function findMarkdownFilesNative(
     // Cycle detection: track visited directories by device+inode
     // Uses bigint: true to handle filesystems with large inodes (e.g., ExFAT)
     // that exceed JavaScript's Number precision (53 bits).
-    // See: https://github.com/blinks/blink/issues/13893
+    // See: https://github.com/tovyrs/tovyr/issues/13893
     try {
       const stats = await stat(currentDir, { bigint: true })
       if (stats.isDirectory()) {
@@ -546,7 +546,7 @@ async function findMarkdownFilesNative(
 
 /**
  * Generic function to load markdown files from specified directories
- * @param dir Directory (eg. "~/.blink/commands")
+ * @param dir Directory (eg. "~/.tovyr/commands")
  * @returns Array of parsed markdown files with metadata
  */
 async function loadMarkdownFiles(dir: string): Promise<
@@ -558,10 +558,10 @@ async function loadMarkdownFiles(dir: string): Promise<
 > {
   // File search strategy:
   // - Default: ripgrep (faster, battle-tested)
-  // - Fallback: native Node.js (when CLAUDE_CODE_USE_NATIVE_FILE_SEARCH is set)
+  // - Fallback: native Node.js (when TOVYR_CODE_USE_NATIVE_FILE_SEARCH is set)
   //
   // Why both? Ripgrep has poor startup performance in native builds.
-  const useNative = isEnvTruthy(process.env.CLAUDE_CODE_USE_NATIVE_FILE_SEARCH)
+  const useNative = isEnvTruthy(process.env.TOVYR_CODE_USE_NATIVE_FILE_SEARCH)
   const signal = AbortSignal.timeout(3000)
   let files: string[]
   try {

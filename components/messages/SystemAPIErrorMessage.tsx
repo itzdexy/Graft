@@ -8,9 +8,9 @@ import { CtrlOToExpand } from '../CtrlOToExpand.js';
 import { MessageResponse } from '../MessageResponse.js';
 import {
   ErrorRecoverySuggestions,
-  getBlinkApiErrorSuggestions,
+  getTovyrApiErrorSuggestions,
 } from '../ErrorRecoverySuggestions.js';
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js';
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js';
 
 const MAX_API_ERROR_CHARS = 1000;
 
@@ -43,8 +43,8 @@ export function SystemAPIErrorMessage({
 
   const formatted = formatAPIError(error);
   const truncated = !verbose && formatted.length > MAX_API_ERROR_CHARS;
-  const blinkRecovery = isBlinkRuntime()
-    ? getBlinkApiErrorSuggestions(formatted)
+  const tovyrRecovery = isTovyrRuntime()
+    ? getTovyrApiErrorSuggestions(formatted)
     : [];
 
   return (
@@ -64,9 +64,9 @@ export function SystemAPIErrorMessage({
             ? ` · API_TIMEOUT_MS=${process.env.API_TIMEOUT_MS}ms, try increasing it`
             : ''}
         </Text>
-        {blinkRecovery.length > 0 && (
+        {tovyrRecovery.length > 0 && (
           <ErrorRecoverySuggestions
-            suggestions={blinkRecovery}
+            suggestions={tovyrRecovery}
             showActions={true}
           />
         )}

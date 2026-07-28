@@ -4,7 +4,7 @@ import type { AddressInfo } from 'net'
 import { logEvent } from 'src/services/analytics/index.js'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { logError } from '../../utils/log.js'
-import { shouldUseBlinkWebAuth } from './client.js'
+import { shouldUseTovyrWebAuth } from './client.js'
 
 /**
  * Temporary localhost HTTP server that listens for OAuth authorization code redirects.
@@ -92,7 +92,7 @@ export class AuthCodeListener {
     }
 
     // Default behavior: Choose success page based on granted permissions
-    const successUrl = shouldUseBlinkWebAuth(scopes)
+    const successUrl = shouldUseTovyrWebAuth(scopes)
       ? getOauthConfig().CLAUDEAI_SUCCESS_URL
       : getOauthConfig().CONSOLE_SUCCESS_URL
 

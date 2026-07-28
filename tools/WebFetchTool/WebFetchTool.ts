@@ -2,7 +2,7 @@ import { z } from 'zod/v4'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import type { PermissionUpdate } from '../../types/permissions.js'
 import { formatFileSize } from '../../utils/format.js'
-import { getAssistantName } from '../../utils/blinkBrand.js'
+import { getAssistantName } from '../../utils/tovyrBrand.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import type { PermissionDecision } from '../../utils/permissions/PermissionResult.js'
 import { getRuleByContentsForTool } from '../../utils/permissions/permissions.js'
@@ -184,7 +184,7 @@ export const WebFetchTool = buildTool({
     // currently in the tools list. Conditionally toggling this prefix based
     // on ToolSearch availability caused the tool description to flicker
     // between SDK query() calls (when ToolSearch enablement varies due to
-    // MCP tool count thresholds), invalidating the Blink API prompt
+    // MCP tool count thresholds), invalidating the Tovyr API prompt
     // cache on each toggle — two consecutive cache misses per flicker event.
     return `IMPORTANT: WebFetch WILL FAIL for authenticated or private URLs. Before using this tool, check if the URL points to an authenticated service (e.g. Google Docs, Confluence, Jira, GitHub). If so, look for a specialized MCP tool that provides authenticated access.
 ${DESCRIPTION}`
@@ -279,7 +279,7 @@ To complete your request, I need to fetch content from the redirected URL. Pleas
     }
 
     // Binary content (PDFs, etc.) was additionally saved to disk with a
-    // mime-derived extension. Note it so Blink can inspect the raw file
+    // mime-derived extension. Note it so Tovyr can inspect the raw file
     // if the Haiku summary above isn't enough.
     if (persistedPath) {
       result += `\n\n[Binary content (${contentType}, ${formatFileSize(persistedSize ?? bytes)}) also saved to ${persistedPath}]`

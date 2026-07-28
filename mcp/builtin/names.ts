@@ -1,20 +1,20 @@
-/** Reserved in-process MCP server names for Blink builtins. */
+/** Reserved in-process MCP server names for Tovyr builtins. */
 
-export const BLINK_SEQUENTIAL_THINKING_SERVER_NAME = 'blink-sequential-thinking'
-export const BLINK_MEMORY_GRAPH_SERVER_NAME = 'blink-memory'
+export const TOVYR_SEQUENTIAL_THINKING_SERVER_NAME = 'tovyr-sequential-thinking'
+export const TOVYR_MEMORY_GRAPH_SERVER_NAME = 'tovyr-memory'
 
-export function isBlinkSequentialThinkingServer(name: string): boolean {
-  return normalizeMcpServerName(name) === BLINK_SEQUENTIAL_THINKING_SERVER_NAME
+export function isTovyrSequentialThinkingServer(name: string): boolean {
+  return normalizeMcpServerName(name) === TOVYR_SEQUENTIAL_THINKING_SERVER_NAME
 }
 
-export function isBlinkMemoryGraphServer(name: string): boolean {
-  return normalizeMcpServerName(name) === BLINK_MEMORY_GRAPH_SERVER_NAME
+export function isTovyrMemoryGraphServer(name: string): boolean {
+  return normalizeMcpServerName(name) === TOVYR_MEMORY_GRAPH_SERVER_NAME
 }
 
-export function isBlinkBuiltinMcpServer(name: string): boolean {
+export function isTovyrBuiltinMcpServer(name: string): boolean {
   return (
-    isBlinkSequentialThinkingServer(name) ||
-    isBlinkMemoryGraphServer(name)
+    isTovyrSequentialThinkingServer(name) ||
+    isTovyrMemoryGraphServer(name)
   )
 }
 

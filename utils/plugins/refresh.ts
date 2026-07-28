@@ -3,7 +3,7 @@
  *
  * Three-layer model (see reconciler.ts for Layer-2):
  * - Layer 1: intent (settings)
- * - Layer 2: materialization (~/.blink/plugins/) — reconcileMarketplaces()
+ * - Layer 2: materialization (~/.tovyr/plugins/) — reconcileMarketplaces()
  * - Layer 3: active components (AppState) — this file
  *
  * Called from:

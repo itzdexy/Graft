@@ -8,7 +8,7 @@ const teamMemPaths = feature('TEAMMEM')
   ? (require('./teamMemPaths.js') as typeof import('./teamMemPaths.js'))
   : null
 
-import { getBlinksActive, getOriginalCwd } from '../bootstrap/state.js'
+import { getTovyrsActive, getOriginalCwd } from '../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import {
@@ -51,7 +51,7 @@ export type EntrypointTruncation = {
  * that names which cap fired. Line-truncates first (natural boundary), then
  * byte-truncates at the last newline before the cap so we don't cut mid-line.
  *
- * Shared by buildMemoryPrompt and blinkmd getMemoryFiles (previously
+ * Shared by buildMemoryPrompt and tovyrmd getMemoryFiles (previously
  * duplicated the line-only logic).
  */
 export function truncateEntrypointContent(raw: string): EntrypointTruncation {
@@ -110,7 +110,7 @@ const teamMemPrompts = feature('TEAMMEM')
 
 /**
  * Shared guidance text appended to each memory directory prompt line.
- * Shipped because Blink was burning turns on `ls`/`mkdir -p` before writing.
+ * Shipped because Tovyr was burning turns on `ls`/`mkdir -p` before writing.
  * Harness guarantees the directory exists via ensureMemoryDirExists().
  */
 export const DIR_EXISTS_GUIDANCE =
@@ -123,7 +123,7 @@ export const DIRS_EXIST_GUIDANCE =
  * (once per session via systemPromptSection cache) so the model can always
  * write without checking existence first. FsOperations.mkdir is recursive
  * by default and already swallows EEXIST, so the full parent chain
- * (~/.blink/projects/<slug>/memory/) is created in one call with no
+ * (~/.tovyr/projects/<slug>/memory/) is created in one call with no
  * try/catch needed for the happy path.
  */
 export async function ensureMemoryDirExists(memoryDir: string): Promise<void> {
@@ -267,7 +267,7 @@ export function buildMemoryLines(
 
 /**
  * Build the typed-memory prompt with MEMORY.md content included.
- * Used by agent memory (which has no getBlinkMds() equivalent).
+ * Used by agent memory (which has no getTovyrMds() equivalent).
  */
 export function buildMemoryPrompt(params: {
   displayName: string
@@ -316,12 +316,12 @@ export function buildMemoryPrompt(params: {
 }
 
 /**
- * Assistant-mode daily-log prompt. Gated behind feature('BLINKS').
+ * Assistant-mode daily-log prompt. Gated behind feature('TOVYRS').
  *
  * Assistant sessions are effectively perpetual, so the agent writes memories
  * append-only to a date-named log file rather than maintaining MEMORY.md as
  * a live index. A separate nightly /dream skill distills logs into topic
- * files + MEMORY.md. MEMORY.md is still loaded into context (via blinkmd.ts)
+ * files + MEMORY.md. MEMORY.md is still loaded into context (via tovyrmd.ts)
  * as the distilled index — this prompt only changes where NEW memories go.
  */
 function buildAssistantDailyLogPrompt(skipIndex = false): string {
@@ -424,12 +424,12 @@ export async function loadMemoryPrompt(): Promise<string | null> {
     false,
   )
 
-  // BLINKS daily-log mode takes precedence over TEAMMEM: the append-only
+  // TOVYRS daily-log mode takes precedence over TEAMMEM: the append-only
   // log paradigm does not compose with team sync (which expects a shared
   // MEMORY.md that both sides read + write). Gating on `autoEnabled` here
   // means the !autoEnabled case falls through to the tengu_memdir_disabled
-  // telemetry block below, matching the non-BLINKS path.
-  if (feature('BLINKS') && autoEnabled && getBlinksActive()) {
+  // telemetry block below, matching the non-TOVYRS path.
+  if (feature('TOVYRS') && autoEnabled && getTovyrsActive()) {
     logMemoryDirCounts(getAutoMemPath(), {
       memory_type:
         'auto' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -491,10 +491,10 @@ export async function loadMemoryPrompt(): Promise<string | null> {
 
   logEvent('tengu_memdir_disabled', {
     disabled_by_env_var: isEnvTruthy(
-      process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY,
+      process.env.TOVYR_CODE_DISABLE_AUTO_MEMORY,
     ),
     disabled_by_setting:
-      !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY) &&
+      !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_AUTO_MEMORY) &&
       getInitialSettings().autoMemoryEnabled === false,
   })
   // Gate on the GB flag directly, not isTeamMemoryEnabled() — that function

@@ -1,10 +1,10 @@
 /**
  * Files API client for managing files
  *
- * This module provides functionality to download and upload files to Blink Public Files API.
- * Used by the Blink agent to download file attachments at session startup.
+ * This module provides functionality to download and upload files to Tovyr Public Files API.
+ * Used by the Tovyr agent to download file attachments at session startup.
  *
- * API Reference: https://docs.blink.com/en/api/files-content
+ * API Reference: https://docs.tovyr.com/en/api/files-content
  */
 
 import axios from 'axios'
@@ -32,7 +32,7 @@ const ANTHROPIC_VERSION = '2023-06-01'
 function getDefaultApiBaseUrl(): string {
   return (
     process.env.ANTHROPIC_BASE_URL ||
-    process.env.CLAUDE_CODE_API_BASE_URL ||
+    process.env.TOVYR_CODE_API_BASE_URL ||
     'https://api.anthropic.com'
   )
 }
@@ -60,7 +60,7 @@ export type File = {
 export type FilesApiConfig = {
   /** OAuth token for authentication (from session JWT) */
   oauthToken: string
-  /** Base URL for the API (default: https://api.blink.com) */
+  /** Base URL for the API (default: https://api.tovyr.com) */
   baseUrl?: string
   /** Session ID for creating session-specific directories */
   sessionId: string
@@ -123,7 +123,7 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Downloads a single file from the Blink Public Files API
+ * Downloads a single file from the Tovyr Public Files API
  *
  * @param fileId - The file ID (e.g., "file_011CNha8iCJcU1wXNR6q4V8w")
  * @param config - Files API configuration

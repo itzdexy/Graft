@@ -39,7 +39,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../analytics/index.js'
-import { fetchBlinkWebMcpConfigsIfEligible } from './claudeai.js'
+import { fetchTovyrWebMcpConfigsIfEligible } from './claudeai.js'
 import { expandEnvVarsInString } from './envExpansion.js'
 import {
   type ConfigScope,
@@ -161,7 +161,7 @@ function getServerUrl(config: McpServerConfig): string | null {
 }
 
 /**
- * CCR proxy URL path markers. In remote sessions, blink web connectors arrive
+ * CCR proxy URL path markers. In remote sessions, tovyr web connectors arrive
  * via --mcp-config with URLs rewritten to route through the CCR/session-ingress
  * SHTTP proxy. The original vendor URL is preserved in the mcp_url query param
  * so the proxy knows where to forward. See api-go/ccr/internal/ccrshared/
@@ -265,14 +265,14 @@ export function dedupPluginMcpServers(
 }
 
 /**
- * Filter blink web connectors, dropping any whose signature matches an enabled
+ * Filter tovyr web connectors, dropping any whose signature matches an enabled
  * manually-configured server. Manual wins: a user who wrote .mcp.json or ran
- * `blink mcp add` expressed higher intent than a connector toggled in the web UI.
+ * `tovyr mcp add` expressed higher intent than a connector toggled in the web UI.
  *
- * Connector keys are `blink web <DisplayName>` so they never key-collide with
+ * Connector keys are `tovyr web <DisplayName>` so they never key-collide with
  * manual servers in the merge â€” this content-based check catches the case where
  * both point at the same underlying URL (e.g. `mcp__slack__*` and
- * `mcp__blink_ai_Slack__*` both hitting mcp.slack.com, ~600 chars/turn wasted).
+ * `mcp__tovyr_ai_Slack__*` both hitting mcp.slack.com, ~600 chars/turn wasted).
  *
  * Only enabled manual servers count as dedup targets â€” a disabled manual server
  * mustn't suppress its connector twin, or neither runs.
@@ -512,7 +512,7 @@ function isMcpServerAllowedByPolicy(
  * returned so callers can warn the user.
  *
  * Intended for user-controlled config entry points that bypass the policy filter
- * in getBlinkCodeMcpConfigs(): --mcp-config (main.tsx) and the mcp_set_servers
+ * in getTovyrCodeMcpConfigs(): --mcp-config (main.tsx) and the mcp_set_servers
  * control message (print.ts, SDK V2 Query.setMcpServers()).
  *
  * SDK-type servers are exempt â€” they are SDK-managed transport placeholders,
@@ -633,10 +633,10 @@ export async function addMcpConfig(
   }
 
 
-  const { isBlinkBuiltinMcpServer } = await import('../../mcp/builtin/names.js')
-  if (isBlinkBuiltinMcpServer(name)) {
+  const { isTovyrBuiltinMcpServer } = await import('../../mcp/builtin/names.js')
+  if (isTovyrBuiltinMcpServer(name)) {
     throw new Error(
-      `Cannot add MCP server "${name}": reserved for Blink built-in in-process server.`,
+      `Cannot add MCP server "${name}": reserved for Tovyr built-in in-process server.`,
     )
   }
 
@@ -1036,7 +1036,7 @@ export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
   const { servers: enterpriseServers } = getMcpConfigsByScope('enterprise')
 
   // When MCP is locked to plugin-only, only enterprise servers are reachable
-  // by name. User/project/local servers are blocked â€” same as getBlinkCodeMcpConfigs().
+  // by name. User/project/local servers are blocked â€” same as getTovyrCodeMcpConfigs().
   if (isRestrictedToPluginOnly('mcp')) {
     return enterpriseServers[name] ?? null
   }
@@ -1062,15 +1062,15 @@ export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
 }
 
 /**
- * Get Blink MCP configurations (excludes blink web servers from the
+ * Get Tovyr MCP configurations (excludes tovyr web servers from the
  * returned set â€” they're fetched separately and merged by callers).
  * This is fast: only local file reads; no awaited network calls on the
  * critical path. The optional extraDedupTargets promise (e.g. the in-flight
- * blink web connector fetch) is awaited only after loadAllPluginsCacheOnly() completes,
+ * tovyr web connector fetch) is awaited only after loadAllPluginsCacheOnly() completes,
  * so the two overlap rather than serialize.
- * @returns Blink server configurations with appropriate scopes
+ * @returns Tovyr server configurations with appropriate scopes
  */
-export async function getBlinkMcpConfigs(
+export async function getTovyrMcpConfigs(
   dynamicServers: Record<string, ScopedMcpServerConfig> = {},
   extraDedupTargets: Promise<
     Record<string, ScopedMcpServerConfig>
@@ -1239,19 +1239,19 @@ export async function getBlinkMcpConfigs(
     localServers,
   )
 
-  // Blink built-in in-process MCP (sequential thinking, memory graph)
+  // Tovyr built-in in-process MCP (sequential thinking, memory graph)
   try {
-    const { getBlinkBuiltinMcpServerConfigs } = await import(
+    const { getTovyrBuiltinMcpServerConfigs } = await import(
       '../../mcp/builtin/configs.js'
     )
-    const builtins = getBlinkBuiltinMcpServerConfigs()
+    const builtins = getTovyrBuiltinMcpServerConfigs()
     for (const [name, config] of Object.entries(builtins)) {
       if (!(name in configs)) {
         configs[name] = config
       }
     }
   } catch {
-    // Optional â€” non-Blink builds skip builtins
+    // Optional â€” non-Tovyr builds skip builtins
   }
 
   // Apply policy filtering to merged configs
@@ -1268,23 +1268,23 @@ export async function getBlinkMcpConfigs(
 }
 
 /**
- * Get all MCP configurations across all scopes, including blink web servers.
- * This may be slow due to network calls - use getBlinkCodeMcpConfigs() for fast startup.
+ * Get all MCP configurations across all scopes, including tovyr web servers.
+ * This may be slow due to network calls - use getTovyrCodeMcpConfigs() for fast startup.
  * @returns All server configurations with appropriate scopes
  */
 export async function getAllMcpConfigs(): Promise<{
   servers: Record<string, ScopedMcpServerConfig>
   errors: PluginError[]
 }> {
-  // In enterprise mode, don't load blink web servers (enterprise has exclusive control)
+  // In enterprise mode, don't load tovyr web servers (enterprise has exclusive control)
   if (doesEnterpriseMcpConfigExist()) {
-    return getBlinkMcpConfigs()
+    return getTovyrMcpConfigs()
   }
 
-  // Kick off the blink web fetch before getBlinkCodeMcpConfigs so it overlaps
+  // Kick off the tovyr web fetch before getTovyrCodeMcpConfigs so it overlaps
   // with loadAllPluginsCacheOnly() inside. Memoized â€” the awaited call below is a cache hit.
-  const claudeaiPromise = fetchBlinkWebMcpConfigsIfEligible()
-  const { servers: claudeCodeServers, errors } = await getBlinkMcpConfigs(
+  const claudeaiPromise = fetchTovyrWebMcpConfigsIfEligible()
+  const { servers: claudeCodeServers, errors } = await getTovyrMcpConfigs(
     {},
     claudeaiPromise,
   )
@@ -1292,15 +1292,15 @@ export async function getAllMcpConfigs(): Promise<{
     await claudeaiPromise,
   )
 
-  // Suppress blink web connectors that duplicate an enabled manual server.
-  // Keys never collide (`slack` vs `blink web Slack`) so the merge below
+  // Suppress tovyr web connectors that duplicate an enabled manual server.
+  // Keys never collide (`slack` vs `tovyr web Slack`) so the merge below
   // won't catch this â€” need content-based dedup by URL signature.
   const { servers: dedupedClaudeAi } = dedupClaudeAiMcpServers(
     claudeaiMcpServers,
     claudeCodeServers,
   )
 
-  // Merge with blink web having lowest precedence
+  // Merge with tovyr web having lowest precedence
   const servers = Object.assign({}, dedupedClaudeAi, claudeCodeServers)
 
   return { servers, errors }
@@ -1376,7 +1376,7 @@ export function parseMcpConfig(params: {
         ...(filePath && { file: filePath }),
         path: `mcpServers.${name}`,
         message: `Windows requires 'cmd /c' wrapper to execute npx`,
-        suggestion: `Change command to "cmd" with args ["/c", "npx", ...]. See: https://github.com/itsdexy/BlinkCode/blob/main/docs/GUIDE.md#configure-mcp-servers`,
+        suggestion: `Change command to "cmd" with args ["/c", "npx", ...]. See: https://github.com/itsdexy/Tovyr/blob/main/docs/GUIDE.md#configure-mcp-servers`,
         mcpErrorMetadata: {
           scope,
           serverName: name,
@@ -1512,9 +1512,9 @@ export function areMcpConfigsAllowedWithEnterpriseMcpConfig(
   configs: Record<string, ScopedMcpServerConfig>,
 ): boolean {
   // NOTE: While all SDK MCP servers should be safe from a security perspective, we are still discussing
-  // what the best way to do this is. In the meantime, we are limiting this to blink-vscode for now to
+  // what the best way to do this is. In the meantime, we are limiting this to tovyr-vscode for now to
   // unbreak the VSCode extension for certain enterprise customers who have enterprise MCP config enabled.
-  // https://blink.slack.com/archives/C093UA0KLD7/p1764975463670109
+  // https://tovyr.slack.com/archives/C093UA0KLD7/p1764975463670109
   return Object.values(configs).every(
     c => c.type === 'sdk' && c.name === 'claude-vscode',
   )

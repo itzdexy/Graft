@@ -195,8 +195,8 @@ export const SOURCES = [
 ] as const satisfies readonly EditableSettingSource[]
 
 /**
- * The JSON Schema URL for Blink settings
- * You can edit the contents at https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/blink-settings.json
+ * The JSON Schema URL for Tovyr settings
+ * You can edit the contents at https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/tovyr-settings.json
  */
-export const CLAUDE_CODE_SETTINGS_SCHEMA_URL =
+export const TOVYR_CODE_SETTINGS_SCHEMA_URL =
   'https://json.schemastore.org/claude-code-settings.json'

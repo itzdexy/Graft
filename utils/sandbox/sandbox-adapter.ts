@@ -1,6 +1,6 @@
 /**
- * Adapter layer that wraps @blink-ai/sandbox-runtime with Blink CLI-specific integrations.
- * This file provides the bridge between the external sandbox-runtime package and Blink CLI's
+ * Adapter layer that wraps @tovyr-ai/sandbox-runtime with Tovyr CLI-specific integrations.
+ * This file provides the bridge between the external sandbox-runtime package and Tovyr CLI's
  * settings system, tool integration, and additional features.
  */
 
@@ -25,7 +25,7 @@ import { readFile } from 'fs/promises'
 import { memoize } from 'lodash-es'
 import { join, resolve, sep } from 'path'
 import {
-  getAdditionalDirectoriesForBlinkMd,
+  getAdditionalDirectoriesForTovyrMd,
   getCwdState,
   getOriginalCwd,
 } from '../../bootstrap/state.js'
@@ -54,7 +54,7 @@ import { FILE_EDIT_TOOL_NAME } from 'src/tools/FileEditTool/constants.js'
 import { FILE_READ_TOOL_NAME } from 'src/tools/FileReadTool/prompt.js'
 import { WEB_FETCH_TOOL_NAME } from 'src/tools/WebFetchTool/prompt.js'
 import { errorMessage } from '../errors.js'
-import { getBlinkTempDir } from '../permissions/filesystem.js'
+import { getTovyrTempDir } from '../permissions/filesystem.js'
 import type { PermissionRuleValue } from '../permissions/PermissionRule.js'
 import { ripgrepCommand } from '../ripgrep.js'
 
@@ -81,9 +81,9 @@ function permissionRuleExtractPrefix(permissionRule: string): string | null {
 }
 
 /**
- * Resolve Blink-specific path patterns for sandbox-runtime.
+ * Resolve Tovyr-specific path patterns for sandbox-runtime.
  *
- * Blink uses special path prefixes in permission rules:
+ * Tovyr uses special path prefixes in permission rules:
  * - `//path` → absolute from filesystem root (becomes `/path`)
  * - `/path` → relative to settings file directory (becomes `$SETTINGS_DIR/path`)
  * - `~/path` → passed through (sandbox-runtime handles this)
@@ -164,7 +164,7 @@ function shouldAllowManagedReadPathsOnly(): boolean {
 }
 
 /**
- * Convert Blink settings format to SandboxRuntimeConfig format
+ * Convert Tovyr settings format to SandboxRuntimeConfig format
  * (Function exported for testing)
  *
  * @param settings Merged settings (used for sandbox config like network, ripgrep, etc.)
@@ -220,15 +220,15 @@ export function convertToSandboxRuntimeConfig(
   }
 
   // Extract filesystem paths from Edit and Read rules
-  // Always include current directory and Blink temp directory as writable
+  // Always include current directory and Tovyr temp directory as writable
   // The temp directory is needed for Shell.ts cwd tracking files
-  const allowWrite: string[] = ['.', getBlinkTempDir()]
+  const allowWrite: string[] = ['.', getTovyrTempDir()]
   const denyWrite: string[] = []
   const denyRead: string[] = []
   const allowRead: string[] = []
 
   // Always deny writes to settings.json files to prevent sandbox escape
-  // This blocks settings in the original working directory (where Blink started)
+  // This blocks settings in the original working directory (where Tovyr started)
   const settingsPaths = SETTING_SOURCES.map(source =>
     getSettingsFilePathForSource(source),
   ).filter((p): p is string => p !== undefined)
@@ -244,10 +244,10 @@ export function convertToSandboxRuntimeConfig(
     denyWrite.push(resolve(cwd, '.claude', 'settings.local.json'))
   }
 
-  // Block writes to .blink/skills in both original and current working directories.
-  // The sandbox-runtime's getDangerousDirectories() protects .blink/commands and
-  // .blink/agents but not .blink/skills. Skills have the same privilege level
-  // (auto-discovered, auto-loaded, full Blink capabilities) so they need the
+  // Block writes to .tovyr/skills in both original and current working directories.
+  // The sandbox-runtime's getDangerousDirectories() protects .tovyr/commands and
+  // .tovyr/agents but not .tovyr/skills. Skills have the same privilege level
+  // (auto-discovered, auto-loaded, full Tovyr capabilities) so they need the
   // same OS-level sandbox protection.
   denyWrite.push(resolve(originalCwd, '.claude', 'skills'))
   if (cwd !== originalCwd) {
@@ -256,7 +256,7 @@ export function convertToSandboxRuntimeConfig(
 
   // SECURITY: Git's is_git_directory() treats cwd as a bare repo if it has
   // HEAD + objects/ + refs/. An attacker planting these (plus a config with
-  // core.fsmonitor) escapes the sandbox when Blink's unsandboxed git runs.
+  // core.fsmonitor) escapes the sandbox when Tovyr's unsandboxed git runs.
   //
   // Unconditionally denying these paths makes sandbox-runtime mount
   // /dev/null at non-existent ones, which (a) leaves a 0-byte HEAD stub on
@@ -294,7 +294,7 @@ export function convertToSandboxRuntimeConfig(
   // Two sources: persisted in settings, and session-only in bootstrap state.
   const additionalDirs = new Set([
     ...(settings.permissions?.additionalDirectories || []),
-    ...getAdditionalDirectoriesForBlinkMd(),
+    ...getAdditionalDirectoriesForTovyrMd(),
   ])
   allowWrite.push(...additionalDirs)
 
@@ -381,7 +381,7 @@ export function convertToSandboxRuntimeConfig(
 }
 
 // ============================================================================
-// Blink CLI-specific state
+// Tovyr CLI-specific state
 // ============================================================================
 
 let initializationPromise: Promise<void> | undefined
@@ -393,13 +393,13 @@ let settingsSubscriptionCleanup: (() => void) | undefined
 let worktreeMainRepoPath: string | null | undefined
 
 // Bare-repo files at cwd that didn't exist at config time and should be
-// scrubbed if they appear after a sandboxed command. See blinks/blink#29316.
+// scrubbed if they appear after a sandboxed command. See tovyrs/tovyr#29316.
 const bareGitRepoScrubPaths: string[] = []
 
 /**
  * Delete bare-repo files planted at cwd during a sandboxed command, before
- * Blink's unsandboxed git calls can see them. See the SECURITY block above
- * bareGitRepoFiles. blinks/blink#29316.
+ * Tovyr's unsandboxed git calls can see them. See the SECURITY block above
+ * bareGitRepoFiles. tovyrs/tovyr#29316.
  */
 function scrubBareGitRepoFiles(): void {
   for (const p of bareGitRepoScrubPaths) {
@@ -823,7 +823,7 @@ async function reset(): Promise<void> {
 
 /**
  * Add a command to the excluded commands list (commands that should not be sandboxed)
- * This is a Blink CLI-specific function that updates local settings.
+ * This is a Tovyr CLI-specific function that updates local settings.
  */
 export function addToExcludedCommands(
   command: string,
@@ -922,7 +922,7 @@ export interface ISandboxManager {
 }
 
 /**
- * Blink CLI sandbox manager - wraps sandbox-runtime with Blink-specific features
+ * Tovyr CLI sandbox manager - wraps sandbox-runtime with Tovyr-specific features
  */
 export const SandboxManager: ISandboxManager = {
   // Custom implementations

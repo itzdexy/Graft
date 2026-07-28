@@ -6,7 +6,7 @@ import {
   getLargeMemoryFiles,
   getMemoryFiles,
   MAX_MEMORY_CHARACTER_COUNT,
-} from './blinkmd.js'
+} from './tovyrmd.js'
 import { getMainLoopModel } from './model/model.js'
 import { permissionRuleValueToString } from './permissions/permissionRuleParser.js'
 import { detectUnreachableRules } from './permissions/shadowedRuleDetection.js'
@@ -40,7 +40,7 @@ export type ContextWarnings = {
   unreachableRulesWarning: ContextWarning | null
 }
 
-async function checkBlinkMdFiles(): Promise<ContextWarning | null> {
+async function checkTovyrMdFiles(): Promise<ContextWarning | null> {
   const largeFiles = getLargeMemoryFiles(await getMemoryFiles())
 
   // This already filters for files > 40k chars each
@@ -54,8 +54,8 @@ async function checkBlinkMdFiles(): Promise<ContextWarning | null> {
 
   const message =
     largeFiles.length === 1
-      ? `Large blink.md file detected (${largeFiles[0]!.content.length.toLocaleString()} chars > ${MAX_MEMORY_CHARACTER_COUNT.toLocaleString()})`
-      : `${largeFiles.length} large blink.md files detected (each > ${MAX_MEMORY_CHARACTER_COUNT.toLocaleString()} chars)`
+      ? `Large tovyr.md file detected (${largeFiles[0]!.content.length.toLocaleString()} chars > ${MAX_MEMORY_CHARACTER_COUNT.toLocaleString()})`
+      : `${largeFiles.length} large tovyr.md files detected (each > ${MAX_MEMORY_CHARACTER_COUNT.toLocaleString()} chars)`
 
   return {
     type: 'claudemd_files',
@@ -250,7 +250,7 @@ export async function checkContextWarnings(
 ): Promise<ContextWarnings> {
   const [claudeMdWarning, agentWarning, mcpWarning, unreachableRulesWarning] =
     await Promise.all([
-      checkBlinkMdFiles(),
+      checkTovyrMdFiles(),
       checkAgentDescriptions(agentInfo),
       checkMcpTools(tools, getToolPermissionContext, agentInfo),
       checkUnreachableRules(getToolPermissionContext),

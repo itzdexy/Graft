@@ -227,7 +227,7 @@ export const KeybindingsSchema = lazySchema(() =>
         .describe('Array of keybinding blocks by context'),
     })
     .describe(
-      'Blink keybindings configuration. Customize keyboard shortcuts by context.',
+      'Tovyr keybindings configuration. Customize keyboard shortcuts by context.',
     ),
 )
 

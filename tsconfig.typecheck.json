@@ -7,19 +7,19 @@
   },
   "include": [
     "utils/filePersistence/**/*.ts",
-    "utils/blinkStartupLoader.ts",
-    "hooks/useBlinkBootScreen.ts",
-    "components/blink/**/*.tsx",
+    "utils/tovyrStartupLoader.ts",
+    "hooks/useTovyrBootScreen.ts",
+    "components/tovyr/**/*.tsx",
     "mcp/builtin/**/*.ts",
-    "commands/blink/superthink.impl.tsx",
-    "services/blink/intent/**/*.ts",
-    "services/blink/openaiCompat/**/*.ts",
-    "services/blink/modelContext.ts",
-    "services/blink/validateProviderModel.ts",
-    "services/blink/providerFailover.ts",
-    "services/blink/applyActiveProvider.ts",
-    "services/blink/providerModels.ts",
-    "constants/blinkSystemPrompt.ts"
+    "commands/tovyr/superthink.impl.tsx",
+    "services/tovyr/intent/**/*.ts",
+    "services/tovyr/openaiCompat/**/*.ts",
+    "services/tovyr/modelContext.ts",
+    "services/tovyr/validateProviderModel.ts",
+    "services/tovyr/providerFailover.ts",
+    "services/tovyr/applyActiveProvider.ts",
+    "services/tovyr/providerModels.ts",
+    "constants/tovyrSystemPrompt.ts"
   ],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

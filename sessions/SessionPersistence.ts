@@ -87,7 +87,7 @@ class SessionPersistenceManager {
   private maxSessions: number = 100;
   private persistencePath: string;
 
-  constructor(persistencePath: string = '.blink/sessions') {
+  constructor(persistencePath: string = '.tovyr/sessions') {
     this.persistencePath = persistencePath;
     this.loadSessions();
     this.startAutoCheckpoint();

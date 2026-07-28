@@ -111,7 +111,7 @@ export class FocusManager {
     if (!this.enabled) return
 
     const tabbable = collectTabbable(root)
-    if (tabbable.length === 0) return
+    if (tabbable.length <= 1) return
 
     const currentIndex = this.activeElement
       ? tabbable.indexOf(this.activeElement)
@@ -125,7 +125,7 @@ export class FocusManager {
         : (currentIndex + direction + tabbable.length) % tabbable.length
 
     const next = tabbable[nextIndex]
-    if (next) {
+    if (next && next !== this.activeElement) {
       this.focus(next)
     }
   }

@@ -1,15 +1,15 @@
 /**
- * Constants for the official Blink plugins marketplace.
+ * Constants for the official Tovyr plugins marketplace.
  *
  * The official marketplace is hosted on GitHub and provides first-party
- * plugins developed by Blink. This file defines the constants needed
+ * plugins developed by Tovyr. This file defines the constants needed
  * to install and identify this marketplace.
  */
 
 import type { MarketplaceSource } from './schemas.js'
 
 /**
- * Source configuration for the official Blink plugins marketplace.
+ * Source configuration for the official Tovyr plugins marketplace.
  * Used when auto-installing the marketplace on startup.
  */
 export const OFFICIAL_MARKETPLACE_SOURCE = {

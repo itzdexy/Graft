@@ -5,7 +5,7 @@ import { getPlatform } from '../utils/platform.js'
 import type { KeybindingBlock } from './types.js'
 
 /**
- * Default keybindings that match current Blink behavior.
+ * Default keybindings that match current Tovyr behavior.
  * These are loaded first, then user keybindings.json overrides them.
  */
 
@@ -42,12 +42,13 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+l': 'app:redraw',
       'ctrl+t': 'app:toggleTodos',
       'ctrl+o': 'app:toggleTranscript',
-      ...(feature('BLINKS') || feature('BLINKS_BRIEF')
+      ...(feature('TOVYRS') || feature('TOVYRS_BRIEF')
         ? { 'ctrl+shift+b': 'app:toggleBrief' as const }
         : {}),
       'ctrl+shift+o': 'app:toggleTeammatePreview',
       'ctrl+r': 'history:search',
       'ctrl+k': 'app:commandPalette',
+      'ctrl+p': 'app:commandPalette',
       // File navigation. cmd+ bindings only fire on kitty-protocol terminals;
       // ctrl+shift is the portable fallback.
       ...(feature('QUICK_SEARCH')

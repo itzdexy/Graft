@@ -1,5 +1,5 @@
 /**
- * XDG Base Directory utilities for Blink CLI Native Installer
+ * XDG Base Directory utilities for Tovyr CLI Native Installer
  *
  * Implements the XDG Base Directory specification for organizing
  * native installer components across appropriate system directories.

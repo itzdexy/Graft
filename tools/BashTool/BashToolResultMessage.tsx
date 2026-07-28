@@ -5,7 +5,7 @@ import { MessageResponse } from '../../components/MessageResponse.js'
 import { OutputLine } from '../../components/shell/OutputLine.js'
 import { ShellTimeDisplay } from '../../components/shell/ShellTimeDisplay.js'
 import { Box, Text } from '../../ink.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import type { Out as BashOut } from './BashTool.js'
 
 type Props = {
@@ -62,7 +62,7 @@ function extractCwdResetWarning(stderr: string): {
   return { cleanedStderr, cwdResetWarning }
 }
 
-function BlinkShellResult({
+function TovyrShellResult({
   stdout,
   stderr,
   cwdResetWarning,
@@ -173,14 +173,14 @@ export default function BashToolResultMessage({
   if (isImage) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>[Image data detected and sent to Blink]</Text>
+        <Text dimColor>[Image data detected and sent to Tovyr]</Text>
       </MessageResponse>
     )
   }
 
-  if (isBlinkRuntime() && !verbose) {
+  if (isTovyrRuntime() && !verbose) {
     return (
-      <BlinkShellResult
+      <TovyrShellResult
         stdout={stdout}
         stderr={stderr}
         cwdResetWarning={cwdResetWarning}

@@ -25,7 +25,7 @@ export interface KnowledgeGraph {
 }
 
 function graphPath(cwd: string): string {
-  return join(cwd, '.blink', 'memory-graph.json')
+  return join(cwd, '.tovyr', 'memory-graph.json')
 }
 
 export function loadKnowledgeGraph(cwd: string): KnowledgeGraph {
@@ -42,7 +42,7 @@ export function loadKnowledgeGraph(cwd: string): KnowledgeGraph {
 
 export function saveKnowledgeGraph(cwd: string, graph: KnowledgeGraph): void {
   const path = graphPath(cwd)
-  mkdirSync(join(cwd, '.blink'), { recursive: true })
+  mkdirSync(join(cwd, '.tovyr'), { recursive: true })
   graph.updatedAt = new Date().toISOString()
   writeFileSync(path, JSON.stringify(graph, null, 2), 'utf8')
 }

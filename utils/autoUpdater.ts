@@ -11,8 +11,8 @@ import {
 import { type ReleaseChannel, saveGlobalConfig } from './config.js'
 import { logForDebugging } from './debug.js'
 import { env } from './env.js'
-import { getBlinkConfigHomeDir } from './envUtils.js'
-import { BlinkError, getErrnoCode, isENOENT } from './errors.js'
+import { getTovyrConfigHomeDir } from './envUtils.js'
+import { TovyrError, getErrnoCode, isENOENT } from './errors.js'
 import { execFileNoThrowWithCwd } from './execFileNoThrow.js'
 import { getFsImplementation } from './fsOperations.js'
 import { gracefulShutdownSync } from './gracefulShutdown.js'
@@ -30,7 +30,7 @@ import { jsonParse } from './slowOperations.js'
 const GCS_BUCKET_URL =
   'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases'
 
-class AutoUpdaterError extends BlinkError {}
+class AutoUpdaterError extends TovyrError {}
 
 export type InstallStatus =
   | 'success'
@@ -61,7 +61,7 @@ export type MaxVersionConfig = {
  *
  * Versioning approach:
  * 1. For version requirements/compatibility (assertMinVersion), we use semver comparison that ignores build metadata
- * 2. For updates ('blink update'), we use exact string comparison to detect any change, including SHA
+ * 2. For updates ('tovyr update'), we use exact string comparison to detect any change, including SHA
  *    - This ensures users always get the latest build, even when only the SHA changes
  *    - The UI clearly shows both versions including build metadata
  *
@@ -83,11 +83,11 @@ export async function assertMinVersion(): Promise<void> {
     ) {
       // biome-ignore lint/suspicious/noConsole:: intentional console output
       console.error(`
-It looks like your version of Blink (${MACRO.VERSION}) needs an update.
+It looks like your version of Tovyr (${MACRO.VERSION}) needs an update.
 A newer version (${versionConfig.minVersion} or higher) is required to continue.
 
 To update, please run:
-    claude update
+    tovyr update
 
 This will ensure you have access to the latest features and improvements.
 `)
@@ -166,7 +166,7 @@ const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 minute timeout for locks
  * This is a function to ensure it's evaluated at runtime after test setup
  */
 export function getLockFilePath(): string {
-  return join(getBlinkConfigHomeDir(), '.update.lock')
+  return join(getTovyrConfigHomeDir(), '.update.lock')
 }
 
 /**
@@ -229,7 +229,7 @@ async function acquireLock(): Promise<boolean> {
         // fs.mkdir from getFsImplementation() is always recursive:true and
         // swallows EEXIST internally, so a dir-creation race cannot reach the
         // catch below — only writeFile's EEXIST (true lock contention) can.
-        await fs.mkdir(getBlinkConfigHomeDir())
+        await fs.mkdir(getTovyrConfigHomeDir())
         await writeFile(lockPath, `${process.pid}`, {
           encoding: 'utf8',
           flag: 'wx',
@@ -482,13 +482,13 @@ export async function installGlobalPackage(
       console.error(`
 Error: Windows NPM detected in WSL
 
-You're running Blink in WSL but using the Windows NPM installation from /mnt/c/.
+You're running Tovyr in WSL but using the Windows NPM installation from /mnt/c/.
 This configuration is not supported for updates.
 
 To fix this issue:
   1. Install Node.js within your Linux distribution: e.g. sudo apt install nodejs npm
   2. Make sure Linux NPM is in your PATH before the Windows version
-  3. Try updating again with 'claude update'
+  3. Try updating again with 'tovyr update'
 `)
       return 'install_failed'
     }
@@ -533,7 +533,7 @@ To fix this issue:
 }
 
 /**
- * Remove blink aliases from shell configuration files
+ * Remove tovyr aliases from shell configuration files
  * This helps clean up old installation methods when switching to native or npm global
  */
 async function removeClaudeAliasesFromShellConfigs(): Promise<void> {
@@ -549,7 +549,7 @@ async function removeClaudeAliasesFromShellConfigs(): Promise<void> {
 
       if (hadAlias) {
         await writeFileLines(configFile, filtered)
-        logForDebugging(`Removed claude alias from ${configFile}`)
+        logForDebugging(`Removed tovyr alias from ${configFile}`)
       }
     } catch (error) {
       // Don't fail the whole operation if one file can't be processed

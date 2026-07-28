@@ -1,6 +1,6 @@
 import { chmodSync } from 'fs'
 import { join } from 'path'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import { getErrnoCode } from '../errors.js'
 import { getFsImplementation } from '../fsOperations.js'
 import {
@@ -11,7 +11,7 @@ import {
 import type { SecureStorage, SecureStorageData } from './types.js'
 
 function getStoragePath(): { storageDir: string; storagePath: string } {
-  const storageDir = getBlinkConfigHomeDir()
+  const storageDir = getTovyrConfigHomeDir()
   const storageFileName = '.credentials.json'
   return { storageDir, storagePath: join(storageDir, storageFileName) }
 }

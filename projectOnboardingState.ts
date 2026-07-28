@@ -1,6 +1,6 @@
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
-import { getAssistantName } from './utils/blinkBrand.js'
+import { getAssistantName } from './utils/tovyrBrand.js'
 import {
   getCurrentProjectConfig,
   saveCurrentProjectConfig,
@@ -20,7 +20,7 @@ export type Step = {
 export function getSteps(): Step[] {
   const fs = getFsImplementation()
   const hasClaudeMd =
-    fs.existsSync(join(getCwd(), 'blink.md')) ||
+    fs.existsSync(join(getCwd(), 'tovyr.md')) ||
     fs.existsSync(join(getCwd(), 'CLAUDE.md'))
   const isWorkspaceDirEmpty = isDirEmpty(getCwd())
 
@@ -34,7 +34,7 @@ export function getSteps(): Step[] {
     },
     {
       key: 'claudemd',
-      text: 'Run /init to create a blink.md file with instructions for Blink',
+      text: 'Run /init to create a tovyr.md file with instructions for Tovyr',
       isComplete: hasClaudeMd,
       isCompletable: true,
       isEnabled: !isWorkspaceDirEmpty,

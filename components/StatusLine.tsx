@@ -7,7 +7,7 @@ import type { AppState } from 'src/state/AppStateStore.js'
 import type { PermissionMode } from 'src/utils/permissions/PermissionMode.js'
 import {
   getIsRemoteMode,
-  getBlinksActive,
+  getTovyrsActive,
   getMainThreadAgentType,
   getOriginalCwd,
   getSdkBetas,
@@ -27,7 +27,7 @@ import {
 import { useMainLoopModel } from '../hooks/useMainLoopModel.js'
 import { type ReadonlySettings, useSettings } from '../hooks/useSettings.js'
 import { Ansi, Box, Text } from '../ink.js'
-import { getRawUtilization } from '../services/blinkWebLimits.js'
+import { getRawUtilization } from '../services/tovyrWebLimits.js'
 import type { Message } from '../types/message.js'
 import type { StatusLineCommandInput } from '../types/statusLine.js'
 import type { VimMode } from '../types/textInputTypes.js'
@@ -56,7 +56,7 @@ import {
 } from '../utils/tokens.js'
 import { getCurrentWorktreeSession } from '../utils/worktree.js'
 import { isVimModeEnabled } from './PromptInput/utils.js'
-import { isBlinkRuntime } from '../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 
 declare const MACRO: { VERSION: string }
 
@@ -64,8 +64,8 @@ export function statusLineShouldDisplay(settings: ReadonlySettings): boolean {
   // Assistant mode: statusline fields reflect the REPL/daemon process, not the
   // agent child. Hide it there; everywhere else, show our default or configured
   // status line.
-  if (feature('BLINKS') && getBlinksActive()) return false
-  if (isBlinkRuntime() && !settings?.statusLine?.command) return false
+  if (feature('TOVYRS') && getTovyrsActive()) return false
+  if (isTovyrRuntime() && !settings?.statusLine?.command) return false
   return true
 }
 
@@ -92,14 +92,14 @@ function contextBar(percent: number, width = 10): string {
 }
 
 function DefaultStatusLine(): React.ReactNode {
-  if (isBlinkRuntime()) return null
+  if (isTovyrRuntime()) return null
   const cwd = getCwd()
   const originalCwd = getOriginalCwd()
   const projectName = cwd.replace(originalCwd, '').replace(/^[/\\]/, '') || originalCwd
 
   return (
     <Text dimColor wrap="truncate">
-      <Text color="subtle">{projectName || 'Blink'}</Text>
+      <Text color="subtle">{projectName || 'Tovyr'}</Text>
       <Text color="subtle" dimColor> · </Text>
       <Text color="subtle" dimColor>online · v{MACRO.VERSION}</Text>
     </Text>

@@ -11,17 +11,17 @@ import {
 // namespace after mock.module() (daemon/auth.test.ts), breaking spyOn.
 import * as authModule from '../utils/auth.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
-import { blinkCmd } from '../constants/blink.js'
+import { tovyrCmd } from '../constants/tovyr.js'
 import { lt } from '../utils/semver.js'
 
 /**
  * Runtime check for bridge mode entitlement.
  *
- * Remote Control requires a blink web subscription (the bridge auths to CCR
- * with the blink web OAuth token). isBlinkAISubscriber() excludes
+ * Remote Control requires a tovyr web subscription (the bridge auths to CCR
+ * with the tovyr web OAuth token). isTovyrAISubscriber() excludes
  * Bedrock/Vertex/Foundry, apiKeyHelper/gateway deployments, env-var API keys,
  * and Console API logins — none of which have the OAuth token CCR needs.
- * See github.com/deshaw/blink-issues/issues/24.
+ * See github.com/deshaw/tovyr-issues/issues/24.
  *
  * The `feature('BRIDGE_MODE')` guard ensures the GrowthBook string literal
  * is only referenced when bridge mode is enabled at build time.
@@ -31,7 +31,7 @@ export function isBridgeEnabled(): boolean {
   // Negative pattern (if (!feature(...)) return) does not eliminate
   // inline string literals from external builds.
   return feature('BRIDGE_MODE')
-    ? isBlinkWebSubscriber() &&
+    ? isTovyrWebSubscriber() &&
         getFeatureValue_CACHED_MAY_BE_STALE('tengu_ccr_bridge', false)
     : false
 }
@@ -50,7 +50,7 @@ export function isBridgeEnabled(): boolean {
  */
 export async function isBridgeEnabledBlocking(): Promise<boolean> {
   return feature('BRIDGE_MODE')
-    ? isBlinkWebSubscriber() &&
+    ? isTovyrWebSubscriber() &&
         (await checkGate_CACHED_OR_BLOCKING('tengu_ccr_bridge'))
     : false
 }
@@ -63,21 +63,21 @@ export async function isBridgeEnabledBlocking(): Promise<boolean> {
  * The GrowthBook gate targets on organizationUUID, which comes from
  * config.oauthAccount — populated by /api/oauth/profile during login.
  * That endpoint requires the user:profile scope. Tokens without it
- * (setup-token, CLAUDE_CODE_OAUTH_TOKEN env var, or pre-scope-expansion
+ * (setup-token, TOVYR_CODE_OAUTH_TOKEN env var, or pre-scope-expansion
  * logins) leave oauthAccount unpopulated, so the gate falls back to
  * false and users see a dead-end "not enabled" message with no hint
  * that re-login would fix it. See CC-1165 / gh-33105.
  */
 export async function getBridgeDisabledReason(): Promise<string | null> {
   if (feature('BRIDGE_MODE')) {
-    if (!isBlinkWebSubscriber()) {
-      return `Remote Control requires a Blink web subscription. Run \`${blinkCmd('auth login')}\` to sign in with your Blink web account.`
+    if (!isTovyrWebSubscriber()) {
+      return `Remote Control requires a Tovyr web subscription. Run \`${tovyrCmd('auth login')}\` to sign in with your Tovyr web account.`
     }
     if (!hasProfileScope()) {
-      return `Remote Control requires a full-scope login token. Long-lived tokens (from \`${blinkCmd('setup-token')}\` or CLAUDE_CODE_OAUTH_TOKEN) are limited to inference-only for security reasons. Run \`${blinkCmd('auth login')}\` to use Remote Control.`
+      return `Remote Control requires a full-scope login token. Long-lived tokens (from \`${tovyrCmd('setup-token')}\` or TOVYR_CODE_OAUTH_TOKEN) are limited to inference-only for security reasons. Run \`${tovyrCmd('auth login')}\` to use Remote Control.`
     }
     if (!getOauthAccountInfo()?.organizationUuid) {
-      return `Unable to determine your organization for Remote Control eligibility. Run \`${blinkCmd('auth login')}\` to refresh your account information.`
+      return `Unable to determine your organization for Remote Control eligibility. Run \`${tovyrCmd('auth login')}\` to refresh your account information.`
     }
     if (!(await checkGate_CACHED_OR_BLOCKING('tengu_ccr_bridge'))) {
       return 'Remote Control is not yet enabled for your account.'
@@ -88,13 +88,13 @@ export async function getBridgeDisabledReason(): Promise<string | null> {
 }
 
 // try/catch: main.tsx:5698 calls isBridgeEnabled() while defining the Commander
-// program, before enableConfigs() runs. isBlinkAISubscriber() → getGlobalConfig()
+// program, before enableConfigs() runs. isTovyrAISubscriber() → getGlobalConfig()
 // throws "Config accessed before allowed" there. Pre-config, no OAuth token can
 // exist anyway — false is correct. Same swallow getFeatureValue_CACHED_MAY_BE_STALE
 // already does at growthbook.ts:775-780.
-function isBlinkWebSubscriber(): boolean {
+function isTovyrWebSubscriber(): boolean {
   try {
-    return authModule.isBlinkWebSubscriber()
+    return authModule.isTovyrWebSubscriber()
   } catch {
     return false
   }
@@ -134,7 +134,7 @@ export function isEnvLessBridgeEnabled(): boolean {
  * Kill-switch for the `cse_*` → `session_*` client-side retag shim.
  *
  * The shim exists because compat/convert.go:27 validates TagSession and the
- * blink web frontend routes on `session_*`, while v2 worker endpoints hand out
+ * tovyr web frontend routes on `session_*`, while v2 worker endpoints hand out
  * `cse_*`. Once the server tags by environment_kind and the frontend accepts
  * `cse_*` directly, flip this to false to make toCompatSessionId a no-op.
  * Defaults to true — the shim stays active until explicitly disabled.
@@ -167,7 +167,7 @@ export function checkBridgeMinVersion(): string | null {
       minVersion: string
     }>('tengu_bridge_min_version', { minVersion: '0.0.0' })
     if (config.minVersion && lt(MACRO.VERSION, config.minVersion)) {
-      return `Your version of Blink (${MACRO.VERSION}) is too old for Remote Control.\nVersion ${config.minVersion} or higher is required. Run \`${blinkCmd('update')}\` to update.`
+      return `Your version of Tovyr (${MACRO.VERSION}) is too old for Remote Control.\nVersion ${config.minVersion} or higher is required. Run \`${tovyrCmd('update')}\` to update.`
     }
   }
   return null
@@ -197,7 +197,7 @@ export function getCcrAutoConnectDefault(): boolean {
  */
 export function isCcrMirrorEnabled(): boolean {
   return feature('CCR_MIRROR')
-    ? isEnvTruthy(process.env.CLAUDE_CODE_CCR_MIRROR) ||
+    ? isEnvTruthy(process.env.TOVYR_CODE_CCR_MIRROR) ||
         getFeatureValue_CACHED_MAY_BE_STALE('tengu_ccr_mirror', false)
     : false
 }

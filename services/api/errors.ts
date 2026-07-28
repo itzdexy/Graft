@@ -16,9 +16,9 @@ import type {
 } from 'src/types/message.js'
 import {
   getAnthropicApiKeyWithSource,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   getOauthAccountInfo,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
 } from 'src/utils/auth.js'
 import {
   createAssistantAPIErrorMessage,
@@ -35,11 +35,11 @@ import {
   getDefaultModelId,
   getProvider,
   resolveActive,
-} from '../../scripts/blink-providers.js'
+} from '../../scripts/tovyr-providers.js'
 import {
-  formatBlinkModelUnavailableMessage,
-  formatBlinkNoApiKeyHelp,
-} from '../blink/providerFailover.js'
+  formatTovyrModelUnavailableMessage,
+  formatTovyrNoApiKeyHelp,
+} from '../tovyr/providerFailover.js'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import {
   API_PDF_MAX_PAGES,
@@ -54,10 +54,10 @@ import {
   logEvent,
 } from '../analytics/index.js'
 import {
-  type BlinkWebLimits,
+  type TovyrWebLimits,
   getRateLimitErrorMessage,
   type OverageDisabledReason,
-} from '../blinkWebLimits.js'
+} from '../tovyrWebLimits.js'
 import { shouldProcessRateLimits } from '../rateLimitMocking.js' // Used for /mock-limits command
 import { extractConnectionErrorDetails, formatAPIError } from './errorUtils.js'
 
@@ -205,27 +205,27 @@ export function getRequestTooLargeErrorMessage(): string {
     : `Request too large (${limits}). Double press esc to go back and try with a smaller file.`
 }
 export const OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE =
-  'Your account does not have access to Blink. Please run /login.'
+  'Your account does not have access to Tovyr. Please run /login.'
 
 export function getTokenRevokedErrorMessage(): string {
   return getIsNonInteractiveSession()
-    ? 'Your account does not have access to Blink. Please login again or contact your administrator.'
+    ? 'Your account does not have access to Tovyr. Please login again or contact your administrator.'
     : TOKEN_REVOKED_ERROR_MESSAGE
 }
 
 export function getOauthOrgNotAllowedErrorMessage(): string {
   return getIsNonInteractiveSession()
-    ? 'Your organization does not have access to Blink. Please login again or contact your administrator.'
+    ? 'Your organization does not have access to Tovyr. Please login again or contact your administrator.'
     : OAUTH_ORG_NOT_ALLOWED_ERROR_MESSAGE
 }
 
 /**
- * Check if we're in CCR (Blink Remote) mode.
+ * Check if we're in CCR (Tovyr Remote) mode.
  * In CCR mode, auth is handled via JWTs provided by the infrastructure,
  * not via /login. Transient auth errors should suggest retrying, not logging in.
  */
 function isCCRMode(): boolean {
-  return isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)
+  return isEnvTruthy(process.env.TOVYR_CODE_REMOTE)
 }
 
 // Temp helper to log tool_use/tool_result mismatch errors
@@ -475,7 +475,7 @@ export function getAssistantMessageFromError(
   if (
     error instanceof APIError &&
     error.status === 429 &&
-    shouldProcessRateLimits(isBlinkWebSubscriber())
+    shouldProcessRateLimits(isTovyrWebSubscriber())
   ) {
     // Check if this is the new API with multiple rate limit headers
     const rateLimitType = error.headers?.get?.(
@@ -489,7 +489,7 @@ export function getAssistantMessageFromError(
     // If we have the new headers, use the new message generation
     if (rateLimitType || overageStatus) {
       // Build limits object from error headers to determine the appropriate message
-      const limits: BlinkWebLimits = {
+      const limits: TovyrWebLimits = {
         status: 'rejected',
         unifiedRateLimitFallbackAvailable: false,
         isUsingOverage: false,
@@ -537,7 +537,7 @@ export function getAssistantMessageFromError(
       // If getRateLimitErrorMessage returned null, it means the fallback mechanism
       // will handle this silently (e.g., Opus -> Sonnet fallback for eligible users).
       // Return NO_RESPONSE_REQUESTED so no error is shown to the user, but the
-      // message is still recorded in conversation history for Blink to see.
+      // message is still recorded in conversation history for Tovyr to see.
       return createAssistantAPIErrorMessage({
         content: NO_RESPONSE_REQUESTED,
         error: 'rate_limit',
@@ -744,7 +744,7 @@ export function getAssistantMessageFromError(
 
   // Check for invalid model name error for subscription users trying to use Opus
   if (
-    isBlinkWebSubscriber() &&
+    isTovyrWebSubscriber() &&
     error instanceof APIError &&
     error.status === 400 &&
     error.message.toLowerCase().includes('invalid model name') &&
@@ -752,12 +752,12 @@ export function getAssistantMessageFromError(
   ) {
     return createAssistantAPIErrorMessage({
       content:
-        'Claude Opus is not available with the Claude Pro plan. If you have updated your subscription plan recently, run /logout and /login for the plan to take effect.',
+        'Tovyr Opus is not available with the Tovyr Pro plan. If you have updated your subscription plan recently, run /logout and /login for the plan to take effect.',
       error: 'invalid_request',
     })
   }
 
-  // Check for invalid model name error for Ant users. Blink may be
+  // Check for invalid model name error for Ant users. Tovyr may be
   // defaulting to a custom internal-only model for Ants, and there might be
   // Ants using new or unknown org IDs that haven't been gated in.
   if (
@@ -805,9 +805,9 @@ export function getAssistantMessageFromError(
     if (
       source === 'ANTHROPIC_API_KEY' &&
       process.env.ANTHROPIC_API_KEY &&
-      !isBlinkWebSubscriber()
+      !isTovyrWebSubscriber()
     ) {
-      const hasStoredOAuth = getBlinkWebOAuthTokens()?.accessToken != null
+      const hasStoredOAuth = getTovyrWebOAuthTokens()?.accessToken != null
       // Not 'authentication_failed' — that triggers VS Code's showLogin(), but
       // login can't fix this (approved env var keeps overriding OAuth). The fix
       // is configuration-based (unset the var), so invalid_request is correct.
@@ -876,8 +876,8 @@ export function getAssistantMessageFromError(
     error instanceof APIError &&
     (error.status === 401 || error.status === 403)
   ) {
-    const isBlink = !!(process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC)
-    if (isBlink) {
+    const isTovyr = !!(process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC)
+    if (isTovyr) {
       const provider = getProvider(getActiveProviderId())
       const hint = provider?.keyHint || 'your API key'
       const signup = provider?.signup ? `\nGet a key: ${provider.signup}` : ''
@@ -894,15 +894,15 @@ export function getAssistantMessageFromError(
           '  • Kimi For Coding membership key: switch provider to "Kimi For Coding" (/provider).\n' +
           '  • China keys: try Moonshot China provider (api.moonshot.cn).'
         : ''
-      const blinkAuthHelp = invalidAuth
-        ? `Authentication failed for ${provider?.label ?? 'your provider'}. Your saved key may be wrong, expired, or for a different provider.\n\nFix:\n  blink auth login --provider ${provider?.id ?? 'freemodel'} --key ${hint}\n  or in chat: /provider → enter API key\n\nThen restart blink or run /provider again to refresh this session.${signup}${moonshotHint}`
-        : `Authentication failed. Re-enter your key with /provider or:\n  blink auth login --key ${hint}${signup}`
+      const tovyrAuthHelp = invalidAuth
+        ? `Authentication failed for ${provider?.label ?? 'your provider'}. Your saved key may be wrong, expired, or for a different provider.\n\nFix:\n  tovyr auth login --provider ${provider?.id ?? 'freemodel'} --key ${hint}\n  or in chat: /provider → enter API key\n\nThen restart tovyr or run /provider again to refresh this session.${signup}${moonshotHint}`
+        : `Authentication failed. Re-enter your key with /provider or:\n  tovyr auth login --key ${hint}${signup}`
 
       return createAssistantAPIErrorMessage({
         error: 'authentication_failed',
         content: getIsNonInteractiveSession()
-          ? `${API_ERROR_MESSAGE_PREFIX}: ${error.message}\n\n${blinkAuthHelp}`
-          : blinkAuthHelp,
+          ? `${API_ERROR_MESSAGE_PREFIX}: ${error.message}\n\n${tovyrAuthHelp}`
+          : tovyrAuthHelp,
       })
     }
 
@@ -925,7 +925,7 @@ export function getAssistantMessageFromError(
   // Bedrock errors like "403 You don't have access to the model with the specified model ID."
   // don't contain the actual model ID
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) &&
+    isEnvTruthy(process.env.TOVYR_CODE_USE_BEDROCK) &&
     error instanceof Error &&
     error.message.toLowerCase().includes('model id')
   ) {
@@ -944,17 +944,17 @@ export function getAssistantMessageFromError(
   // For 3P users, suggest a specific fallback model they can try.
   if (error instanceof APIError && error.status === 404) {
     const switchCmd = getModelSwitchCommand()
-    const isBlink = !!(process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC)
-    if (isBlink) {
+    const isTovyr = !!(process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC)
+    if (isTovyr) {
       const active = resolveActive()
       if (!active) {
         return createAssistantAPIErrorMessage({
-          content: formatBlinkNoApiKeyHelp(),
+          content: formatTovyrNoApiKeyHelp(),
           error: 'authentication_failed',
         })
       }
       return createAssistantAPIErrorMessage({
-        content: formatBlinkModelUnavailableMessage(model),
+        content: formatTovyrModelUnavailableMessage(model),
         error: 'invalid_request',
       })
     }
@@ -988,10 +988,10 @@ export function getAssistantMessageFromError(
 }
 
 /**
- * Slash flag or command for switching models (Blink provider picker uses /model).
+ * Slash flag or command for switching models (Tovyr provider picker uses /model).
  */
 function getModelSwitchCommand(): string {
-  const isBlink = !!(process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC)
+  const isTovyr = !!(process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC)
   if (getIsNonInteractiveSession()) return '--model'
   return '/model'
 }
@@ -1001,8 +1001,8 @@ function getModelSwitchCommand(): string {
  * Returns a model name suggestion, or undefined if no suggestion is applicable.
  */
 function get3PModelFallbackSuggestion(model: string): string | undefined {
-  const isBlink = !!(process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC)
-  if (isBlink) {
+  const isTovyr = !!(process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC)
+  if (isTovyr) {
     const m = model.toLowerCase()
     if (m.includes('kimi')) return 'kimi-k2.6'
     const provider = getProvider(getActiveProviderId())
@@ -1206,7 +1206,7 @@ export function classifyAPIError(error: unknown): string {
 
   // Bedrock-specific errors
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) &&
+    isEnvTruthy(process.env.TOVYR_CODE_USE_BEDROCK) &&
     error instanceof Error &&
     error.message.toLowerCase().includes('model id')
   ) {
@@ -1264,8 +1264,8 @@ export function getErrorMessageIfRefusal(
   logEvent('tengu_refusal_api_response', {})
 
   const baseMessage = getIsNonInteractiveSession()
-    ? `${API_ERROR_MESSAGE_PREFIX}: Blink is unable to respond to this request, which appears to violate our Usage Policy (https://www.anthropic.com/legal/aup). Try rephrasing the request or attempting a different approach.`
-    : `${API_ERROR_MESSAGE_PREFIX}: Blink is unable to respond to this request, which appears to violate our Usage Policy (https://www.anthropic.com/legal/aup). Please double press esc to edit your last message or start a new session for Blink to assist with a different task.`
+    ? `${API_ERROR_MESSAGE_PREFIX}: Tovyr is unable to respond to this request, which appears to violate our Usage Policy (https://www.anthropic.com/legal/aup). Try rephrasing the request or attempting a different approach.`
+    : `${API_ERROR_MESSAGE_PREFIX}: Tovyr is unable to respond to this request, which appears to violate our Usage Policy (https://www.anthropic.com/legal/aup). Please double press esc to edit your last message or start a new session for Tovyr to assist with a different task.`
 
   const modelSuggestion =
     model !== 'claude-sonnet-4-20250514'

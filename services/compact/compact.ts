@@ -3,7 +3,7 @@ import type { UUID } from 'crypto'
 import uniqBy from 'lodash-es/uniqBy.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const sessionTranscriptModule = feature('BLINKS')
+const sessionTranscriptModule = feature('TOVYRS')
   ? (require('../sessionTranscript/sessionTranscript.js') as typeof import('../sessionTranscript/sessionTranscript.js'))
   : null
 
@@ -122,7 +122,7 @@ import {
 export const POST_COMPACT_MAX_FILES_TO_RESTORE = 5
 export const POST_COMPACT_TOKEN_BUDGET = 50_000
 export const POST_COMPACT_MAX_TOKENS_PER_FILE = 5_000
-// Skills can be large (verify=18.7KB, blink-api=20.1KB). Previously re-injected
+// Skills can be large (verify=18.7KB, tovyr-api=20.1KB). Previously re-injected
 // unbounded on every compact → 5-10K tok/compact. Per-skill truncation beats
 // dropping — instructions at the top of a skill file are usually the critical
 // part. Budget sized to hold ~5 skills at the per-skill cap.
@@ -712,7 +712,7 @@ export async function compactConversation(
 
     // Write a reduced transcript segment for the pre-compaction messages
     // (assistant mode only). Fire-and-forget — errors are logged internally.
-    if (feature('BLINKS')) {
+    if (feature('TOVYRS')) {
       void sessionTranscriptModule?.writeSessionTranscriptSegment(messages)
     }
 
@@ -1056,7 +1056,7 @@ export async function partialCompactConversation(
     // the 16KB tail window that readLiteMetadata reads for --resume display.
     reAppendSessionMetadata()
 
-    if (feature('BLINKS')) {
+    if (feature('TOVYRS')) {
       void sessionTranscriptModule?.writeSessionTranscriptSegment(
         messagesToSummarize,
       )
@@ -1181,7 +1181,7 @@ async function streamCompactSummary({
         // DO NOT set maxOutputTokens here. The fork piggybacks on the main thread's
         // prompt cache by sending identical cache-key params (system, tools, model,
         // messages prefix, thinking config). Setting maxOutputTokens would clamp
-        // budget_tokens via Math.min(budget, maxOutputTokens-1) in blink.ts,
+        // budget_tokens via Math.min(budget, maxOutputTokens-1) in tovyr.ts,
         // creating a thinking config mismatch that invalidates the cache.
         // The streaming fallback path (below) can safely set maxOutputTokensOverride
         // since it doesn't share cache with the main thread.
@@ -1686,9 +1686,9 @@ function shouldExcludeFromPostCompactRestore(
     // If we can't get plan file path, continue with other checks
   }
 
-  // Exclude all types of blink.md files
-  // TODO: Refactor to use isMemoryFilePath() from blinkmd.ts for consistency
-  // and to also match child directory memory files (.blink/rules/*.md, etc.)
+  // Exclude all types of tovyr.md files
+  // TODO: Refactor to use isMemoryFilePath() from tovyrmd.ts for consistency
+  // and to also match child directory memory files (.tovyr/rules/*.md, etc.)
   try {
     const normalizedMemoryPaths = new Set(
       MEMORY_TYPE_VALUES.map(type => expandPath(getMemoryPath(type))),

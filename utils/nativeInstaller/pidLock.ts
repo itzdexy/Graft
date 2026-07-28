@@ -1,7 +1,7 @@
 /**
  * PID-Based Version Locking
  *
- * This module provides PID-based locking for running Blink versions.
+ * This module provides PID-based locking for running Tovyr versions.
  * Unlike mtime-based locking (which can hold locks for 30 days after a crash),
  * PID-based locking can immediately detect when a process is no longer running.
  *
@@ -95,16 +95,16 @@ export function isProcessRunning(pid: number): boolean {
 }
 
 /**
- * Validate that a running process is actually a Blink process
+ * Validate that a running process is actually a Tovyr process
  * This helps mitigate PID reuse issues
  */
-function isBlinkProcess(pid: number, expectedExecPath: string): boolean {
+function isTovyrProcess(pid: number, expectedExecPath: string): boolean {
   if (!isProcessRunning(pid)) {
     return false
   }
 
   // If the PID matches our current process, we know it's valid
-  // This handles test environments where the command might not contain 'blink'
+  // This handles test environments where the command might not contain 'tovyr'
   if (pid === process.pid) {
     return true
   }
@@ -117,7 +117,7 @@ function isBlinkProcess(pid: number, expectedExecPath: string): boolean {
       return true
     }
 
-    // Check if the command contains 'blink' or the expected exec path
+    // Check if the command contains 'tovyr' or the expected exec path
     const normalizedCommand = command.toLowerCase()
     const normalizedExecPath = expectedExecPath.toLowerCase()
 
@@ -175,11 +175,11 @@ export function isLockActive(lockFilePath: string): boolean {
     return false
   }
 
-  // Secondary validation: is it actually a Blink process?
+  // Secondary validation: is it actually a Tovyr process?
   // This helps with PID reuse scenarios
-  if (!isBlinkProcess(pid, execPath)) {
+  if (!isTovyrProcess(pid, execPath)) {
     logForDebugging(
-      `Lock PID ${pid} is running but does not appear to be Blink - treating as stale`,
+      `Lock PID ${pid} is running but does not appear to be Tovyr - treating as stale`,
     )
     return false
   }
@@ -244,7 +244,7 @@ export async function tryAcquireLock(
 
   // Check if there's an existing active lock (including by our own process)
   // Use isLockActive for consistency with cleanup - it checks both PID running AND
-  // validates it's actually a Blink process (to handle PID reuse scenarios)
+  // validates it's actually a Tovyr process (to handle PID reuse scenarios)
   if (isLockActive(lockFilePath)) {
     const existingContent = readLockContent(lockFilePath)
     logForDebugging(

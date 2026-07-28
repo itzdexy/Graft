@@ -2,7 +2,7 @@
  * Settings Sync Types
  *
  * Zod schemas and types for the user settings sync API.
- * Based on the backend API contract from blink/blink#218817.
+ * Based on the backend API contract from tovyr/tovyr#218817.
  */
 
 import { z } from 'zod/v4'
@@ -20,7 +20,7 @@ export const UserSyncContentSchema = lazySchema(() =>
 )
 
 /**
- * Full response from GET /api/blink_code/user_settings
+ * Full response from GET /api/tovyr_code/user_settings
  */
 export const UserSyncDataSchema = lazySchema(() =>
   z.object({

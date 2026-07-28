@@ -8,9 +8,9 @@ import {
   getSubscriptionType,
   isOverageProvisioningAllowed,
 } from '../utils/auth.js'
-import { hasBlinkWebBillingAccess } from '../utils/billing.js'
+import { hasTovyrWebBillingAccess } from '../utils/billing.js'
 import { formatResetTime } from '../utils/format.js'
-import type { BlinkWebLimits } from './blinkWebLimits.js'
+import type { TovyrWebLimits } from './tovyrWebLimits.js'
 
 const FEEDBACK_CHANNEL_ANT = '#briarpatch-cc'
 
@@ -43,7 +43,7 @@ export type RateLimitMessage = {
  * Returns null if no message should be shown
  */
 export function getRateLimitMessage(
-  limits: BlinkWebLimits,
+  limits: TovyrWebLimits,
   model: string,
 ): RateLimitMessage | null {
   // Check overage scenarios first (when subscription is rejected but overage is available)
@@ -88,7 +88,7 @@ export function getRateLimitMessage(
     if (
       isTeamOrEnterprise &&
       hasExtraUsageEnabled &&
-      !hasBlinkWebBillingAccess()
+      !hasTovyrWebBillingAccess()
     ) {
       return null
     }
@@ -108,7 +108,7 @@ export function getRateLimitMessage(
  * Returns the message string or null if no error message should be shown
  */
 export function getRateLimitErrorMessage(
-  limits: BlinkWebLimits,
+  limits: TovyrWebLimits,
   model: string,
 ): string | null {
   const message = getRateLimitMessage(limits, model)
@@ -126,7 +126,7 @@ export function getRateLimitErrorMessage(
  * Returns the warning message string or null if no warning should be shown
  */
 export function getRateLimitWarning(
-  limits: BlinkWebLimits,
+  limits: TovyrWebLimits,
   model: string,
 ): string | null {
   const message = getRateLimitMessage(limits, model)
@@ -140,7 +140,7 @@ export function getRateLimitWarning(
   return null
 }
 
-function getLimitReachedText(limits: BlinkWebLimits, model: string): string {
+function getLimitReachedText(limits: TovyrWebLimits, model: string): string {
   const resetsAt = limits.resetsAt
   const resetTime = resetsAt ? formatResetTime(resetsAt, true) : undefined
   const overageResetTime = limits.overageResetsAt
@@ -196,7 +196,7 @@ function getLimitReachedText(limits: BlinkWebLimits, model: string): string {
   return formatLimitReachedText('usage limit', resetMessage, model)
 }
 
-function getEarlyWarningText(limits: BlinkWebLimits): string | null {
+function getEarlyWarningText(limits: TovyrWebLimits): string | null {
   let limitName: string | null = null
   switch (limits.rateLimitType) {
     case 'seven_day':
@@ -259,7 +259,7 @@ function getEarlyWarningText(limits: BlinkWebLimits): string | null {
  * Only used for warnings because actual rate limit hits will see an interactive menu of options.
  */
 function getWarningUpsellText(
-  rateLimitType: BlinkWebLimits['rateLimitType'],
+  rateLimitType: TovyrWebLimits['rateLimitType'],
 ): string | null {
   const subscriptionType = getSubscriptionType()
   const hasExtraUsageEnabled =
@@ -279,7 +279,7 @@ function getWarningUpsellText(
 
     // Pro/Max users: prompt to upgrade
     if (subscriptionType === 'pro' || subscriptionType === 'max') {
-      return '/upgrade to keep using Blink'
+      return '/upgrade to keep using Tovyr'
     }
   }
 
@@ -300,7 +300,7 @@ function getWarningUpsellText(
  * Get notification text for overage mode transitions
  * Used for transient notifications when entering overage mode
  */
-export function getUsingOverageText(limits: BlinkWebLimits): string {
+export function getUsingOverageText(limits: TovyrWebLimits): string {
   const resetTime = limits.resetsAt
     ? formatResetTime(limits.resetsAt, true)
     : ''

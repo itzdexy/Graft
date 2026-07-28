@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const mode = {
   type: 'local-jsx',
   name: 'mode',
-  description: 'Show current permission mode and Blink mode commands',
+  description: 'Show current permission mode and Tovyr mode commands',
   load: () => import('./mode.js'),
 } satisfies Command
 

@@ -4,7 +4,7 @@ import { isPolicyAllowed } from '../../services/policyLimits/index.js'
 import type { ToolUseContext } from '../../Tool.js'
 import { ASK_USER_QUESTION_TOOL_NAME } from '../../tools/AskUserQuestionTool/prompt.js'
 import { REMOTE_TRIGGER_TOOL_NAME } from '../../tools/RemoteTriggerTool/prompt.js'
-import { getBlinkWebOAuthTokens } from '../../utils/auth.js'
+import { getTovyrWebOAuthTokens } from '../../utils/auth.js'
 import { checkRepoForRemoteAccess } from '../../utils/background/remote/preconditions.js'
 import { logForDebugging } from '../../utils/debug.js'
 import {
@@ -173,7 +173,7 @@ Set \`header: "Action"\` and offer the four actions (create/list/update/run) as 
 
   return `# Schedule Remote Agents
 
-You are helping the user schedule, update, list, or run **remote** Blink agents. These are NOT local cron jobs — each trigger spawns a fully isolated remote session (CCR) in Anthropic's cloud infrastructure on a cron schedule. The agent runs in a sandboxed environment with its own git checkout, tools, and optional MCP connections.
+You are helping the user schedule, update, list, or run **remote** Tovyr agents. These are NOT local cron jobs — each trigger spawns a fully isolated remote session (CCR) in Anthropic's cloud infrastructure on a cron schedule. The agent runs in a sandboxed environment with its own git checkout, tools, and optional MCP connections.
 
 ## First Step
 
@@ -190,7 +190,7 @@ Use the \`${REMOTE_TRIGGER_TOOL_NAME}\` tool (load it first with \`ToolSearch se
 - \`{action: "update", trigger_id: "...", body: {...}}\` — partial update
 - \`{action: "run", trigger_id: "..."}\` — run a trigger now
 
-You CANNOT delete triggers. If the user asks to delete, direct them to: Blink scheduled agents (web)
+You CANNOT delete triggers. If the user asks to delete, direct them to: Tovyr scheduled agents (web)
 
 ## Create body shape
 
@@ -203,7 +203,7 @@ You CANNOT delete triggers. If the user asks to delete, direct them to: Blink sc
     "ccr": {
       "environment_id": "ENVIRONMENT_ID",
       "session_context": {
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet",
         "sources": [
           {"git_repository": {"url": "${gitRepoUrl || 'https://github.com/ORG/REPO'}"}}
         ],
@@ -227,7 +227,7 @@ Generate a fresh lowercase UUID for \`events[].data.uuid\` yourself.
 
 ## Available MCP Connectors
 
-These are the user's currently connected Blink MCP connectors:
+These are the user's currently connected Tovyr MCP connectors:
 
 ${connectorsInfo}
 
@@ -286,10 +286,10 @@ Minimum interval is 1 hour. \`*/30 * * * *\` will be rejected.
    - Clear about which files/areas to focus on
    - Explicit about what actions to take (open PRs, commit, just analyze, etc.)
 3. **Set the schedule** — Ask when and how often. The user's timezone is ${userTimezone}. When they say a time (e.g., "every morning at 9am"), assume they mean their local time and convert to UTC for the cron expression. Always confirm the conversion: "9am ${userTimezone} = Xam UTC."
-4. **Choose the model** — Default to \`claude-sonnet-4-6\`. Tell the user which model you're defaulting to and ask if they want a different one.
+4. **Choose the model** — Default to \`claude-sonnet\`. Tell the user which model you're defaulting to and ask if they want a different one.
 5. **Validate connections** — Infer what services the agent will need from the user's description. For example, if they say "check Datadog and Slack me errors," the agent needs both Datadog and Slack MCP connectors. Cross-reference with the connectors list above. If any are missing, warn the user and tell them to run /mcp to connect first.${gitRepoUrl ? ` The default git repo is already set to \`${gitRepoUrl}\`. Ask the user if this is the right repo or if they need a different one.` : ' Ask which git repos the remote agent needs cloned into its environment.'}
 6. **Review and confirm** — Show the full configuration before creating. Let them adjust.
-7. **Create it** \u2014 Call \`${REMOTE_TRIGGER_TOOL_NAME}\` with \`action: "create"\` and show the result. The response includes the trigger ID. Always output a link at the end: \`Blink scheduled agents (web)/{TRIGGER_ID}\`
+7. **Create it** \u2014 Call \`${REMOTE_TRIGGER_TOOL_NAME}\` with \`action: "create"\` and show the result. The response includes the trigger ID. Always output a link at the end: \`Tovyr scheduled agents (web)/{TRIGGER_ID}\`
 
 ### UPDATE a trigger:
 
@@ -316,8 +316,8 @@ Minimum interval is 1 hour. \`*/30 * * * *\` will be rejected.
 - Default to \`enabled: true\` unless user says otherwise
 - Accept GitHub URLs in any format (https://github.com/org/repo, org/repo, etc.) and normalize to the full HTTPS URL (without .git suffix)
 - The prompt is the most important part — spend time getting it right. The remote agent starts with zero context, so the prompt must be self-contained.
-- To delete a trigger, direct users to Blink scheduled agents (web)
-${needsGitHubAccessReminder ? `- If the user's request seems to require GitHub repo access (e.g. cloning a repo, opening PRs, reading code), remind them that ${getFeatureValue_CACHED_MAY_BE_STALE('tengu_cobalt_lantern', false) ? "they should run /web-setup to connect their GitHub account (or install the Blink GitHub App on the repo as an alternative) — otherwise the remote agent won't be able to access it" : "they need the Blink GitHub App installed on the repo — otherwise the remote agent won't be able to access it"}.` : ''}
+- To delete a trigger, direct users to Tovyr scheduled agents (web)
+${needsGitHubAccessReminder ? `- If the user's request seems to require GitHub repo access (e.g. cloning a repo, opening PRs, reading code), remind them that ${getFeatureValue_CACHED_MAY_BE_STALE('tengu_cobalt_lantern', false) ? "they should run /web-setup to connect their GitHub account (or install the Tovyr GitHub App on the repo as an alternative) — otherwise the remote agent won't be able to access it" : "they need the Tovyr GitHub App installed on the repo — otherwise the remote agent won't be able to access it"}.` : ''}
 ${userArgs ? `\n## User Request\n\nThe user said: "${userArgs}"\n\nStart by understanding their intent and working through the appropriate workflow above.` : ''}`
 }
 
@@ -327,18 +327,18 @@ export function registerScheduleRemoteAgentsSkill(): void {
     description:
       'Create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule.',
     whenToUse:
-      'When the user wants to schedule a recurring remote agent, set up automated tasks, create a cron job for Blink, or manage their scheduled agents/triggers.',
+      'When the user wants to schedule a recurring remote agent, set up automated tasks, create a cron job for Tovyr, or manage their scheduled agents/triggers.',
     userInvocable: true,
     isEnabled: () =>
       getFeatureValue_CACHED_MAY_BE_STALE('tengu_surreal_dali', false) &&
       isPolicyAllowed('allow_remote_sessions'),
     allowedTools: [REMOTE_TRIGGER_TOOL_NAME, ASK_USER_QUESTION_TOOL_NAME],
     async getPromptForCommand(args: string, context: ToolUseContext) {
-      if (!getBlinkAIOAuthTokens()?.accessToken) {
+      if (!getTovyrAIOAuthTokens()?.accessToken) {
         return [
           {
             type: 'text',
-            text: 'You need to authenticate with a Blink web account first. API accounts are not supported. Run /login, then try /schedule again.',
+            text: 'You need to authenticate with a Tovyr web account first. API accounts are not supported. Run /login, then try /schedule again.',
           },
         ]
       }
@@ -353,7 +353,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
         return [
           {
             type: 'text',
-            text: "We're having trouble connecting with your remote Blink web account to set up a scheduled task. Please try /schedule again in a few minutes.",
+            text: "We're having trouble connecting with your remote Tovyr web account to set up a scheduled task. Please try /schedule again in a few minutes.",
           },
         ]
       }
@@ -372,7 +372,7 @@ export function registerScheduleRemoteAgentsSkill(): void {
           return [
             {
               type: 'text',
-              text: 'No remote environments found, and we could not create one automatically. Visit blink.dev/web to set one up, then run /schedule again.',
+              text: 'No remote environments found, and we could not create one automatically. Visit tovyr.dev/web to set one up, then run /schedule again.',
             },
           ]
         }
@@ -402,8 +402,8 @@ export function registerScheduleRemoteAgentsSkill(): void {
             false,
           )
           const msg = webSetupEnabled
-            ? `GitHub not connected for ${repo.owner}/${repo.name} \u2014 run /web-setup to sync your GitHub credentials, or connect GitHub via blink.dev/web.`
-            : `GitHub App not installed on ${repo.owner}/${repo.name} \u2014 connect GitHub via blink.dev/web if your trigger needs this repo.`
+            ? `GitHub not connected for ${repo.owner}/${repo.name} \u2014 run /web-setup to sync your GitHub credentials, or connect GitHub via tovyr.dev/web.`
+            : `GitHub App not installed on ${repo.owner}/${repo.name} \u2014 connect GitHub via tovyr.dev/web if your trigger needs this repo.`
           setupNotes.push(msg)
         }
       }

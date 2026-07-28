@@ -1,6 +1,6 @@
 {
   "name": "@ant/computer-use-input",
-  "version": "0.0.0-blink-stub",
+  "version": "0.0.0-tovyr-stub",
   "type": "module",
   "main": "./index.ts"
 }

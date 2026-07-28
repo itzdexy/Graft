@@ -8,7 +8,7 @@ import {
 } from './managedEnvConstants.js'
 import { clearMTLSCache } from './mtls.js'
 import { clearProxyCache, configureGlobalAgents } from './proxy.js'
-import { reapplyBlinkProviderEnvFromDisk } from '../services/blink/applyProviderEnv.js'
+import { reapplyTovyrProviderEnvFromDisk } from '../services/tovyr/applyProviderEnv.js'
 import { isSettingSourceEnabled } from './settings/constants.js'
 import {
   getSettings_DEPRECATED,
@@ -16,10 +16,10 @@ import {
 } from './settings/settings.js'
 
 /**
- * `blink ssh` remote: ANTHROPIC_UNIX_SOCKET routes auth through a -R forwarded
+ * `tovyr ssh` remote: ANTHROPIC_UNIX_SOCKET routes auth through a -R forwarded
  * socket to a local proxy, and the launcher sets a handful of placeholder auth
- * env vars that the remote's ~/.blink settings.env MUST NOT clobber (see
- * isBlinkAuthEnabled). Strip them from any settings-sourced env object.
+ * env vars that the remote's ~/.tovyr settings.env MUST NOT clobber (see
+ * isTovyrAuthEnabled). Strip them from any settings-sourced env object.
  */
 function withoutSSHTunnelVars(
   env: Record<string, string> | undefined,
@@ -30,7 +30,7 @@ function withoutSSHTunnelVars(
     ANTHROPIC_BASE_URL: _2,
     ANTHROPIC_API_KEY: _3,
     ANTHROPIC_AUTH_TOKEN: _4,
-    CLAUDE_CODE_OAUTH_TOKEN: _5,
+    TOVYR_CODE_OAUTH_TOKEN: _5,
     ...rest
   } = env
   return rest
@@ -38,16 +38,16 @@ function withoutSSHTunnelVars(
 
 /**
  * When the host owns inference routing (sets
- * CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST in spawn env), strip
+ * TOVYR_CODE_PROVIDER_MANAGED_BY_HOST in spawn env), strip
  * provider-selection / model-default vars from settings-sourced env so a
- * user's ~/.blink/settings.json can't redirect requests away from the
+ * user's ~/.tovyr/settings.json can't redirect requests away from the
  * host-configured provider.
  */
 function withoutHostManagedProviderVars(
   env: Record<string, string> | undefined,
 ): Record<string, string> {
   if (!env) return {}
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST)) {
+  if (!isEnvTruthy(process.env.TOVYR_CODE_PROVIDER_MANAGED_BY_HOST)) {
     return env
   }
   const out: Record<string, string> = {}
@@ -59,17 +59,17 @@ function withoutHostManagedProviderVars(
   return out
 }
 
-/** Blink routes inference via ~/.blink + local OpenAI-compat proxy — not settings.env. */
-function withoutBlinkManagedProviderVars(
+/** Tovyr routes inference via ~/.tovyr + local OpenAI-compat proxy — not settings.env. */
+function withoutTovyrManagedProviderVars(
   env: Record<string, string> | undefined,
 ): Record<string, string> {
   if (!env) return {}
-  const blinkManaged = !!(
-    process.env.BLINK_PACKAGE_ROOT ||
-    process.env.BLINK_SRC ||
-    process.env.BLINK_FORCE_INTERACTIVE === '1'
+  const tovyrManaged = !!(
+    process.env.TOVYR_PACKAGE_ROOT ||
+    process.env.TOVYR_SRC ||
+    process.env.TOVYR_FORCE_INTERACTIVE === '1'
   )
-  if (!blinkManaged) return env
+  if (!tovyrManaged) return env
   const out: Record<string, string> = {}
   for (const [key, value] of Object.entries(env)) {
     if (!isProviderManagedEnvVar(key)) {
@@ -107,7 +107,7 @@ function filterSettingsEnv(
   env: Record<string, string> | undefined,
 ): Record<string, string> {
   return withoutCcdSpawnEnvKeys(
-    withoutBlinkManagedProviderVars(
+    withoutTovyrManagedProviderVars(
       withoutHostManagedProviderVars(withoutSSHTunnelVars(env)),
     ),
   )
@@ -116,7 +116,7 @@ function filterSettingsEnv(
 /**
  * Trusted setting sources whose env vars can be applied before the trust dialog.
  *
- * - userSettings (~/.blink/settings.json): controlled by the user, not project-specific
+ * - userSettings (~/.tovyr/settings.json): controlled by the user, not project-specific
  * - flagSettings (--settings CLI flag or SDK inline settings): explicitly passed by the user
  * - policySettings (managed settings from enterprise API or local managed-settings.json):
  *   controlled by IT/admin (highest priority, cannot be overridden)
@@ -148,19 +148,19 @@ export function applySafeConfigEnvironmentVariables(): void {
   // Capture CCD spawn-env keys before any settings.env is applied (once).
   if (ccdSpawnEnvKeys === undefined) {
     ccdSpawnEnvKeys =
-      process.env.CLAUDE_CODE_ENTRYPOINT === 'claude-desktop'
+      process.env.TOVYR_CODE_ENTRYPOINT === 'claude-desktop'
         ? new Set(Object.keys(process.env))
         : null
   }
 
-  // Global config (~/.blink.json) is user-controlled. In CCD mode,
+  // Global config (~/.tovyr.json) is user-controlled. In CCD mode,
   // filterSettingsEnv strips keys that were in the spawn env snapshot so
   // the desktop host's operational vars (OTEL, etc.) are not overridden.
   Object.assign(process.env, filterSettingsEnv(getGlobalConfig().env))
 
   // Apply ALL env vars from trusted setting sources, policySettings last.
   // Gate on isSettingSourceEnabled so SDK settingSources: [] (isolation mode)
-  // doesn't get clobbered by ~/.blink/settings.json env (gh#217). policy/flag
+  // doesn't get clobbered by ~/.tovyr/settings.json env (gh#217). policy/flag
   // sources are always enabled, so this only ever filters userSettings.
   for (const source of TRUSTED_SETTING_SOURCES) {
     if (source === 'policySettings') continue
@@ -172,7 +172,7 @@ export function applySafeConfigEnvironmentVariables(): void {
   }
 
   // Compute remote-managed-settings eligibility now, with userSettings and
-  // flagSettings env applied. Eligibility reads CLAUDE_CODE_USE_BEDROCK,
+  // flagSettings env applied. Eligibility reads TOVYR_CODE_USE_BEDROCK,
   // ANTHROPIC_BASE_URL — both settable via settings.env.
   // getSettingsForSource('policySettings') below consults the remote cache,
   // which guards on this. The two-phase structure makes the ordering
@@ -191,7 +191,7 @@ export function applySafeConfigEnvironmentVariables(): void {
   // in the safe allowlist. Only policySettings values are guaranteed to survive
   // unchanged (it has the highest merge priority in both loops) — except
   // provider-routing vars, which filterSettingsEnv strips from every source
-  // when CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST is set.
+  // when TOVYR_CODE_PROVIDER_MANAGED_BY_HOST is set.
   const settingsEnv = filterSettingsEnv(getSettings_DEPRECATED()?.env)
   for (const [key, value] of Object.entries(settingsEnv)) {
     if (SAFE_ENV_VARS.has(key.toUpperCase())) {
@@ -199,13 +199,13 @@ export function applySafeConfigEnvironmentVariables(): void {
     }
   }
 
-  reapplyBlinkProviderEnvFromDisk()
+  reapplyTovyrProviderEnvFromDisk()
 }
 
 /**
  * Apply environment variables from settings to process.env.
  * This applies ALL environment variables (except provider-routing vars when
- * CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST is set — see filterSettingsEnv) and
+ * TOVYR_CODE_PROVIDER_MANAGED_BY_HOST is set — see filterSettingsEnv) and
  * should only be called after trust is established. This applies potentially
  * dangerous environment variables such as LD_PRELOAD, PATH, etc.
  */
@@ -222,5 +222,5 @@ export function applyConfigEnvironmentVariables(): void {
   // Reconfigure proxy/mTLS agents to pick up any proxy env vars from settings
   configureGlobalAgents()
 
-  reapplyBlinkProviderEnvFromDisk()
+  reapplyTovyrProviderEnvFromDisk()
 }

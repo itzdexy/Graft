@@ -1,4 +1,4 @@
-// Content for the blink-api bundled skill.
+// Content for the tovyr-api bundled skill.
 // Each .md file is inlined as a string at build time via Bun's text loader.
 
 import csharpClaudeApi from './claude-api/csharp/claude-api.md'
@@ -31,17 +31,17 @@ import typescriptClaudeApiToolUse from './claude-api/typescript/claude-api/tool-
 // @[MODEL LAUNCH]: Update the model IDs/names below. These are substituted into {{VAR}}
 // placeholders in the .md files at runtime before the skill prompt is sent.
 // After updating these constants, manually update the two files that still hardcode models:
-//   - blink-api/SKILL.md (Current Models pricing table)
-//   - blink-api/shared/models.md (full model catalog with legacy versions and alias mappings)
+//   - tovyr-api/SKILL.md (Current Models pricing table)
+//   - tovyr-api/shared/models.md (full model catalog with legacy versions and alias mappings)
 export const SKILL_MODEL_VARS = {
-  OPUS_ID: 'claude-opus-4-6',
-  OPUS_NAME: 'Blink Opus 4.6',
-  SONNET_ID: 'claude-sonnet-4-6',
-  SONNET_NAME: 'Blink Sonnet 4.6',
+  OPUS_ID: 'claude-opus-4-8',
+  OPUS_NAME: 'Tovyr Opus 4.8',
+  SONNET_ID: 'claude-sonnet-5',
+  SONNET_NAME: 'Tovyr Sonnet 5',
   HAIKU_ID: 'claude-haiku-4-5',
-  HAIKU_NAME: 'Blink Haiku 4.5',
+  HAIKU_NAME: 'Tovyr Haiku 4.5',
   // Previous Sonnet ID — used in "do not append date suffixes" example in SKILL.md.
-  PREV_SONNET_ID: 'claude-sonnet-4-5',
+  PREV_SONNET_ID: 'claude-sonnet',
 } satisfies Record<string, string>
 
 export const SKILL_PROMPT: string = skillPrompt

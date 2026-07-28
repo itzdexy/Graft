@@ -1,9 +1,9 @@
 export const REMOTE_TRIGGER_TOOL_NAME = 'RemoteTrigger'
 
 export const DESCRIPTION =
-  'Manage scheduled remote Blink agents (triggers) via the Blink remote API. Auth is handled in-process — the token never reaches the shell.'
+  'Manage scheduled remote Tovyr agents (triggers) via the Tovyr remote API. Auth is handled in-process — the token never reaches the shell.'
 
-export const PROMPT = `Call the Blink remote-trigger API. Use this instead of curl — the OAuth token is added automatically in-process and never exposed.
+export const PROMPT = `Call the Tovyr remote-trigger API. Use this instead of curl — the OAuth token is added automatically in-process and never exposed.
 
 Actions:
 - list: GET /v1/code/triggers

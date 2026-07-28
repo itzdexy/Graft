@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import z from 'zod/v4'
-import { getBlinkWebOAuthTokens } from '../auth.js'
+import { getTovyrWebOAuthTokens } from '../auth.js'
 import { logForDebugging } from '../debug.js'
 import { parseGitHubRepository } from '../detectRepository.js'
 import { errorMessage, toError } from '../errors.js'
@@ -182,10 +182,10 @@ export async function prepareApiRequest(): Promise<{
   accessToken: string
   orgUUID: string
 }> {
-  const accessToken = getBlinkWebOAuthTokens()?.accessToken
+  const accessToken = getTovyrWebOAuthTokens()?.accessToken
   if (accessToken === undefined) {
     throw new Error(
-      'Blink web sessions require authentication with a Blink web account. API key authentication is not sufficient. Please run /login to authenticate, or check your authentication status with /status.',
+      'Tovyr web sessions require authentication with a Tovyr web account. API key authentication is not sufficient. Please run /login to authenticate, or check your authentication status with /status.',
     )
   }
 
@@ -271,7 +271,7 @@ export async function fetchCodeSessionsFromSessionsAPI(): Promise<
 /**
  * Creates OAuth headers for API requests
  * @param accessToken The OAuth access token
- * @returns Headers object with Authorization, Content-Type, and blink-version
+ * @returns Headers object with Authorization, Content-Type, and tovyr-version
  */
 export function getOAuthHeaders(accessToken: string): Record<string, string> {
   return {
@@ -344,7 +344,7 @@ export function getBranchFromSession(
 /**
  * Content for a remote session message.
  * Accepts a plain string or an array of content blocks (text, image, etc.)
- * following the Blink API messages spec.
+ * following the Tovyr API messages spec.
  */
 export type RemoteMessageContent =
   | string

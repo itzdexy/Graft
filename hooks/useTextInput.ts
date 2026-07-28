@@ -67,6 +67,7 @@ export type UseTextInputProps = {
   onOffsetChange: (offset: number) => void
   inputFilter?: (input: string, key: Key) => string
   inlineGhostText?: InlineGhostText
+  onTab?: () => void
   dim?: (text: string) => string
 }
 
@@ -93,6 +94,7 @@ export function useTextInput({
   onOffsetChange,
   inputFilter,
   inlineGhostText,
+  onTab,
   dim,
 }: UseTextInputProps): TextInputState {
   // Pre-warm the modifiers module for Apple Terminal (has internal guard, safe to call multiple times)
@@ -369,7 +371,14 @@ export function useTextInput({
       case key.meta:
         return handleMeta
       case key.tab:
-        return () => cursor
+        return () => {
+          if (onTab) {
+            onTab()
+          } else if (inlineGhostText?.text) {
+            cursor.insert(inlineGhostText.text)
+          }
+          return cursor
+        }
       case key.upArrow && !key.shift:
         return upOrHistoryUp
       case key.downArrow && !key.shift:
@@ -396,7 +405,7 @@ export function useTextInput({
               // paste — convert to \n. Backslash+\r is a stale VS Code
               // Shift+Enter binding (pre-#8991 /terminal-setup wrote
               // args.text "\\\r\n" to keybindings.json); keep the \r so
-              // it becomes \n below (blinks/blink#31316).
+              // it becomes \n below (tovyrs/tovyr#31316).
               const text = stripAnsi(input)
                 // eslint-disable-next-line custom-rules/no-lookbehind-regex -- .replace(re, str) on 1-2 char keystrokes: no-match returns same string (Object.is), regex never runs
                 .replace(/(?<=[^\\\r\n])\r$/, '')

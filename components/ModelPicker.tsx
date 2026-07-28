@@ -12,7 +12,7 @@ import { convertEffortValueToLevel, type EffortLevel, getDefaultEffortForModel, 
 import { getDefaultMainLoopModel, type ModelSetting, modelDisplayString, parseUserSpecifiedModel } from '../utils/model/model.js';
 import { getModelOptions, type ModelOption } from '../utils/model/modelOptions.js';
 import { getSettingsForSource, updateSettingsForSource } from '../utils/settings/settings.js';
-import { getProductName } from '../utils/blinkBrand.js';
+import { getProductName } from '../utils/tovyrBrand.js';
 import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
 import { Select } from './CustomSelect/index.js';
 import { Byline } from './design-system/Byline.js';
@@ -34,6 +34,7 @@ export type Props = {
 };
 
 const NO_PREFERENCE = '__NO_PREFERENCE__';
+const SEARCH_VALUE = '__search__';
 
 type ProviderGroup = {
   provider: string;
@@ -214,11 +215,21 @@ export function ModelPicker(t0) {
   }, [optionsWithInitial, searchQuery]);
 
   const providerGroups = useMemo(() => groupByProvider(filteredOptions), [filteredOptions]);
-  const flatFiltered = useMemo(() => filteredOptions.map(opt => ({
-    ...opt,
-    value: opt.value === null ? NO_PREFERENCE : opt.value
-  })), [filteredOptions]);
-  const selectOptions = flatFiltered;
+  const flatFiltered = useMemo(() => [
+    {
+      type: 'input',
+      value: SEARCH_VALUE,
+      label: 'Search models',
+      placeholder: 'Type to filter models...',
+      onChange: (value: string) => setSearchQuery(value),
+      allowEmptySubmitToCancel: false,
+    },
+    ...filteredOptions.map(opt => ({
+      ...opt,
+      value: opt.value === null ? NO_PREFERENCE : opt.value
+    })),
+  ], [filteredOptions, setSearchQuery]);
+  const selectOptions = flatFiltered as any;
 
   let t6;
   if ($[14] !== initialValue || $[15] !== selectOptions) {
@@ -323,56 +334,36 @@ export function ModelPicker(t0) {
   }
   useKeybindings(t12, t13);
 
-  let t14;
-  if ($[35] !== effort || $[36] !== hasToggledEffort || $[37] !== onSelect || $[38] !== setAppState || $[39] !== skipSettingsWrite) {
-    t14 = function handleSelect(value_0) {
-      logEvent("tengu_model_command_menu_effort", {
-        effort: effort as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
-      });
-      if (!skipSettingsWrite) {
-        const effortLevel = resolvePickerEffortPersistence(effort, getDefaultEffortLevelForOption(value_0), getSettingsForSource("userSettings")?.effortLevel, hasToggledEffort);
-        const persistable = toPersistableEffort(effortLevel);
-        if (persistable !== undefined) {
-          updateSettingsForSource("userSettings", { effortLevel: persistable });
-        }
-        setAppState(prev_0 => ({ ...prev_0, effortValue: effortLevel }));
-      }
-      const selectedModel = resolveOptionModel(value_0);
-      const selectedEffort = hasToggledEffort && selectedModel && modelSupportsEffort(selectedModel) ? effort : undefined;
-      if (value_0 === NO_PREFERENCE) {
-        onSelect(null, selectedEffort);
+  const handleSelect = useCallback((value_0: string) => {
+    if (value_0 === SEARCH_VALUE) {
+      const first = filteredOptions[0];
+      if (!first) {
+        onCancel?.();
         return;
       }
-      onSelect(value_0, selectedEffort);
-    };
-    $[35] = effort;
-    $[36] = hasToggledEffort;
-    $[37] = onSelect;
-    $[38] = setAppState;
-    $[39] = skipSettingsWrite;
-    $[40] = t14;
-  } else {
-    t14 = $[40];
-  }
-  const handleSelect = t14;
+      value_0 = first.value === null ? NO_PREFERENCE : first.value;
+    }
+    logEvent("tengu_model_command_menu_effort", {
+      effort: effort as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
+    });
+    if (!skipSettingsWrite) {
+      const effortLevel = resolvePickerEffortPersistence(effort, getDefaultEffortLevelForOption(value_0), getSettingsForSource("userSettings")?.effortLevel, hasToggledEffort);
+      const persistable = toPersistableEffort(effortLevel);
+      if (persistable !== undefined) {
+        updateSettingsForSource("userSettings", { effortLevel: persistable });
+      }
+      setAppState(prev_0 => ({ ...prev_0, effortValue: effortLevel }));
+    }
+    const selectedModel = resolveOptionModel(value_0);
+    const selectedEffort = hasToggledEffort && selectedModel && modelSupportsEffort(selectedModel) ? effort : undefined;
+    if (value_0 === NO_PREFERENCE) {
+      onSelect(null, selectedEffort);
+      return;
+    }
+    onSelect(value_0, selectedEffort);
+  }, [effort, hasToggledEffort, onSelect, setAppState, skipSettingsWrite, filteredOptions, onCancel]);
 
   const groupCount = providerGroups.length;
-
-  let t15;
-  if ($[41] !== t16) {
-    t15 = t16;
-    $[41] = t15;
-  } else {
-    t15 = $[41];
-  }
-
-  let t26;
-  if ($[42] !== t16) {
-    t26 = t16;
-    $[42] = t26;
-  } else {
-    t26 = $[42];
-  }
 
   let t17;
   if ($[44] !== sessionModel) {
@@ -391,7 +382,7 @@ export function ModelPicker(t0) {
           {groupCount > 1 ? `Select model · ${filteredOptions.length} available` : `Select model`}
         </Text>
         <Text dimColor={true}>
-          {headerText ?? `Switch between models. Applies to this session and future ${getProductName()} sessions.`}
+          {headerText ?? `Switch between models. Start typing in the search row to filter. Applies to this session and future ${getProductName()} sessions.`}
         </Text>
         {t17}
       </Box>

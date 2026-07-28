@@ -1,20 +1,20 @@
 #!/usr/bin/env bun
 /**
- * Headless Blink Agent HTTP server (OpenHands-style).
+ * Headless Tovyr Agent HTTP server (OpenHands-style).
  * POST /v1/agent/run  { "prompt": "...", "sessionId": "optional" }
  * GET  /health
  */
 
 import { startAgentServer } from '../agents/AgentServer.js'
 import { runAgent } from '../agents/AgentSDK.js'
-import { registerBlinkAgentSdk } from '../services/blink/agent/sdkRunner.js'
+import { registerTovyrAgentSdk } from '../services/tovyr/agent/sdkRunner.js'
 import { getCwd } from '../utils/cwd.js'
 
-registerBlinkAgentSdk()
+registerTovyrAgentSdk()
 
-const host = process.env.BLINK_AGENT_HOST ?? '0.0.0.0'
-const port = Number(process.env.BLINK_AGENT_PORT ?? process.argv[2] ?? 9477)
-const token = process.env.BLINK_AGENT_TOKEN
+const host = process.env.TOVYR_AGENT_HOST ?? '0.0.0.0'
+const port = Number(process.env.TOVYR_AGENT_PORT ?? process.argv[2] ?? 9477)
+const token = process.env.TOVYR_AGENT_TOKEN
 
 const handle = await startAgentServer({ host, port, token }, async ({ prompt, sessionId }) => {
   const cwd = getCwd()
@@ -30,9 +30,9 @@ const handle = await startAgentServer({ host, port, token }, async ({ prompt, se
   }
 })
 
-console.log(`Blink agent server listening at ${handle.url}`)
+console.log(`Tovyr agent server listening at ${handle.url}`)
 if (token) {
-  console.log('Auth: Bearer token required (BLINK_AGENT_TOKEN)')
+  console.log('Auth: Bearer token required (TOVYR_AGENT_TOKEN)')
 }
 
 const shutdown = async () => {

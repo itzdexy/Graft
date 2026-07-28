@@ -1,10 +1,10 @@
-import { BLINK_PROVIDER_NAME, BLINK_TAGLINE, BLINK_VERSION } from '../constants/blink.js'
-import { resolveActive } from '../scripts/blink-providers.js'
-import { isBlinkRuntime } from './blinkRuntime.js'
+import { TOVYR_PROVIDER_NAME, TOVYR_TAGLINE, TOVYR_VERSION } from '../constants/tovyr.js'
+import { resolveActive } from '../scripts/tovyr-providers.js'
+import { isTovyrRuntime } from './tovyrRuntime.js'
 import { getDirectConnectServerUrl, getSessionId } from '../bootstrap/state.js'
 import { stringWidth } from '../ink/stringWidth.js'
 import type { LogOption } from '../types/logs.js'
-import { getSubscriptionName, isBlinkWebSubscriber } from './auth.js'
+import { getSubscriptionName, isTovyrWebSubscriber } from './auth.js'
 import { getCwd } from './cwd.js'
 import { renderModelSetting } from './model/model.js'
 import { getDisplayPath } from './file.js'
@@ -100,7 +100,7 @@ export function calculateOptimalLeftWidth(
  */
 export function formatWelcomeMessage(username: string | null): string {
   if (!username || username.length > MAX_USERNAME_LENGTH) {
-    return 'Welcome to Blink'
+    return 'Welcome to Tovyr'
   }
   return `Welcome, ${username}!`
 }
@@ -183,15 +183,15 @@ export function truncatePath(path: string, maxLength: number): string {
   return `${first}${separator}${ellipsis}${separator}${middleParts.join(separator)}${separator}${last}`
 }
 
-/** Model id for welcome header — prefer ~/.blink active provider over stale session model. */
-export function getBlinkHeaderModelId(fallbackModel: string): string {
-  if (!isBlinkRuntime()) return fallbackModel
+/** Model id for welcome header — prefer ~/.tovyr active provider over stale session model. */
+export function getTovyrHeaderModelId(fallbackModel: string): string {
+  if (!isTovyrRuntime()) return fallbackModel
   const active = resolveActive()
   return active?.model || fallbackModel
 }
 
-export function getBlinkHeaderModelDisplay(fallbackModel: string): string {
-  return renderModelSetting(getBlinkHeaderModelId(fallbackModel))
+export function getTovyrHeaderModelDisplay(fallbackModel: string): string {
+  return renderModelSetting(getTovyrHeaderModelId(fallbackModel))
 }
 
 // Simple cache for preloaded activity
@@ -261,7 +261,7 @@ export function getLogoDisplayData(): {
   tagline: string
   agentName: string | undefined
 } {
-  const version = process.env.DEMO_VERSION ?? BLINK_VERSION
+  const version = process.env.DEMO_VERSION ?? TOVYR_VERSION
   const serverUrl = getDirectConnectServerUrl()
   const displayPath = process.env.DEMO_VERSION
     ? '/code/claude'
@@ -269,18 +269,18 @@ export function getLogoDisplayData(): {
   const cwd = serverUrl
     ? `${displayPath} in ${serverUrl.replace(/^https?:\/\//, '')}`
     : displayPath
-  const billingType = isBlinkWebSubscriber()
+  const billingType = isTovyrWebSubscriber()
     ? getSubscriptionName()
-    : isBlinkRuntime()
-      ? (resolveActive()?.label ?? BLINK_PROVIDER_NAME)
-      : `${BLINK_PROVIDER_NAME} API`
+    : isTovyrRuntime()
+      ? (resolveActive()?.label ?? TOVYR_PROVIDER_NAME)
+      : `${TOVYR_PROVIDER_NAME} API`
   const agentName = getInitialSettings().agent
 
   return {
     version,
     cwd,
     billingType,
-    tagline: BLINK_TAGLINE,
+    tagline: TOVYR_TAGLINE,
     agentName,
   }
 }

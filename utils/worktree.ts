@@ -51,7 +51,7 @@ const MAX_WORKTREE_SLUG_LENGTH = 64
 /**
  * Validates a worktree slug to prevent path traversal and directory escape.
  *
- * The slug is joined into `.blink/worktrees/<slug>` via path.join, which
+ * The slug is joined into `.tovyr/worktrees/<slug>` via path.join, which
  * normalizes `..` segments — so `../../../target` would escape the worktrees
  * directory. Similarly, an absolute path (leading `/` or `C:\`) would discard
  * the prefix entirely.
@@ -209,7 +209,7 @@ function worktreesDir(repoRoot: string): string {
 // name and the directory path. Nesting in either location is unsafe:
 //   - git refs: `worktree-user` (file) vs `worktree-user/feature` (needs dir)
 //     is a D/F conflict that git rejects.
-//   - directory: `.blink/worktrees/user/feature/` lives inside the `user`
+//   - directory: `.tovyr/worktrees/user/feature/` lives inside the `user`
 //     worktree; `git worktree remove` on the parent deletes children with
 //     uncommitted work.
 // `+` is valid in git branch names and filesystem paths but NOT in the
@@ -511,7 +511,7 @@ async function performPostCreationSetup(
   repoRoot: string,
   worktreePath: string,
 ): Promise<void> {
-  // Copy settings.local.json to the worktree's .blink directory
+  // Copy settings.local.json to the worktree's .tovyr directory
   // This propagates local settings (which may contain secrets) to the worktree
   const localSettingsRelativePath =
     getRelativeSettingsFilePathForSource('localSettings')
@@ -920,8 +920,8 @@ export async function createAgentWorktree(slug: string): Promise<{
 
   // Fall back to git worktree
   // findCanonicalGitRoot (not findGitRoot) so agent worktrees always land in
-  // the main repo's .blink/worktrees/ even when spawned from inside a session
-  // worktree — otherwise they nest at <worktree>/.blink/worktrees/ and the
+  // the main repo's .tovyr/worktrees/ even when spawned from inside a session
+  // worktree — otherwise they nest at <worktree>/.tovyr/worktrees/ and the
   // periodic cleanup (which scans the canonical root) never finds them.
   const gitRoot = findCanonicalGitRoot(getCwd())
   if (!gitRoot) {
@@ -1174,7 +1174,7 @@ export async function hasWorktreeChanges(
 
 /**
  * Fast-path handler for --worktree --tmux.
- * Creates the worktree and execs into tmux running Blink inside.
+ * Creates the worktree and execs into tmux running Tovyr inside.
  * This is called early in cli.tsx before loading the full CLI.
  */
 export async function execIntoTmuxWorktree(args: string[]): Promise<{
@@ -1254,7 +1254,7 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
 
   // Mirror createWorktreeForSession(): hook takes precedence over git so the
   // WorktreeCreate hook substitutes the VCS backend for this fast-path too
-  // (blinks/blink#39281). Git path below runs only when no hook.
+  // (tovyrs/tovyr#39281). Git path below runs only when no hook.
   let worktreeDir: string
   let repoName: string
   if (hasWorktreeCreateHook()) {
@@ -1339,8 +1339,8 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
     }
   }
 
-  // Check if tmux prefix conflicts with Blink keybindings
-  // Blink binds: ctrl+b (task:background), ctrl+c, ctrl+d, ctrl+t, ctrl+o, ctrl+r, ctrl+s, ctrl+g, ctrl+e
+  // Check if tmux prefix conflicts with Tovyr keybindings
+  // Tovyr binds: ctrl+b (task:background), ctrl+c, ctrl+d, ctrl+t, ctrl+o, ctrl+r, ctrl+s, ctrl+g, ctrl+e
   const claudeBindings = [
     'C-b',
     'C-c',
@@ -1354,12 +1354,12 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
   ]
   const prefixConflicts = claudeBindings.includes(tmuxPrefix)
 
-  // Set env vars for the inner Blink to display tmux info in welcome message
+  // Set env vars for the inner Tovyr to display tmux info in welcome message
   const tmuxEnv = {
     ...process.env,
-    CLAUDE_CODE_TMUX_SESSION: tmuxSessionName,
-    CLAUDE_CODE_TMUX_PREFIX: tmuxPrefix,
-    CLAUDE_CODE_TMUX_PREFIX_CONFLICTS: prefixConflicts ? '1' : '',
+    TOVYR_CODE_TMUX_SESSION: tmuxSessionName,
+    TOVYR_CODE_TMUX_PREFIX: tmuxPrefix,
+    TOVYR_CODE_TMUX_PREFIX_CONFLICTS: prefixConflicts ? '1' : '',
   }
 
   // Check if session already exists
@@ -1392,15 +1392,15 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
     )
   }
 
-  // For ants in blink-cli-internal, set up dev panes (watch + start)
+  // For ants in tovyr-cli-internal, set up dev panes (watch + start)
   const isAnt = process.env.USER_TYPE === 'ant'
   const shouldSetupDevPanes =
     isAnt &&
-    process.env.BLINK_DEV_TMUX_PANES === '1' &&
+    process.env.TOVYR_DEV_TMUX_PANES === '1' &&
     !sessionExists
 
   if (shouldSetupDevPanes) {
-    // Create detached session with Blink in first pane
+    // Create detached session with Tovyr in first pane
     spawnSync(
       'tmux',
       [
@@ -1439,7 +1439,7 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
       cwd: worktreeDir,
     })
 
-    // Select the first pane (Blink)
+    // Select the first pane (Tovyr)
     spawnSync('tmux', ['select-pane', '-t', `${tmuxSessionName}:0.0`], {
       cwd: worktreeDir,
     })

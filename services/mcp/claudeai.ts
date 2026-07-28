@@ -5,7 +5,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
-import { getBlinkWebOAuthTokens } from 'src/utils/auth.js'
+import { getTovyrWebOAuthTokens } from 'src/utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from 'src/utils/config.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { isEnvDefinedFalsy } from 'src/utils/envUtils.js'
@@ -13,7 +13,7 @@ import { clearMcpAuthCache } from './client.js'
 import { normalizeNameForMCP } from './normalization.js'
 import type { ScopedMcpServerConfig } from './types.js'
 
-type BlinkWebMcpServer = {
+type TovyrWebMcpServer = {
   type: 'mcp_server'
   id: string
   display_name: string
@@ -21,8 +21,8 @@ type BlinkWebMcpServer = {
   created_at: string
 }
 
-type BlinkWebMcpServersResponse = {
-  data: BlinkWebMcpServer[]
+type TovyrWebMcpServersResponse = {
+  data: TovyrWebMcpServer[]
   has_more: boolean
   next_page: string | null
 }
@@ -31,12 +31,12 @@ const FETCH_TIMEOUT_MS = 5000
 const MCP_SERVERS_BETA_HEADER = 'mcp-servers-2025-12-04'
 
 /**
- * Fetches MCP server configurations from Blink.ai org configs.
- * These servers are managed by the organization via Blink.ai.
+ * Fetches MCP server configurations from Tovyr.ai org configs.
+ * These servers are managed by the organization via Tovyr.ai.
  *
  * Results are memoized for the session lifetime (fetch once per CLI session).
  */
-export const fetchBlinkWebMcpConfigsIfEligible = memoize(
+export const fetchTovyrWebMcpConfigsIfEligible = memoize(
   async (): Promise<Record<string, ScopedMcpServerConfig>> => {
     try {
       if (isEnvDefinedFalsy(process.env.ENABLE_CLAUDEAI_MCP_SERVERS)) {
@@ -48,7 +48,7 @@ export const fetchBlinkWebMcpConfigsIfEligible = memoize(
         return {}
       }
 
-      const tokens = getBlinkWebOAuthTokens()
+      const tokens = getTovyrWebOAuthTokens()
       if (!tokens?.accessToken) {
         logForDebugging('[claudeai-mcp] No access token')
         logEvent('tengu_claudeai_mcp_eligibility', {
@@ -58,11 +58,11 @@ export const fetchBlinkWebMcpConfigsIfEligible = memoize(
         return {}
       }
 
-      // Check for user:mcp_servers scope directly instead of isBlinkAISubscriber().
-      // In non-interactive mode, isBlinkAISubscriber() returns false when ANTHROPIC_API_KEY
+      // Check for user:mcp_servers scope directly instead of isTovyrAISubscriber().
+      // In non-interactive mode, isTovyrAISubscriber() returns false when ANTHROPIC_API_KEY
       // is set (even with valid OAuth tokens) because preferThirdPartyAuthentication() causes
-      // isBlinkAuthEnabled() to return false. Checking the scope directly allows users
-      // with both API keys and OAuth tokens to access blink web MCPs in print mode.
+      // isTovyrAuthEnabled() to return false. Checking the scope directly allows users
+      // with both API keys and OAuth tokens to access tovyr web MCPs in print mode.
       if (!tokens.scopes?.includes('user:mcp_servers')) {
         logForDebugging(
           `[claudeai-mcp] Missing user:mcp_servers scope (scopes=${tokens.scopes?.join(',') || 'none'})`,
@@ -79,7 +79,7 @@ export const fetchBlinkWebMcpConfigsIfEligible = memoize(
 
       logForDebugging(`[claudeai-mcp] Fetching from ${url}`)
 
-      const response = await axios.get<BlinkWebMcpServersResponse>(url, {
+      const response = await axios.get<TovyrWebMcpServersResponse>(url, {
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export const fetchBlinkWebMcpConfigsIfEligible = memoize(
       // Track used normalized names to detect collisions and assign (2), (3), etc. suffixes.
       // We check the final normalized name (including suffix) to handle edge cases where
       // a suffixed name collides with another server's base name (e.g., "Example Server 2"
-      // colliding with "Example Server! (2)" which both normalize to blink_ai_Example_Server_2).
+      // colliding with "Example Server! (2)" which both normalize to tovyr_ai_Example_Server_2).
       const usedNormalizedNames = new Set<string>()
 
       for (const server of response.data.data) {
@@ -134,24 +134,24 @@ export const fetchBlinkWebMcpConfigsIfEligible = memoize(
 )
 
 /**
- * Clears the memoized cache for fetchBlinkAIMcpConfigsIfEligible.
+ * Clears the memoized cache for fetchTovyrAIMcpConfigsIfEligible.
  * Call this after login so the next fetch will use the new auth tokens.
  */
 export function clearClaudeAIMcpConfigsCache(): void {
-  fetchBlinkWebMcpConfigsIfEligible.cache.clear?.()
+  fetchTovyrWebMcpConfigsIfEligible.cache.clear?.()
   // Also clear the auth cache so freshly-authorized servers get re-connected
   clearMcpAuthCache()
 }
 
 /**
- * Record that a blink web connector successfully connected. Idempotent.
+ * Record that a tovyr web connector successfully connected. Idempotent.
  *
  * Gates the "N connectors unavailable/need auth" startup notifications: a
  * connector that was working yesterday and is now failed is a state change
  * worth surfacing; an org-configured connector that's been needs-auth since
  * it showed up is one the user has demonstrably ignored.
  */
-export function markBlinkWebMcpConnected(name: string): void {
+export function markTovyrWebMcpConnected(name: string): void {
   saveGlobalConfig(current => {
     const seen = current.claudeAiMcpEverConnected ?? []
     if (seen.includes(name)) return current
@@ -159,6 +159,6 @@ export function markBlinkWebMcpConnected(name: string): void {
   })
 }
 
-export function hasBlinkWebMcpEverConnected(name: string): boolean {
+export function hasTovyrWebMcpEverConnected(name: string): boolean {
   return (getGlobalConfig().claudeAiMcpEverConnected ?? []).includes(name)
 }

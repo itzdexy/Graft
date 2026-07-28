@@ -17,7 +17,7 @@ export function Section({
   children,
   gap = 0,
   divider = false,
-  color = 'blinkPrimary',
+  color = 'tovyrPrimary',
 }: SectionProps): React.ReactNode {
   return (
     <Box flexDirection="column" marginTop={1}>

@@ -465,7 +465,7 @@ async function performVersionUpdate(
     logForDebugging(`Version ${version} already installed, updating symlink`)
   }
 
-  // Create direct symlink from ~/.local/bin/blink to the version binary
+  // Create direct symlink from ~/.local/bin/tovyr to the version binary
   await removeDirectoryIfEmpty(executablePath)
   await updateSymlink(executablePath, installPath)
 
@@ -845,18 +845,18 @@ export async function checkInstall(
     })
   }
 
-  // Check if blink executable exists and is valid.
+  // Check if tovyr executable exists and is valid.
   // On non-Windows, call readlink directly and route errno — ENOENT means
   // the executable is missing, EINVAL means it exists but isn't a symlink.
   // This avoids an access()→readlink() TOCTOU where deletion between the
   // two calls produces a misleading "Not a symlink" diagnostic.
-  // isPossibleBlinkBinary stats the path internally, so we don't pre-check
+  // isPossibleTovyrBinary stats the path internally, so we don't pre-check
   // with access() — that would be a TOCTOU between access and the stat.
   if (isWindows) {
     // On Windows it's a copied executable, not a symlink
     if (!(await isPossibleClaudeBinary(dirs.executable))) {
       messages.push({
-        message: `installMethod is native, but claude command is missing or invalid at ${dirs.executable}`,
+        message: `installMethod is native, but tovyr command is missing or invalid at ${dirs.executable}`,
         userActionRequired: true,
         type: 'error',
       })
@@ -867,7 +867,7 @@ export async function checkInstall(
       const absoluteTarget = resolve(dirname(dirs.executable), target)
       if (!(await isPossibleClaudeBinary(absoluteTarget))) {
         messages.push({
-          message: `Blink symlink points to missing or invalid binary: ${target}`,
+          message: `Tovyr symlink points to missing or invalid binary: ${target}`,
           userActionRequired: true,
           type: 'error',
         })
@@ -875,7 +875,7 @@ export async function checkInstall(
     } catch (e) {
       if (isENOENT(e)) {
         messages.push({
-          message: `installMethod is native, but claude command not found at ${dirs.executable}`,
+          message: `installMethod is native, but tovyr command not found at ${dirs.executable}`,
           userActionRequired: true,
           type: 'error',
         })
@@ -883,7 +883,7 @@ export async function checkInstall(
         // EINVAL (not a symlink) or other — check as regular binary
         if (!(await isPossibleClaudeBinary(dirs.executable))) {
           messages.push({
-            message: `${dirs.executable} exists but is not a valid Blink binary`,
+            message: `${dirs.executable} exists but is not a valid Tovyr binary`,
             userActionRequired: true,
             type: 'error',
           })
@@ -1458,7 +1458,7 @@ async function isNpmSymlink(executablePath: string): Promise<boolean> {
 }
 
 /**
- * Remove the blink symlink from the executable directory
+ * Remove the tovyr symlink from the executable directory
  * This is used when switching away from native installation
  * Will only remove if it's a native binary symlink, not npm-managed JS files
  */
@@ -1476,17 +1476,17 @@ export async function removeInstalledSymlink(): Promise<void> {
 
     // It's a native binary symlink, safe to remove
     await unlink(dirs.executable)
-    logForDebugging(`Removed claude symlink at ${dirs.executable}`)
+    logForDebugging(`Removed tovyr symlink at ${dirs.executable}`)
   } catch (error) {
     if (isENOENT(error)) {
       return
     }
-    logError(new Error(`Failed to remove claude symlink: ${error}`))
+    logError(new Error(`Failed to remove tovyr symlink: ${error}`))
   }
 }
 
 /**
- * Clean up old blink aliases from shell configuration files
+ * Clean up old tovyr aliases from shell configuration files
  * Only handles alias removal, not PATH setup
  */
 export async function cleanupShellAliases(): Promise<SetupMessage[]> {
@@ -1503,11 +1503,11 @@ export async function cleanupShellAliases(): Promise<SetupMessage[]> {
       if (hadAlias) {
         await writeFileLines(configFile, filtered)
         messages.push({
-          message: `Removed claude alias from ${configFile}. Run: unalias claude`,
+          message: `Removed tovyr alias from ${configFile}. Run: unalias claude`,
           userActionRequired: true,
           type: 'alias',
         })
-        logForDebugging(`Cleaned up claude alias from ${shellType} config`)
+        logForDebugging(`Cleaned up tovyr alias from ${shellType} config`)
       }
     } catch (error) {
       logError(error)
@@ -1662,7 +1662,7 @@ export async function cleanupNpmInstallations(): Promise<{
   const warnings: string[] = []
   let removed = 0
 
-  // Always attempt to remove @blink-ai/blink
+  // Always attempt to remove @tovyr-ai/tovyr
   const codePackageResult = await attemptNpmUninstall(
     '@anthropic-ai/claude-code',
   )
@@ -1688,7 +1688,7 @@ export async function cleanupNpmInstallations(): Promise<{
     }
   }
 
-  // Check for local installation at ~/.blink/local
+  // Check for local installation at ~/.tovyr/local
   const localInstallDir = join(homedir(), '.claude', 'local')
 
   try {

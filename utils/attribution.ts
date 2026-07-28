@@ -55,7 +55,7 @@ export function getAttributionTexts(): AttributionTexts {
   }
 
   if (getClientType() === 'remote') {
-    const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
+    const remoteSessionId = process.env.TOVYR_CODE_REMOTE_SESSION_ID
     if (remoteSessionId) {
       const ingressUrl = process.env.SESSION_INGRESS_URL
       // Skip for local dev - URLs won't persist
@@ -72,9 +72,9 @@ export function getAttributionTexts(): AttributionTexts {
   const modelName =
     isInternalModelRepoCached() || isKnownPublicModel
       ? getPublicModelName(model)
-      : 'Blink'
-  const defaultAttribution = `🤖 Generated with [Blink](${PRODUCT_URL})`
-  const defaultCommit = `Co-Authored-By: ${modelName} <noreply@blink.dev>`
+      : 'Tovyr'
+  const defaultAttribution = `🤖 Generated with [Tovyr](${PRODUCT_URL})`
+  const defaultCommit = `Co-Authored-By: ${modelName} <noreply@tovyr.dev>`
 
   const settings = getInitialSettings()
 
@@ -279,14 +279,14 @@ async function getTranscriptStats(): Promise<{
 }
 
 /**
- * Get enhanced PR attribution text with Blink contribution stats.
+ * Get enhanced PR attribution text with Tovyr contribution stats.
  *
- * Format: "🤖 Generated with Blink (93% 3-shotted by blink-opus-4-5)"
+ * Format: "🤖 Generated with Tovyr (93% 3-shotted by tovyr-opus-4-5)"
  *
  * Rules:
- * - Shows Blink contribution percentage from commit attribution
+ * - Shows Tovyr contribution percentage from commit attribution
  * - Shows N-shotted where N is the prompt count (1-shotted, 2-shotted, etc.)
- * - Shows short model name (e.g., blink-opus-4-5)
+ * - Shows short model name (e.g., tovyr-opus-4-5)
  * - Returns default attribution if stats can't be computed
  *
  * @param getAppState Function to get the current AppState (from command context)
@@ -299,7 +299,7 @@ export async function getEnhancedPRAttribution(
   }
 
   if (getClientType() === 'remote') {
-    const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
+    const remoteSessionId = process.env.TOVYR_CODE_REMOTE_SESSION_ID
     if (remoteSessionId) {
       const ingressUrl = process.env.SESSION_INGRESS_URL
       // Skip for local dev - URLs won't persist
@@ -322,7 +322,7 @@ export async function getEnhancedPRAttribution(
     return ''
   }
 
-  const defaultAttribution = `🤖 Generated with [Blink](${PRODUCT_URL})`
+  const defaultAttribution = `🤖 Generated with [Tovyr](${PRODUCT_URL})`
 
   // Get AppState first
   const appState = getAppState()
@@ -363,12 +363,12 @@ export async function getEnhancedPRAttribution(
     return defaultAttribution
   }
 
-  // Build the enhanced attribution: "🤖 Generated with Blink (93% 3-shotted by blink-opus-4-5, 2 memories recalled)"
+  // Build the enhanced attribution: "🤖 Generated with Tovyr (93% 3-shotted by tovyr-opus-4-5, 2 memories recalled)"
   const memSuffix =
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`
       : ''
-  const summary = `🤖 Generated with [Blink](${PRODUCT_URL}) (${claudePercent}% ${promptCount}-shotted by ${shortModelName}${memSuffix})`
+  const summary = `🤖 Generated with [Tovyr](${PRODUCT_URL}) (${claudePercent}% ${promptCount}-shotted by ${shortModelName}${memSuffix})`
 
   // Append trailer lines for squash-merge survival. Only for allowlisted repos
   // (INTERNAL_MODEL_REPOS) and only in builds with COMMIT_ATTRIBUTION enabled —

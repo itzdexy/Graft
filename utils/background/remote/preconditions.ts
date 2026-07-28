@@ -4,8 +4,8 @@ import { getOrganizationUUID } from 'src/services/oauth/client.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../../services/analytics/growthbook.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
-  getBlinkWebOAuthTokens,
-  isBlinkWebSubscriber,
+  getTovyrWebOAuthTokens,
+  isTovyrWebSubscriber,
 } from '../../auth.js'
 import { getCwd } from '../../cwd.js'
 import { logForDebugging } from '../../debug.js'
@@ -16,12 +16,12 @@ import { getOAuthHeaders } from '../../teleport/api.js'
 import { fetchEnvironments } from '../../teleport/environments.js'
 
 /**
- * Checks if user needs to log in with Blink.ai
+ * Checks if user needs to log in with Tovyr.ai
  * Extracted from getTeleportErrors() in TeleportError.tsx
  * @returns true if login is required, false otherwise
  */
 export async function checkNeedsClaudeAiLogin(): Promise<boolean> {
-  if (!isBlinkWebSubscriber()) {
+  if (!isTovyrWebSubscriber()) {
     return false
   }
   return checkAndRefreshOAuthTokenIfNeeded()
@@ -71,8 +71,8 @@ export async function checkHasGitRemote(): Promise<boolean> {
 
 /**
  * Checks if GitHub app is installed on a specific repository
- * @param owner The repository owner (e.g., "blinks")
- * @param repo The repository name (e.g., "blink-cli-internal")
+ * @param owner The repository owner (e.g., "tovyrs")
+ * @param repo The repository name (e.g., "tovyr-cli-internal")
  * @returns true if GitHub app is installed, false otherwise
  */
 export async function checkGithubAppInstalled(
@@ -81,7 +81,7 @@ export async function checkGithubAppInstalled(
   signal?: AbortSignal,
 ): Promise<boolean> {
   try {
-    const accessToken = getBlinkWebOAuthTokens()?.accessToken
+    const accessToken = getTovyrWebOAuthTokens()?.accessToken
     if (!accessToken) {
       logForDebugging(
         'checkGithubAppInstalled: No access token found, assuming app not installed',
@@ -163,7 +163,7 @@ export async function checkGithubAppInstalled(
  */
 export async function checkGithubTokenSynced(): Promise<boolean> {
   try {
-    const accessToken = getBlinkWebOAuthTokens()?.accessToken
+    const accessToken = getTovyrWebOAuthTokens()?.accessToken
     if (!accessToken) {
       logForDebugging('checkGithubTokenSynced: No access token found')
       return false

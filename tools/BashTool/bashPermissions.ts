@@ -454,7 +454,7 @@ const ANT_ONLY_SAFE_ENV_VARS = new Set([
   'CLOUDSDK_CORE_PROJECT', // GCP project ID
   'CLUSTER', // generic cluster name
 
-  // Blink internal cluster selection (just names/identifiers)
+  // Tovyr internal cluster selection (just names/identifiers)
   'COO_CLUSTER', // coo cluster name
   'COO_CLUSTER_NAME', // coo cluster name (alternate)
   'COO_NAMESPACE', // coo namespace
@@ -483,8 +483,8 @@ const ANT_ONLY_SAFE_ENV_VARS = new Set([
   'STATSIG_FORD_DB_CHECKS', // statsig DB check flag
 
   // Build configuration
-  'ANT_ENVIRONMENT', // Blink environment name
-  'ANT_SERVICE', // Blink service name
+  'ANT_ENVIRONMENT', // Tovyr environment name
+  'ANT_SERVICE', // Tovyr service name
   'MONOREPO_ROOT_DIR', // monorepo root path
 
   // Version selectors
@@ -498,7 +498,7 @@ const ANT_ONLY_SAFE_ENV_VARS = new Set([
 
 /**
  * Strips full-line comments from a command.
- * This handles cases where Blink adds comments in bash commands, e.g.:
+ * This handles cases where Tovyr adds comments in bash commands, e.g.:
  *   "# Check the logs directory\nls /home/user/logs"
  * Should be stripped to: "ls /home/user/logs"
  *
@@ -711,9 +711,9 @@ export const BINARY_HIJACK_VARS = /^(LD_|DYLD_|PATH$)/
  * Strip ALL leading env var prefixes from a command, regardless of whether the
  * var name is in the safe-list.
  *
- * Used for deny/ask rule matching: when a user denies `blink` or `rm`, the
+ * Used for deny/ask rule matching: when a user denies `tovyr` or `rm`, the
  * command should stay blocked even if prefixed with arbitrary env vars like
- * `FOO=bar blink`. The safe-list restriction in stripSafeWrappers is correct
+ * `FOO=bar tovyr`. The safe-list restriction in stripSafeWrappers is correct
  * for allow rules (prevents `DOCKER_HOST=evil docker ps` from auto-matching
  * `Bash(docker ps:*)`), but deny rules must be harder to circumvent.
  *
@@ -1216,7 +1216,7 @@ export async function checkCommandAndSuggestRules(
   // validators (backslash-escaped operators, etc.) would only add FPs.
   if (
     !astParseSucceeded &&
-    !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
+    !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_COMMAND_INJECTION_CHECK)
   ) {
     const safetyResult = await bashCommandIsSafeAsync(input.command)
 
@@ -1676,7 +1676,7 @@ export async function bashToolHasPermission(
   // When tree-sitter WASM is unavailable OR the injection check is disabled
   // via env var, we fall back to the old path (legacy gate at ~1370 runs).
   const injectionCheckDisabled = isEnvTruthy(
-    process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK,
+    process.env.TOVYR_CODE_DISABLE_COMMAND_INJECTION_CHECK,
   )
   // GrowthBook killswitch for shadow mode — when off, skip the native parse
   // entirely. Computed once; feature() must stay inline in the ternary below.
@@ -2039,7 +2039,7 @@ export async function bashToolHasPermission(
       // SECURITY: Compute compoundCommandHasCd from the full command, NOT
       // hardcode false. The pipe-handling path previously passed `false` here,
       // disabling the cd+redirect check at pathValidation.ts:821. Appending
-      // `| echo done` to `cd .claude && echo x > settings.json` routed through
+      // `| echo done` to `cd .tovyr && echo x > settings.json` routed through
       // this path with compoundCommandHasCd=false, letting the redirect write
       // to .claude/settings.json without the cd+redirect block firing.
       const pathResult = checkPathConstraints(
@@ -2084,7 +2084,7 @@ export async function bashToolHasPermission(
   // same question: "can splitCommand be trusted on this input?"
   if (
     astSubcommands === null &&
-    !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
+    !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_COMMAND_INJECTION_CHECK)
   ) {
     const originalCommandSafetyResult = await bashCommandIsSafeAsync(
       input.command,
@@ -2343,7 +2343,7 @@ export async function bashToolHasPermission(
   let hasPossibleCommandInjection = false
   if (
     astSubcommands === null &&
-    !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
+    !isEnvTruthy(process.env.TOVYR_CODE_DISABLE_COMMAND_INJECTION_CHECK)
   ) {
     // CC-643: Batch divergence telemetry into a single logEvent. The per-sub
     // logEvent was the hot-path syscall driver (each call → /proc/self/stat

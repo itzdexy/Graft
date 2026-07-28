@@ -73,26 +73,39 @@ export const init = memoize(async (): Promise<void> => {
     const envVarsStart = Date.now()
     applySafeConfigEnvironmentVariables()
 
-    // After settings.env — Blink owns provider routing (incl. OpenAI-compat proxy).
-    const { applyBlinkProviderEnv } = await import('../services/blink/provider.js')
-    applyBlinkProviderEnv()
+    // After settings.env — Tovyr owns provider routing (incl. OpenAI-compat proxy).
+    const { applyTovyrProviderEnv } = await import('../services/tovyr/provider.js')
+    applyTovyrProviderEnv()
 
     const { prefetchActiveProviderModelIds } = await import(
-      '../services/blink/providerModels.js'
+      '../services/tovyr/providerModels.js'
     )
     // Non-blocking: model list can take up to 15s per URL; first query warms cache if needed.
     prefetchActiveProviderModelIds()
 
-    const { registerBlinkAgentSdk } = await import(
-      '../services/blink/agent/sdkRunner.js'
+    const { scheduleActiveProviderProbe } = await import(
+      '../services/tovyr/providers/probe.js'
     )
-    registerBlinkAgentSdk()
+    // A real selected-model probe runs in the background. The UI is available
+    // immediately and shows "Checking" until model output or a structured
+    // provider failure proves the connection state.
+    scheduleActiveProviderProbe()
 
-    if (process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC) {
-      const { resolveActive } = await import('../scripts/blink-providers.js')
+    // Warm project repo index in the background so the file structure, symbols,
+    // and import graph are cached before the first user query.
+    const { warmRepoMapCache } = await import('../services/tovyr/repo/repoContext.js')
+    warmRepoMapCache()
+
+    const { registerTovyrAgentSdk } = await import(
+      '../services/tovyr/agent/sdkRunner.js'
+    )
+    registerTovyrAgentSdk()
+
+    if (process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC) {
+      const { resolveActive } = await import('../scripts/tovyr-providers.js')
       if (resolveActive()) {
         const { applyActiveProviderSession } = await import(
-          '../services/blink/applyActiveProvider.js'
+          '../services/tovyr/applyActiveProvider.js'
         )
         await applyActiveProviderSession()
       }
@@ -175,7 +188,7 @@ export const init = memoize(async (): Promise<void> => {
     logForDebugging('[init] configureGlobalAgents complete')
     profileCheckpoint('init_network_configured')
 
-    // Preconnect to the Blink API — overlap TCP+TLS handshake
+    // Preconnect to the Tovyr API — overlap TCP+TLS handshake
     // (~100-200ms) with the ~100ms of action-handler work before the API
     // request. After CA certs + proxy agents are configured so the warmed
     // connection uses the right transport. Fire-and-forget; skipped for
@@ -185,11 +198,11 @@ export const init = memoize(async (): Promise<void> => {
 
     // CCR upstreamproxy: start the local CONNECT relay so agent subprocesses
     // can reach org-configured upstreams with credential injection. Gated on
-    // CLAUDE_CODE_REMOTE + GrowthBook; fail-open on any error. Lazy import so
+    // TOVYR_CODE_REMOTE + GrowthBook; fail-open on any error. Lazy import so
     // non-CCR startups don't pay the module load. The getUpstreamProxyEnv
     // function is registered with subprocessEnv.ts so subprocess spawning can
     // inject proxy vars without a static import of the upstreamproxy module.
-    if (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
+    if (isEnvTruthy(process.env.TOVYR_CODE_REMOTE)) {
       try {
         const { initUpstreamProxy, getUpstreamProxyEnv } = await import(
           '../upstreamproxy/upstreamproxy.js'

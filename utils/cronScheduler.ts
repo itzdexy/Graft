@@ -1,4 +1,4 @@
-// Non-React scheduler core for .blink/scheduled_tasks.json.
+// Non-React scheduler core for .tovyr/scheduled_tasks.json.
 // Shared by REPL (via useScheduledTasks) and SDK/-p mode (print.ts).
 //
 // Lifecycle: poll getScheduledTasksEnabled() until true (flag flips when
@@ -86,7 +86,7 @@ type CronSchedulerOptions = {
    */
   onMissed?: (tasks: CronTask[]) => void
   /**
-   * Directory containing .blink/scheduled_tasks.json. When provided, the
+   * Directory containing .tovyr/scheduled_tasks.json. When provided, the
    * scheduler never touches bootstrap state: getProjectRoot/getSessionId are
    * not read, and the getScheduledTasksEnabled() poll is skipped (enable()
    * runs immediately on start). Required for Agent SDK daemon callers.
@@ -112,8 +112,8 @@ type CronSchedulerOptions = {
   /**
    * Killswitch: polled once per check() tick. When true, check() bails
    * before firing anything — existing crons stop dead mid-session. CLI
-   * callers inject `() => !isBlinksCronEnabled()` so flipping the
-   * tengu_blinks_cron gate off stops already-running schedulers (not just
+   * callers inject `() => !isTovyrsCronEnabled()` so flipping the
+   * tengu_tovyrs_cron gate off stops already-running schedulers (not just
    * new ones). Daemon callers omit this, same rationale as getJitterConfig.
    */
   isKilled?: () => boolean
@@ -183,7 +183,7 @@ export function createCronScheduler(
 
     // Only surface missed tasks on initial load. Chokidar-triggered
     // reloads leave overdue tasks to check() (which anchors from createdAt
-    // and fires immediately). This avoids a misleading "missed while Blink
+    // and fires immediately). This avoids a misleading "missed while Tovyr
     // was not running" prompt for tasks that became overdue mid-session.
     //
     // Recurring tasks are NOT surfaced or deleted — check() handles them
@@ -345,7 +345,7 @@ export function createCronScheduler(
     }
 
     // File-backed tasks: only when we own the scheduler lock. The lock
-    // exists to stop two Blink sessions in the same cwd from double-firing
+    // exists to stop two Tovyr sessions in the same cwd from double-firing
     // the same on-disk task.
     if (isOwner) {
       for (const t of tasks) process(t, false)
@@ -405,7 +405,7 @@ export function createCronScheduler(
 
     // Acquire the per-project scheduler lock. Only the owning session runs
     // check(). Other sessions probe periodically to take over if the owner
-    // dies. Prevents double-firing when multiple Blinks share a cwd.
+    // dies. Prevents double-firing when multiple Tovyrs share a cwd.
     isOwner = await tryAcquireSchedulerLock(lockOpts).catch(() => false)
     if (stopped) {
       if (isOwner) {
@@ -542,7 +542,7 @@ export function createCronScheduler(
 export function buildMissedTaskNotification(missed: CronTask[]): string {
   const plural = missed.length > 1
   const header =
-    `The following one-shot scheduled task${plural ? 's were' : ' was'} missed while Blink was not running. ` +
+    `The following one-shot scheduled task${plural ? 's were' : ' was'} missed while Tovyr was not running. ` +
     `${plural ? 'They have' : 'It has'} already been removed from .claude/scheduled_tasks.json.\n\n` +
     `Do NOT execute ${plural ? 'these prompts' : 'this prompt'} yet. ` +
     `First use the AskUserQuestion tool to ask whether to run ${plural ? 'each one' : 'it'} now. ` +

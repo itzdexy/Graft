@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle'
 import { z } from 'zod/v4'
-import { getBlinksActive, getUserMsgOptIn } from '../../bootstrap/state.js'
+import { getTovyrsActive, getUserMsgOptIn } from '../../bootstrap/state.js'
 import { getFeatureValue_CACHED_WITH_REFRESH } from '../../services/analytics/growthbook.js'
 import { logEvent } from '../../services/analytics/index.js'
 import type { ValidationResult } from '../../Tool.js'
@@ -64,7 +64,7 @@ const outputSchema = lazySchema(() =>
 type OutputSchema = ReturnType<typeof outputSchema>
 export type Output = z.infer<OutputSchema>
 
-const BLINKS_BRIEF_REFRESH_MS = 5 * 60 * 1000
+const TOVYRS_BRIEF_REFRESH_MS = 5 * 60 * 1000
 
 /**
  * Entitlement check — is the user ALLOWED to use Brief? Combines build-time
@@ -72,15 +72,15 @@ const BLINKS_BRIEF_REFRESH_MS = 5 * 60 * 1000
  * here — this decides whether opt-in should be HONORED, not whether the user
  * has opted in.
  *
- * Build-time OR-gated on BLINKS || BLINKS_BRIEF (same pattern as
- * PROACTIVE || BLINKS): assistant mode depends on Brief, so BLINKS alone
- * must bundle it. BLINKS_BRIEF lets Brief ship independently.
+ * Build-time OR-gated on TOVYRS || TOVYRS_BRIEF (same pattern as
+ * PROACTIVE || TOVYRS): assistant mode depends on Brief, so TOVYRS alone
+ * must bundle it. TOVYRS_BRIEF lets Brief ship independently.
  *
  * Use this to decide whether `--brief` / `defaultView: 'chat'` / `--tools`
  * listing should be honored. Use `isBriefEnabled()` to decide whether the
  * tool is actually active in the current session.
  *
- * CLAUDE_CODE_BRIEF env var force-grants entitlement for dev/testing —
+ * TOVYR_CODE_BRIEF env var force-grants entitlement for dev/testing —
  * bypasses the GB gate so you can test without being enrolled. Still
  * requires an opt-in action to activate (--brief, defaultView, etc.), but
  * the env var alone also sets userMsgOptIn via maybeActivateBrief().
@@ -88,13 +88,13 @@ const BLINKS_BRIEF_REFRESH_MS = 5 * 60 * 1000
 export function isBriefEntitled(): boolean {
   // Positive ternary — see docs/feature-gating.md. Negative early-return
   // would not eliminate the GB gate string from external builds.
-  return feature('BLINKS') || feature('BLINKS_BRIEF')
-    ? getBlinksActive() ||
-        isEnvTruthy(process.env.CLAUDE_CODE_BRIEF) ||
+  return feature('TOVYRS') || feature('TOVYRS_BRIEF')
+    ? getTovyrsActive() ||
+        isEnvTruthy(process.env.TOVYR_CODE_BRIEF) ||
         getFeatureValue_CACHED_WITH_REFRESH(
-          'tengu_blinks_brief',
+          'tengu_tovyrs_brief',
           false,
-          BLINKS_BRIEF_REFRESH_MS,
+          TOVYRS_BRIEF_REFRESH_MS,
         )
     : false
 }
@@ -110,17 +110,17 @@ export function isBriefEntitled(): boolean {
  *   - `/brief` slash command (brief.ts)
  *   - `/config` defaultView picker (Config.tsx)
  *   - SendUserMessage in `--tools` / SDK `tools` option (main.tsx)
- *   - CLAUDE_CODE_BRIEF env var (maybeActivateBrief — dev/testing bypass)
- * Assistant mode (blinksActive) bypasses opt-in since its system prompt
+ *   - TOVYR_CODE_BRIEF env var (maybeActivateBrief — dev/testing bypass)
+ * Assistant mode (tovyrsActive) bypasses opt-in since its system prompt
  * hard-codes "you MUST use SendUserMessage" (systemPrompt.md:14).
  *
  * The GB gate is re-checked here as a kill-switch AND — flipping
- * tengu_blinks_brief off mid-session disables the tool on the next 5-min
+ * tengu_tovyrs_brief off mid-session disables the tool on the next 5-min
  * refresh even for opted-in sessions. No opt-in → always false regardless
  * of GB (this is the fix for "brief defaults on for enrolled ants").
  *
  * Called from Tool.isEnabled() (lazy, post-init), never at module scope.
- * getBlinksActive() and getUserMsgOptIn() are set in main.tsx before any
+ * getTovyrsActive() and getUserMsgOptIn() are set in main.tsx before any
  * caller reaches here.
  */
 export function isBriefEnabled(): boolean {
@@ -128,8 +128,8 @@ export function isBriefEnabled(): boolean {
   // the ternary to `false` in external builds and then dead-code the BriefTool
   // object. Composing isBriefEntitled() alone (which has its own guard) is
   // semantically equivalent but defeats constant-folding across the boundary.
-  return feature('BLINKS') || feature('BLINKS_BRIEF')
-    ? (getBlinksActive() || getUserMsgOptIn()) && isBriefEntitled()
+  return feature('TOVYRS') || feature('TOVYRS_BRIEF')
+    ? (getTovyrsActive() || getUserMsgOptIn()) && isBriefEntitled()
     : false
 }
 

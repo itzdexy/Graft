@@ -23,7 +23,7 @@ import {
   type ModelShortName,
 } from './model/model.js'
 
-// @see https://platform.blink.com/docs/en/about-blink/pricing
+// @see https://platform.tovyr.com/docs/en/about-tovyr/pricing
 export type ModelCosts = {
   inputTokens: number
   outputTokens: number
@@ -99,7 +99,7 @@ export function getOpus46CostTier(fastMode: boolean): ModelCosts {
 }
 
 // @[MODEL LAUNCH]: Add a pricing entry for the new model below.
-// Costs from https://platform.blink.com/docs/en/about-blink/pricing
+// Costs from https://platform.tovyr.com/docs/en/about-tovyr/pricing
 // Web search cost: $10 per 1000 requests = $0.01 per request
 export const MODEL_COSTS: Record<ModelShortName, ModelCosts> = {
   [firstPartyNameToCanonical(CLAUDE_3_5_HAIKU_CONFIG.firstParty)]:

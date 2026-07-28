@@ -1,4 +1,4 @@
-// Extracted from dream.ts so auto-dream ships independently of BLINKS
+// Extracted from dream.ts so auto-dream ships independently of TOVYRS
 // feature flags (dream.ts is behind a feature()-gated require).
 
 import {

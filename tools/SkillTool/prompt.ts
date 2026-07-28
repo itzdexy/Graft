@@ -188,6 +188,8 @@ How to invoke:
 Important:
 - Available skills are listed in system-reminder messages in the conversation
 - Use only an exact skill name from that list. Never guess or invent a skill name.
+- Do not call this tool for greetings, small talk, or vague requests like "hi", "hello", "help", or "what can you do". Answer those directly.
+- Never pass the user's raw message, a greeting, or generic placeholders like "request" or "task" as the skill name.
 - Greetings, casual conversation, and ordinary questions do not require a skill; answer them directly.
 - When a skill matches the user's request, this is a BLOCKING REQUIREMENT: invoke the relevant Skill tool BEFORE generating any other response about the task
 - NEVER mention a skill without actually calling this tool

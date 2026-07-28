@@ -1,12 +1,12 @@
 /**
  * Settings Sync Service
  *
- * Syncs user settings and memory files across Blink environments.
+ * Syncs user settings and memory files across Tovyr environments.
  *
  * - Interactive CLI: Uploads local settings to remote (incremental, only changed entries)
  * - CCR: Downloads remote settings to local before plugin installation
  *
- * Backend API: blink/blink#218817
+ * Backend API: tovyr/tovyr#218817
  */
 
 import { feature } from 'bun:bundle'
@@ -22,9 +22,9 @@ import {
 } from '../../constants/oauth.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
 } from '../../utils/auth.js'
-import { clearMemoryFileCaches } from '../../utils/blinkmd.js'
+import { clearMemoryFileCaches } from '../../utils/tovyrmd.js'
 import { getMemoryPath } from '../../utils/config.js'
 import { logForDiagnosticsNoPII } from '../../utils/diagLogs.js'
 import { classifyAxiosError } from '../../utils/errors.js'
@@ -37,7 +37,7 @@ import { markInternalWrite } from '../../utils/settings/internalWrites.js'
 import { getSettingsFilePathForSource } from '../../utils/settings/settings.js'
 import { resetSettingsCache } from '../../utils/settings/settingsCache.js'
 import { sleep } from '../../utils/sleep.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 import { logEvent } from '../analytics/index.js'
 import { getRetryDelay } from '../api/withRetry.js'
@@ -214,7 +214,7 @@ function isUsingOAuth(): boolean {
     return false
   }
 
-  const tokens = getBlinkWebOAuthTokens()
+  const tokens = getTovyrWebOAuthTokens()
   return Boolean(
     tokens?.accessToken && tokens.scopes?.includes(CLAUDE_AI_INFERENCE_SCOPE),
   )
@@ -228,7 +228,7 @@ function getSettingsSyncAuthHeaders(): {
   headers: Record<string, string>
   error?: string
 } {
-  const oauthTokens = getBlinkWebOAuthTokens()
+  const oauthTokens = getTovyrWebOAuthTokens()
   if (oauthTokens?.accessToken) {
     return {
       headers: {
@@ -259,7 +259,7 @@ async function fetchUserSettingsOnce(): Promise<SettingsSyncFetchResult> {
 
     const headers: Record<string, string> = {
       ...authHeaders.headers,
-      'User-Agent': getBlinkCodeUserAgent(),
+      'User-Agent': getTovyrCodeUserAgent(),
     }
 
     const endpoint = getSettingsSyncEndpoint()
@@ -360,7 +360,7 @@ async function uploadUserSettings(
 
     const headers: Record<string, string> = {
       ...authHeaders.headers,
-      'User-Agent': getBlinkCodeUserAgent(),
+      'User-Agent': getTovyrCodeUserAgent(),
       'Content-Type': 'application/json',
     }
 

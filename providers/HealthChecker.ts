@@ -74,9 +74,9 @@ class ProviderHealthChecker {
       enabled: true,
     });
 
-    // Blink
+    // Tovyr
     this.providers.set('anthropic', {
-      name: 'Blink',
+      name: 'Tovyr',
       baseUrl: 'https://api.anthropic.com/v1',
       models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
       timeout: 30000,

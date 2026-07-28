@@ -60,14 +60,14 @@ function pageToMessages(page: HistoryPage): Message[] {
 }
 
 /**
- * Lazy-load `blink assistant` history on scroll-up.
+ * Lazy-load `tovyr assistant` history on scroll-up.
  *
  * On mount: fetch newest page via anchor_to_latest, prepend to messages.
  * On scroll-up near top: fetch next-older page via before_id, prepend with
  * scroll anchoring (viewport stays put).
  *
  * No-op unless config.viewerOnly. REPL only calls this hook inside a
- * feature('BLINKS') gate, so build-time elimination is handled there.
+ * feature('TOVYRS') gate, so build-time elimination is handled there.
  */
 export function useAssistantHistory({
   config,

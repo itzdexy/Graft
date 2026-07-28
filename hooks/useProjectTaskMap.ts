@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { readRepoIndexCache } from '../services/blink/repo/cache.js'
+import { readRepoIndexCache } from '../services/tovyr/repo/cache.js'
 import {
   buildTaskProjectMap,
   type TaskProjectMap,
-} from '../services/blink/repo/taskRelevance.js'
+} from '../services/tovyr/repo/taskRelevance.js'
 
 const POLL_MS = 2_000
 

@@ -41,14 +41,14 @@ async function createWorkflowFile(
   }
 
   let content = workflowContent
-  if (secretName === 'CLAUDE_CODE_OAUTH_TOKEN') {
-    // For OAuth tokens, use the blink_code_oauth_token parameter
+  if (secretName === 'TOVYR_CODE_OAUTH_TOKEN') {
+    // For OAuth tokens, use the tovyr_code_oauth_token parameter
     content = workflowContent.replace(
       /anthropic_api_key: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/g,
-      `claude_code_oauth_token: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`,
+      `claude_code_oauth_token: \${{ secrets.TOVYR_CODE_OAUTH_TOKEN }}`,
     )
   } else if (secretName !== 'ANTHROPIC_API_KEY') {
-    // For other custom secret names, keep using blink_api_key parameter
+    // For other custom secret names, keep using tovyr_api_key parameter
     content = workflowContent.replace(
       /anthropic_api_key: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/g,
       `anthropic_api_key: \${{ secrets.${secretName} }}`,
@@ -86,7 +86,7 @@ async function createWorkflowFile(
         ...context,
       })
       throw new Error(
-        `Failed to create workflow file ${workflowPath}: A Blink workflow file already exists in this repository. Please remove it first or update it manually.`,
+        `Failed to create workflow file ${workflowPath}: A Tovyr workflow file already exists in this repository. Please remove it first or update it manually.`,
       )
     }
 
@@ -101,7 +101,7 @@ async function createWorkflowFile(
       '\n\nNeed help? Common issues:\n' +
       '· Permission denied → Run: gh auth refresh -h github.com -s repo,workflow\n' +
       '· Not authorized → Ensure you have admin access to the repository\n' +
-      '· For manual setup → Visit: https://github.com/itsdexy/BlinkCode'
+      '· For manual setup → Visit: https://github.com/itsdexy/Tovyr'
 
     throw new Error(
       `Failed to create workflow file ${workflowPath}: ${createFileResult.stderr}${helpText}`,
@@ -196,7 +196,7 @@ export async function setupGitHubActions(
     if (!skipWorkflow) {
       updateProgress()
       // Create new branch
-      branchName = `add-blink-github-actions-${Date.now()}`
+      branchName = `add-tovyr-github-actions-${Date.now()}`
       const createBranchResult = await execFileNoThrow('gh', [
         'api',
         '--method',
@@ -223,17 +223,17 @@ export async function setupGitHubActions(
 
       if (selectedWorkflows.includes('claude')) {
         workflows.push({
-          path: '.github/workflows/blink.yml',
+          path: '.github/workflows/tovyr.yml',
           content: WORKFLOW_CONTENT,
-          message: 'Blink PR Assistant workflow',
+          message: 'Tovyr PR Assistant workflow',
         })
       }
 
       if (selectedWorkflows.includes('claude-review')) {
         workflows.push({
-          path: '.github/workflows/blink-review.yml',
+          path: '.github/workflows/tovyr-review.yml',
           content: CODE_REVIEW_PLUGIN_WORKFLOW_CONTENT,
-          message: 'Blink Review workflow',
+          message: 'Tovyr Review workflow',
         })
       }
 
@@ -274,7 +274,7 @@ export async function setupGitHubActions(
           '\n\nNeed help? Common issues:\n' +
           '· Permission denied → Run: gh auth refresh -h github.com -s repo\n' +
           '· Not authorized → Ensure you have admin access to the repository\n' +
-          '· For manual setup → Visit: https://github.com/itsdexy/BlinkCode'
+          '· For manual setup → Visit: https://github.com/itsdexy/Tovyr'
 
         throw new Error(
           `Failed to set API key secret: ${setSecretResult.stderr || 'Unknown error'}${helpText}`,

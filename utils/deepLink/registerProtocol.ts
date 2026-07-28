@@ -1,9 +1,9 @@
 /**
  * Protocol Handler Registration
  *
- * Registers the `blink-cli://` custom URI scheme with the OS,
- * so that clicking a `blink-cli://` link in a browser (or any app) will
- * invoke `blink --handle-uri <url>`.
+ * Registers the `tovyr-cli://` custom URI scheme with the OS,
+ * so that clicking a `tovyr-cli://` link in a browser (or any app) will
+ * invoke `tovyr --handle-uri <url>`.
  *
  * Platform details:
  *   macOS  — Creates a minimal .app trampoline in ~/Applications with
@@ -22,7 +22,7 @@ import {
   logEvent,
 } from 'src/services/analytics/index.js'
 import { logForDebugging } from '../debug.js'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import { getErrnoCode } from '../errors.js'
 import { execFileNoThrow } from '../execFileNoThrow.js'
 import { getInitialSettings } from '../settings/settings.js'
@@ -31,9 +31,9 @@ import { getUserBinDir, getXDGDataHome } from '../xdg.js'
 import { DEEP_LINK_PROTOCOL } from './parseDeepLink.js'
 
 export const MACOS_BUNDLE_ID = 'com.anthropic.claude-code-url-handler'
-const APP_NAME = 'Blink URL Handler'
+const APP_NAME = 'Tovyr URL Handler'
 const DESKTOP_FILE_NAME = 'claude-code-url-handler.desktop'
-const MACOS_APP_NAME = 'Blink URL Handler.app'
+const MACOS_APP_NAME = 'Tovyr URL Handler.app'
 
 // Shared between register* (writes these paths/values) and
 // isProtocolHandlerCurrent (reads them back). Keep the writer and reader
@@ -64,9 +64,9 @@ function windowsCommandValue(claudePath: string): string {
  * Register the protocol handler on macOS.
  *
  * Creates a .app bundle where the CFBundleExecutable is a symlink to the
- * already-installed (and signed) `blink` binary. When macOS opens a
- * `blink-cli://` URL, it launches `blink` through this app bundle.
- * Blink then uses the url-handler NAPI module to read the URL from the
+ * already-installed (and signed) `tovyr` binary. When macOS opens a
+ * `tovyr-cli://` URL, it launches `tovyr` through this app bundle.
+ * Tovyr then uses the url-handler NAPI module to read the URL from the
  * Apple Event and handles it normally.
  *
  * This approach avoids shipping a separate executable (which would need
@@ -87,7 +87,7 @@ async function registerMacos(claudePath: string): Promise<void> {
 
   await fs.mkdir(path.dirname(MACOS_SYMLINK_PATH), { recursive: true })
 
-  // Info.plist — registers the URL scheme with blink as the executable
+  // Info.plist — registers the URL scheme with tovyr as the executable
   const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -108,7 +108,7 @@ async function registerMacos(claudePath: string): Promise<void> {
   <array>
     <dict>
       <key>CFBundleURLName</key>
-      <string>Blink Deep Link</string>
+      <string>Tovyr Deep Link</string>
       <key>CFBundleURLSchemes</key>
       <array>
         <string>${DEEP_LINK_PROTOCOL}</string>
@@ -120,7 +120,7 @@ async function registerMacos(claudePath: string): Promise<void> {
 
   await fs.writeFile(path.join(contentsDir, 'Info.plist'), infoPlist)
 
-  // Symlink to the already-signed blink binary — avoids a new executable
+  // Symlink to the already-signed tovyr binary — avoids a new executable
   // that would need signing and endpoint-security allowlisting.
   // Written LAST among the throwing fs calls: isProtocolHandlerCurrent reads
   // this symlink, so it acts as the commit marker. If Info.plist write
@@ -146,7 +146,7 @@ async function registerLinux(claudePath: string): Promise<void> {
 
   const desktopEntry = `[Desktop Entry]
 Name=${APP_NAME}
-Comment=Handle ${DEEP_LINK_PROTOCOL}:// deep links for Blink
+Comment=Handle ${DEEP_LINK_PROTOCOL}:// deep links for Tovyr
 ${linuxExecLine(claudePath)}
 Type=Application
 NoDisplay=true
@@ -209,8 +209,8 @@ async function registerWindows(claudePath: string): Promise<void> {
 }
 
 /**
- * Register the `blink-cli://` protocol handler with the operating system.
- * After registration, clicking a `blink-cli://` link will invoke blink.
+ * Register the `tovyr-cli://` protocol handler with the operating system.
+ * After registration, clicking a `tovyr-cli://` link will invoke tovyr.
  */
 export async function registerProtocolHandler(
   claudePath?: string,
@@ -233,8 +233,8 @@ export async function registerProtocolHandler(
 }
 
 /**
- * Resolve the blink binary path for protocol registration. Prefers the
- * native installer's stable symlink (~/.local/bin/blink) which survives
+ * Resolve the tovyr binary path for protocol registration. Prefers the
+ * native installer's stable symlink (~/.local/bin/tovyr) which survives
  * auto-updates; falls back to process.execPath when the symlink is absent
  * (dev builds, non-native installs).
  */
@@ -251,9 +251,9 @@ async function resolveClaudePath(): Promise<string> {
 
 /**
  * Check whether the OS-level protocol handler is already registered AND
- * points at the expected `blink` binary. Reads the registration artifact
+ * points at the expected `tovyr` binary. Reads the registration artifact
  * directly (symlink target, .desktop Exec line, registry value) rather than
- * a cached flag in ~/.blink.json, so:
+ * a cached flag in ~/.tovyr.json, so:
  *   - the check is per-machine (config can sync across machines; OS state can't)
  *   - stale paths self-heal (install-method change → re-register next session)
  *   - deleted artifacts self-heal
@@ -290,7 +290,7 @@ export async function isProtocolHandlerCurrent(
 }
 
 /**
- * Auto-register the blink-cli:// deep link protocol handler when missing
+ * Auto-register the tovyr-cli:// deep link protocol handler when missing
  * or stale. Runs every session from backgroundHousekeeping (fire-and-forget),
  * but the artifact check makes it a no-op after the first successful run
  * unless the install path moves or the OS artifact is deleted.
@@ -311,9 +311,9 @@ export async function ensureDeepLinkProtocolRegistered(): Promise<void> {
   // EACCES/ENOSPC are deterministic — retrying next session won't help.
   // Throttle to once per 24h so a read-only ~/.local/share/applications
   // doesn't generate a failure event on every startup. Marker lives in
-  // ~/.blink (per-machine, not synced) rather than ~/.blink.json (can sync).
+  // ~/.tovyr (per-machine, not synced) rather than ~/.tovyr.json (can sync).
   const failureMarkerPath = path.join(
-    getBlinkConfigHomeDir(),
+    getTovyrConfigHomeDir(),
     '.deep-link-register-failed',
   )
   try {

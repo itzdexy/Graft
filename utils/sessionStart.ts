@@ -122,7 +122,7 @@ export async function processSessionStartHooks(
       )
 
       // Continue execution - plugin hooks won't be available, but project-level hooks
-      // from .blink/settings.json (loaded via captureHooksConfigSnapshot) will still work
+      // from .tovyr/settings.json (loaded via captureHooksConfigSnapshot) will still work
     }
   }
 

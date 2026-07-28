@@ -2,7 +2,7 @@ import { type StructuredPatchHunk, structuredPatch } from 'diff'
 import { logError } from 'src/utils/log.js'
 import { expandPath } from 'src/utils/path.js'
 import { countCharInString } from 'src/utils/stringUtils.js'
-import { coerceEditString } from '../../services/blink/edits/normalizeEditInput.js'
+import { coerceEditString } from '../../services/tovyr/edits/normalizeEditInput.js'
 import {
   DIFF_TIMEOUT_MS,
   getPatchForDisplay,
@@ -16,7 +16,7 @@ import {
 } from '../../utils/file.js'
 import type { EditInput, FileEdit } from './types.js'
 
-// Blink can't output curly quotes, so we define them as constants here for Blink to use
+// Tovyr can't output curly quotes, so we define them as constants here for Tovyr to use
 // in the code. We do this because we normalize curly quotes to straight quotes
 // when applying edits.
 export const LEFT_SINGLE_CURLY_QUOTE = '‘'
@@ -528,8 +528,8 @@ export function getEditsForPatch(patch: StructuredPatchHunk[]): FileEdit[] {
 }
 
 /**
- * Contains replacements to de-sanitize strings from Blink
- * Since Blink can't see any of these strings (sanitized in the API)
+ * Contains replacements to de-sanitize strings from Tovyr
+ * Since Tovyr can't see any of these strings (sanitized in the API)
  * It'll output the sanitized versions in the edit response
  */
 const DESANITIZATIONS: Record<string, string> = {

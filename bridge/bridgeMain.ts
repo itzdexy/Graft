@@ -13,7 +13,7 @@ import {
 } from '../services/analytics/index.js'
 import { isInBundledMode } from '../utils/bundledMode.js'
 import { logForDebugging } from '../utils/debug.js'
-import { blinkCmd } from '../constants/blink.js'
+import { tovyrCmd } from '../constants/tovyr.js'
 import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'
 import { isEnvTruthy, isInProtectedNamespace } from '../utils/envUtils.js'
 import { errorMessage } from '../utils/errors.js'
@@ -110,12 +110,12 @@ function pollSleepDetectionThresholdMs(backoff: BackoffConfig): number {
 }
 
 /**
- * Returns the args that must precede CLI flags when spawning a child blink
- * process. In compiled binaries, process.execPath is the blink binary itself
+ * Returns the args that must precede CLI flags when spawning a child tovyr
+ * process. In compiled binaries, process.execPath is the tovyr binary itself
  * and args go directly to it. In npm installs (node running cli.js),
  * process.execPath is the node runtime â€” the child spawn must pass the script
  * path as the first arg, otherwise node interprets --sdk-url as a node option
- * and exits with "bad option: --sdk-url". See blinks/blink#28334.
+ * and exits with "bad option: --sdk-url". See tovyrs/tovyr#28334.
  */
 function spawnScriptArgs(): string[] {
   if (isInBundledMode() || !process.argv[1]) {
@@ -1514,23 +1514,23 @@ export async function runBridgeLoop(
   }
 
   // In single-session mode with a known session, leave the session and
-  // environment alive so `blink remote-control --session-id=<id>` can resume.
+  // environment alive so `tovyr remote-control --session-id=<id>` can resume.
   // The backend GCs stale environments via a 4h TTL (BRIDGE_LAST_POLL_TTL).
   // Archiving the session or deregistering the environment would make the
   // printed resume command a lie â€” deregister deletes Firestore + Redis stream.
   // Skip when the loop exited fatally (env expired, auth failed, give-up) â€”
   // resume is impossible in those cases and the message would contradict the
   // error already printed.
-  // feature('BLINKS') gate: --session-id is ant-only; without the gate,
+  // feature('TOVYRS') gate: --session-id is ant-only; without the gate,
   // revert to the pre-PR behavior (archive + deregister on every shutdown).
   if (
-    feature('BLINKS') &&
+    feature('TOVYRS') &&
     config.spawnMode === 'single-session' &&
     initialSessionId &&
     !fatalExit
   ) {
     logger.logStatus(
-      `Resume this session by running \`${blinkCmd('remote-control --continue')}\``,
+      `Resume this session by running \`${tovyrCmd('remote-control --continue')}\``,
     )
     logForDebugging(
       `[bridge:shutdown] Skipping archive+deregister to allow resume of session ${initialSessionId}`,
@@ -1777,7 +1777,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     } else if (arg.startsWith('--name=')) {
       name = arg.slice('--name='.length)
     } else if (
-      feature('BLINKS') &&
+      feature('TOVYRS') &&
       arg === '--session-id' &&
       i + 1 < args.length
     ) {
@@ -1785,12 +1785,12 @@ export function parseArgs(args: string[]): ParsedArgs {
       if (!sessionId) {
         return makeError('--session-id requires a value')
       }
-    } else if (feature('BLINKS') && arg.startsWith('--session-id=')) {
+    } else if (feature('TOVYRS') && arg.startsWith('--session-id=')) {
       sessionId = arg.slice('--session-id='.length)
       if (!sessionId) {
         return makeError('--session-id requires a value')
       }
-    } else if (feature('BLINKS') && (arg === '--continue' || arg === '-c')) {
+    } else if (feature('TOVYRS') && (arg === '--continue' || arg === '-c')) {
       continueSession = true
     } else if (arg === '--spawn' || arg.startsWith('--spawn=')) {
       if (spawnMode !== undefined) {
@@ -1821,7 +1821,7 @@ export function parseArgs(args: string[]): ParsedArgs {
       createSessionInDir = false
     } else {
       return makeError(
-        `Unknown argument: ${arg}\nRun '${blinkCmd('remote-control --help')}' for usage.`,
+        `Unknown argument: ${arg}\nRun '${tovyrCmd('remote-control --help')}' for usage.`,
       )
     }
   }
@@ -1919,14 +1919,14 @@ async function printHelp(): Promise<void> {
 `
     : ''
   const help = `
-Remote Control - Connect your local environment to Blink web
+Remote Control - Connect your local environment to Tovyr web
 
 USAGE
-  ${blinkCmd('remote-control [options]')}
+  ${tovyrCmd('remote-control [options]')}
 OPTIONS
-  --name <name>                    Name for the session (shown in Blink web)
+  --name <name>                    Name for the session (shown in Tovyr web)
 ${
-  feature('BLINKS')
+  feature('TOVYRS')
     ? `  -c, --continue                   Resume the last session in this directory
   --session-id <id>                Resume a specific session by ID (cannot be
                                    used with spawn flags or --continue)
@@ -1940,12 +1940,12 @@ ${
 ${serverOptions}
 DESCRIPTION
   Remote Control allows you to control sessions on your local device from
-  Blink web (https://blink.dev/web). Run this command in the
-  directory you want to work in, then connect from the Blink app or web.
+  Tovyr web (https://tovyr.dev/web). Run this command in the
+  directory you want to work in, then connect from the Tovyr app or web.
 ${serverDescription}
 NOTES
-  - You must be logged in with a Blink account that has a subscription
-  - Run \`${blinkCmd()}\` first in the directory to accept the workspace trust dialog
+  - You must be logged in with a Tovyr account that has a subscription
+  - Run \`${tovyrCmd()}\` first in the directory to accept the workspace trust dialog
 ${serverNote}`
   // biome-ignore lint/suspicious/noConsole: intentional help output
   console.log(help)
@@ -2083,11 +2083,11 @@ export async function bridgeMain(args: string[]): Promise<void> {
   setCwdState(dir)
 
   // The bridge bypasses main.tsx (which renders the interactive TrustDialog via showSetupScreens),
-  // so we must verify trust was previously established by a normal `blink` session.
+  // so we must verify trust was previously established by a normal `tovyr` session.
   if (!checkHasTrustDialogAccepted()) {
     // biome-ignore lint/suspicious/noConsole:: intentional console output
     console.error(
-      `Error: Workspace not trusted. Please run \`${blinkCmd()}\` in ${dir} first to review and accept the workspace trust dialog.`,
+      `Error: Workspace not trusted. Please run \`${tovyrCmd()}\` in ${dir} first to review and accept the workspace trust dialog.`,
     )
     // eslint-disable-next-line custom-rules/no-process-exit
     process.exit(1)
@@ -2123,7 +2123,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
     })
     // biome-ignore lint/suspicious/noConsole:: intentional console output
     console.log(
-      '\nRemote Control lets you access this CLI session from the web (Blink web)\nor the Blink app, so you can pick up where you left off on any device.\n\nYou can disconnect remote access anytime by running /remote-control again.\n',
+      '\nRemote Control lets you access this CLI session from the web (Tovyr web)\nor the Tovyr app, so you can pick up where you left off on any device.\n\nYou can disconnect remote access anytime by running /remote-control again.\n',
     )
     const answer = await new Promise<string>(resolve => {
       rl.question('Enable Remote Control? (y/n) ', resolve)
@@ -2145,9 +2145,9 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // worktree siblings if that misses â€” the REPL bridge writes to
   // getOriginalCwd() which EnterWorktreeTool/activeWorktreeSession can
   // point at a worktree while the user's shell is at the repo root.
-  // BLINKS-gated at parseArgs â€” continueSession is always false in external
+  // TOVYRS-gated at parseArgs â€” continueSession is always false in external
   // builds, so this block tree-shakes.
-  if (feature('BLINKS') && continueSession) {
+  if (feature('TOVYRS') && continueSession) {
     const { readBridgePointerAcrossWorktrees } = await import(
       './bridgePointer.js'
     )
@@ -2155,7 +2155,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
     if (!found) {
       // biome-ignore lint/suspicious/noConsole: intentional error output
       console.error(
-        `Error: No recent session found in this directory or its worktrees. Run \`${blinkCmd('remote-control')}\` to start a new one.`,
+        `Error: No recent session found in this directory or its worktrees. Run \`${tovyrCmd('remote-control')}\` to start a new one.`,
       )
       // eslint-disable-next-line custom-rules/no-process-exit
       process.exit(1)
@@ -2175,7 +2175,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
     resumePointerDir = pointerDir
   }
 
-  // In production, baseUrl is the Blink API (from OAuth config).
+  // In production, baseUrl is the Tovyr API (from OAuth config).
   // CLAUDE_BRIDGE_BASE_URL overrides this for ant local dev only.
   const baseUrl = getBridgeBaseUrl()
 
@@ -2253,7 +2253,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
     })
     // biome-ignore lint/suspicious/noConsole: intentional dialog output
     console.log(
-      `\nBlink Remote Control is launching in spawn mode which lets you create new sessions in this project from Blink on Web or your Mobile app. Learn more here: https://github.com/Dexyy2/Blink-code-cli\n\n` +
+      `\nTovyr Remote Control is launching in spawn mode which lets you create new sessions in this project from Tovyr on Web or your Mobile app. Learn more here: https://github.com/Dexyy2/Tovyr-code-cli\n\n` +
         `Spawn mode for this project:\n` +
         `  [1] same-dir \u2014 sessions share the current directory (default)\n` +
         `  [2] worktree \u2014 each session gets an isolated git worktree\n\n` +
@@ -2357,11 +2357,11 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // environment_id and reuse that for registration (idempotent on the
   // backend). Left undefined otherwise â€” the backend rejects
   // client-generated UUIDs and will allocate a fresh environment.
-  // feature('BLINKS') gate: --session-id is ant-only; parseArgs already
+  // feature('TOVYRS') gate: --session-id is ant-only; parseArgs already
   // rejects the flag when the gate is off, so resumeSessionId is always
   // undefined here in external builds â€” this guard is for tree-shaking.
   let reuseEnvironmentId: string | undefined
-  if (feature('BLINKS') && resumeSessionId) {
+  if (feature('TOVYRS') && resumeSessionId) {
     try {
       validateBridgeId(resumeSessionId, 'sessionId')
     } catch {
@@ -2393,7 +2393,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
       }
       // biome-ignore lint/suspicious/noConsole: intentional error output
       console.error(
-        `Error: Session ${resumeSessionId} not found. It may have been archived or expired, or your login may have lapsed (run \`${blinkCmd('/login')}\`).`,
+        `Error: Session ${resumeSessionId} not found. It may have been archived or expired, or your login may have lapsed (run \`${tovyrCmd('/login')}\`).`,
       )
       // eslint-disable-next-line custom-rules/no-process-exit
       process.exit(1)
@@ -2471,7 +2471,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // Used below to skip fresh session creation and seed initialSessionId.
   // Cleared on env mismatch so we gracefully fall back to a new session.
   let effectiveResumeSessionId: string | undefined
-  if (feature('BLINKS') && resumeSessionId) {
+  if (feature('TOVYRS') && resumeSessionId) {
     if (reuseEnvironmentId && environmentId !== reuseEnvironmentId) {
       // Backend returned a different environment_id â€” the original env
       // expired or was reaped. Reconnect won't work against the new env
@@ -2669,10 +2669,10 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // is undefined, so we fall through to fresh session creation (honoring the
   // "Creating a fresh session instead" warning printed above).
   let initialSessionId: string | null =
-    feature('BLINKS') && effectiveResumeSessionId
+    feature('TOVYRS') && effectiveResumeSessionId
       ? effectiveResumeSessionId
       : null
-  if (preCreateSession && !(feature('BLINKS') && effectiveResumeSessionId)) {
+  if (preCreateSession && !(feature('TOVYRS') && effectiveResumeSessionId)) {
     const { createBridgeSession } = await import('./createSession.js')
     try {
       initialSessionId = await createBridgeSession({
@@ -2831,7 +2831,7 @@ export async function runBridgeHeadless(
 
   if (!checkHasTrustDialogAccepted()) {
     throw new BridgeHeadlessPermanentError(
-      `Workspace not trusted: ${dir}. Run \`${blinkCmd()}\` in that directory first to accept the trust dialog.`,
+      `Workspace not trusted: ${dir}. Run \`${tovyrCmd()}\` in that directory first to accept the trust dialog.`,
     )
   }
 

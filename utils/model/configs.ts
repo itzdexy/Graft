@@ -42,10 +42,10 @@ export const CLAUDE_SONNET_4_CONFIG = {
 } as const satisfies ModelConfig
 
 export const CLAUDE_SONNET_4_5_CONFIG = {
-  firstParty: 'claude-sonnet-4-5-20250929',
-  bedrock: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-  vertex: 'claude-sonnet-4-5@20250929',
-  foundry: 'claude-sonnet-4-5',
+  firstParty: 'claude-sonnet-20250929',
+  bedrock: 'us.anthropic.claude-sonnet-20250929-v1:0',
+  vertex: 'claude-sonnet@20250929',
+  foundry: 'claude-sonnet',
 } as const satisfies ModelConfig
 
 export const CLAUDE_OPUS_4_CONFIG = {
@@ -76,11 +76,46 @@ export const CLAUDE_OPUS_4_6_CONFIG = {
   foundry: 'claude-opus-4-6',
 } as const satisfies ModelConfig
 
+export const CLAUDE_OPUS_4_7_CONFIG = {
+  firstParty: 'claude-opus-4-7',
+  bedrock: 'us.anthropic.claude-opus-4-7',
+  vertex: 'claude-opus-4-7',
+  foundry: 'claude-opus-4-7',
+} as const satisfies ModelConfig
+
+export const CLAUDE_OPUS_4_8_CONFIG = {
+  firstParty: 'claude-opus-4-8',
+  bedrock: 'us.anthropic.claude-opus-4-8',
+  vertex: 'claude-opus-4-8',
+  foundry: 'claude-opus-4-8',
+} as const satisfies ModelConfig
+
 export const CLAUDE_SONNET_4_6_CONFIG = {
-  firstParty: 'claude-sonnet-4-6',
-  bedrock: 'us.anthropic.claude-sonnet-4-6',
-  vertex: 'claude-sonnet-4-6',
-  foundry: 'claude-sonnet-4-6',
+  firstParty: 'claude-sonnet',
+  bedrock: 'us.anthropic.claude-sonnet',
+  vertex: 'claude-sonnet',
+  foundry: 'claude-sonnet',
+} as const satisfies ModelConfig
+
+export const CLAUDE_SONNET_5_CONFIG = {
+  firstParty: 'claude-sonnet-5',
+  bedrock: 'us.anthropic.claude-sonnet-5',
+  vertex: 'claude-sonnet-5',
+  foundry: 'claude-sonnet-5',
+} as const satisfies ModelConfig
+
+export const CLAUDE_FABLE_5_CONFIG = {
+  firstParty: 'claude-fable-5',
+  bedrock: 'us.anthropic.claude-fable-5',
+  vertex: 'claude-fable-5',
+  foundry: 'claude-fable-5',
+} as const satisfies ModelConfig
+
+export const CLAUDE_MYTHOS_5_CONFIG = {
+  firstParty: 'claude-mythos-5',
+  bedrock: 'us.anthropic.claude-mythos-5',
+  vertex: 'claude-mythos-5',
+  foundry: 'claude-mythos-5',
 } as const satisfies ModelConfig
 
 // @[MODEL LAUNCH]: Register the new config here.
@@ -92,15 +127,20 @@ export const ALL_MODEL_CONFIGS = {
   sonnet40: CLAUDE_SONNET_4_CONFIG,
   sonnet45: CLAUDE_SONNET_4_5_CONFIG,
   sonnet46: CLAUDE_SONNET_4_6_CONFIG,
+  sonnet5: CLAUDE_SONNET_5_CONFIG,
   opus40: CLAUDE_OPUS_4_CONFIG,
   opus41: CLAUDE_OPUS_4_1_CONFIG,
   opus45: CLAUDE_OPUS_4_5_CONFIG,
   opus46: CLAUDE_OPUS_4_6_CONFIG,
+  opus47: CLAUDE_OPUS_4_7_CONFIG,
+  opus48: CLAUDE_OPUS_4_8_CONFIG,
+  fable5: CLAUDE_FABLE_5_CONFIG,
+  mythos5: CLAUDE_MYTHOS_5_CONFIG,
 } as const satisfies Record<string, ModelConfig>
 
 export type ModelKey = keyof typeof ALL_MODEL_CONFIGS
 
-/** Union of all canonical first-party model IDs, e.g. 'blink-opus-4-6' | 'blink-sonnet-4-5-20250929' | … */
+/** Union of all canonical first-party model IDs, e.g. 'tovyr-opus-4-6' | 'tovyr-sonnet-4-5-20250929' | … */
 export type CanonicalModelId =
   (typeof ALL_MODEL_CONFIGS)[ModelKey]['firstParty']
 

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
-import { isBlinkWebSubscriber } from '../../utils/auth.js'
+import { isTovyrWebSubscriber } from '../../utils/auth.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
 
@@ -17,7 +17,7 @@ export type UltrareviewQuotaResponse = {
  * the endpoint errors.
  */
 export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse | null> {
-  if (!isBlinkWebSubscriber()) return null
+  if (!isTovyrWebSubscriber()) return null
   try {
     const { accessToken, orgUUID } = await prepareApiRequest()
     const response = await axios.get<UltrareviewQuotaResponse>(

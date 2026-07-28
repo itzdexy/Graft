@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const tips: Command = {
   type: 'local-jsx',
   name: 'tips',
-  description: 'Show a rotating productivity tip for Blink',
+  description: 'Show a rotating productivity tip for Tovyr',
   category: 'Help',
   aliases: ['tip'],
   load: () => import('./tips.js'),

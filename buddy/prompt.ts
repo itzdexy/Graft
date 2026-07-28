@@ -3,11 +3,11 @@ import type { Message } from '../types/message.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getGlobalConfig } from '../utils/config.js'
 import { getCompanion } from './companion.js'
-import { isBlinkRuntime } from './blinkBuddy.js'
+import { isTovyrRuntime } from './tovyrBuddy.js'
 
 export function companionIntroText(name: string, species: string): string {
-  if (isBlinkRuntime()) {
-    return `# Blink Buddy
+  if (isTovyrRuntime()) {
+    return `# Tovyr Buddy
 
 ${name} is your autonomous coding companion (pixel mascot beside the input). It acts as senior engineer, architect, debugger, reviewer, and project manager.
 
@@ -25,7 +25,7 @@ When the user addresses ${name} directly (by name), its bubble will answer. Your
 export function getCompanionIntroAttachment(
   messages: Message[] | undefined,
 ): Attachment[] {
-  if (!feature('BUDDY') && !isBlinkRuntime()) return []
+  if (!feature('BUDDY') && !isTovyrRuntime()) return []
   const companion = getCompanion()
   if (!companion || getGlobalConfig().companionMuted) return []
 

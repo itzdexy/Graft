@@ -2,6 +2,10 @@
 import { MODEL_ALIASES } from './aliases.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { getAPIProvider } from './providers.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
+// @ts-ignore: plain JS provider module has no type declarations
+import { getDefaultModelId, getProvider, isCatalogModel, resolveActive } from '../../scripts/tovyr-providers.js'
+import { validateModelForProvider } from '../../services/tovyr/validateProviderModel.js'
 import { sideQuery } from '../sideQuery.js'
 import {
   NotFoundError,
@@ -35,15 +39,46 @@ export async function validateModel(
     }
   }
 
-  // Check if it's a known alias (these are always valid)
+  // Check if it's a known alias (these are always valid outside Tovyr; inside
+  // Tovyr we resolve them against the active provider's catalog below).
   const lowerModel = normalizedModel.toLowerCase()
-  if ((MODEL_ALIASES as readonly string[]).includes(lowerModel)) {
+  if (!isTovyrRuntime() && (MODEL_ALIASES as readonly string[]).includes(lowerModel)) {
     return { valid: true }
   }
 
   // Check if it matches ANTHROPIC_CUSTOM_MODEL_OPTION (pre-validated by the user)
   if (normalizedModel === process.env.ANTHROPIC_CUSTOM_MODEL_OPTION) {
     return { valid: true }
+  }
+
+  // For Tovyr, use the provider-aware validator (catalog + live /v1/models).
+  // This avoids a slow sideQuery/API call when the model is unsupported or
+  // when the provider is an OpenAI-compatible gateway.
+  if (isTovyrRuntime()) {
+    const active = resolveActive()
+    if (active?.providerId) {
+      const provider = getProvider(active.providerId)
+      if (provider) {
+        const resolvedModel = resolveAliasToProviderModel(normalizedModel, provider)
+        const validation = await validateModelForProvider(
+          active.providerId,
+          resolvedModel,
+        )
+        if (validation.ok) {
+          validModelCache.set(normalizedModel, true)
+          if (validation.model && validation.model !== normalizedModel) {
+            validModelCache.set(validation.model, true)
+          }
+          return { valid: true }
+        }
+        return {
+          valid: false,
+          error:
+            validation.message +
+            (validation.suggestion ? ` Try '${validation.suggestion}'.` : ''),
+        }
+      }
+    }
   }
 
   // Check cache first
@@ -138,6 +173,28 @@ function handleValidationError(
 }
 
 // @[MODEL LAUNCH]: Add a fallback suggestion chain for the new model → previous version
+function resolveAliasToProviderModel(modelId: string, provider: any): string {
+  const base = modelId.toLowerCase().replace(/\[1m\]$/i, '')
+  const tier =
+    base === 'opus'
+      ? 'opus'
+      : base === 'sonnet'
+        ? 'sonnet'
+        : base === 'haiku'
+          ? 'haiku'
+          : null
+  if (!tier) return modelId
+
+  const models = provider.models || []
+  const candidates = models.filter((m: any) => m.tier === tier)
+  if (!candidates.length) return modelId
+
+  const defaultModel = provider.defaultModel
+  const defEntry = defaultModel ? models.find((m: any) => m.id === defaultModel) : null
+  if (defEntry?.tier === tier) return defEntry.id
+  return candidates[0].id
+}
+
 /**
  * Suggest a fallback model for 3P users when the selected model is unavailable.
  */

@@ -1,12 +1,12 @@
-# Blink — User Guide
+# Tovyr — User Guide
 
-Complete guide for installing, configuring, and using **Blink v2.00.5**. This document reflects **what is implemented today** in this repository.
+Complete guide for installing, configuring, and using **Tovyr v1.2.0**. This document reflects **what is implemented today** in this repository.
 
 ---
 
 ## Table of contents
 
-1. [What Blink does](#what-blink-does)
+1. [What Tovyr does](#what-tovyr-does)
 2. [Installation](#installation)
 3. [Quickstart](#quickstart)
 4. [API keys and providers](#api-keys-and-providers)
@@ -23,14 +23,14 @@ Complete guide for installing, configuring, and using **Blink v2.00.5**. This do
 
 ---
 
-## What Blink does
+## What Tovyr does
 
-Blink is an **AI coding agent in your terminal**. You work in a project directory; Blink:
+Tovyr is an **AI coding agent in your terminal**. You work in a project directory; Tovyr:
 
 - **Reads** files and searches the codebase (Read, Grep, Glob)
 - **Edits** files with diff-aware patches (Edit, Write)
 - **Runs** shell commands (Bash; PowerShell on Windows when enabled)
-- **Plans** work in plan mode (`/plan` → `blinkplan.md`)
+- **Plans** work in plan mode (`/plan` → `tovyrplan.md`)
 - **Runs multi-step goals** via `/agent` (optional autonomous loop with verify/autofix)
 
 Architecture (simplified):
@@ -47,10 +47,10 @@ Your prompt
 
 | Layer | Entry | Purpose |
 |-------|-------|---------|
-| **npm launcher** | `bin/blink.js` | `--help`, `doctor`, `provider`, `auth`, routes to Bun UI |
-| **Full CLI** | `entrypoints/cli.tsx` → `main.tsx` | Interactive REPL, Commander subcommands (`mcp`, `plugin`, …) |
+| **npm launcher** | `bin/tovyr.js` | Fast commands, auth routing, and Bun runtime launch |
+| **Full CLI** | `runtime/cli.js` in npm; `entrypoints/cli.tsx` from source | Interactive REPL, Buddy, providers, models, tools, and streaming |
 
-The npm package alone does **not** include the Ink UI. Clone the repo, install Bun, run `npm run warm`, then `npm install -g .` for the full experience.
+The npm package includes the complete bundled Tovyr UI. Source checkouts run the TypeScript entry directly; both paths use Bun and remain independent from other AI terminals.
 
 ---
 
@@ -61,26 +61,26 @@ The npm package alone does **not** include the Ink UI. Clone the repo, install B
 | Component | npm install | Source install |
 |-----------|-------------|----------------|
 | Node.js | 18+ | 18+ |
-| Bun | Optional | **Required** |
+| Bun | **Required** | **Required** |
 | OS | Windows, macOS, Linux | Same |
 
 ### npm global
 
 ```bash
-npm install -g blinkcode
+npm install -g tovyrcode
 ```
 
-On Windows, open a **new** terminal so `blink` is on PATH. If not found, run `bin\install-blink.cmd` from a source checkout.
+On Windows, open a **new** terminal so `tovyr` is on PATH. If not found, run `bin\install-tovyr.cmd` from a source checkout.
 
 ### Source (recommended)
 
 ```bash
-git clone https://github.com/itsdexy/BlinkCode.git
-cd BlinkCode
+git clone https://github.com/itsdexy/Tovyr.git
+cd TovyrCode
 npm install
 npm run warm
 npm install -g .
-blink setup
+tovyr setup
 ```
 
 `npm run warm` pre-compiles the UI so the first interactive launch takes seconds instead of minutes (especially on Windows).
@@ -91,64 +91,94 @@ blink setup
 
 ```bash
 # 1. First-run checks
-blink setup
+tovyr setup
 
 # 2. Authenticate (FreeModel example)
-blink auth login --key fe_oa_YOUR_KEY_HERE
+tovyr auth login --key fe_oa_YOUR_KEY_HERE
 
 # 3. Confirm configuration
-blink config
+tovyr config
 
 # 4. Start in a project folder
 cd path/to/your-project
-blink
+tovyr
 ```
 
-**Do not** run `blink` from your home directory — the launcher blocks this by default. Use `cd` into a project first, or `blink --allow-home` (not recommended).
+**Do not** run `tovyr` from your home directory — the launcher blocks this by default. Use `cd` into a project first, or `tovyr --allow-home` (not recommended).
 
 **Print mode** (scripting, no TUI):
 
 ```bash
-blink ask "what does this repo do?"
-blink -p "list all TODO comments" --output-format json
+tovyr ask "what does this repo do?"
+tovyr -p "list all TODO comments" --output-format json
 ```
 
 ---
 
 ## API keys and providers
 
+Tovyr starts in free local mode with Ollama. This path needs no account,
+login, API key, or cloud subscription:
+
+```bash
+ollama serve
+ollama pull qwen2.5-coder:1.5b
+tovyr
+```
+
+Cloud providers are optional. Their own authentication and usage policies
+apply only after the user explicitly selects one with `/provider`.
+
+Tovyr treats provider configuration and provider health as separate facts. A
+successful models-list request proves that credentials can reach the provider;
+it does not prove that the selected model can stream a response.
+
+Useful checks:
+
+```text
+/provider              connect or switch a provider
+/provider test         run a bounded selected-model streaming probe
+/model                 choose from the active provider's available models
+/model test            probe the selected model
+/doctor provider       show latency, stream/tool support, quota, and safe errors
+```
+
+Connection status is shown beside the active model as `Checking`, `Ready`,
+`Limited`, `Degraded`, `Invalid`, or `Offline`. Tovyr never silently switches
+providers for authentication or quota failures.
+
 ### Saving keys
 
 ```bash
-# Default provider (FreeModel)
-blink auth login --key fe_oa_YOUR_KEY
+# Optional FreeModel cloud provider
+tovyr auth login --key fe_oa_YOUR_KEY
 
 # Named provider
-blink auth login --provider freemodel --key fe_oa_YOUR_KEY
-blink auth login --provider openrouter --key sk-or-YOUR_KEY
+tovyr auth login --provider freemodel --key fe_oa_YOUR_KEY
+tovyr auth login --provider openrouter --key sk-or-YOUR_KEY
 ```
 
-Keys are stored under `~/.blink/` on your machine (never in the npm package).
+Keys are stored under `~/.tovyr/` on your machine (never in the npm package).
 
 ### Switching providers
 
 ```bash
-blink provider list
-blink provider use openrouter
-blink provider model blink/sonnet
-blink models                    # models for active provider
-blink models ollama             # models for a specific provider
+tovyr provider list
+tovyr provider use openrouter
+tovyr provider model tovyr/sonnet
+tovyr models                    # models for active provider
+tovyr models ollama             # models for a specific provider
 ```
 
 In the TUI: `/provider use <id>` and `/model`.
 
 ### Provider categories
 
-Run `blink provider list` for the live catalog. Major groups:
+Run `tovyr provider list` for the live catalog. Major groups:
 
 | Category | Examples | API key? |
 |----------|----------|----------|
-| **Official** | FreeModel, Blink Direct | Yes |
+| **Official** | FreeModel, Tovyr Direct | Yes |
 | **Gateway** | OpenRouter, Portkey, LiteLLM | Yes |
 | **API** | Google (via gateway), xAI, Mistral, Groq, … | Yes |
 | **Self-hosted** | Ollama, LM Studio, Custom endpoint | Ollama/LM Studio: no |
@@ -158,35 +188,35 @@ Run `blink provider list` for the live catalog. Major groups:
 
 ```bash
 # Ollama — start server first: ollama serve
-blink provider use ollama
-blink provider model llama3.2
+tovyr provider use ollama
+tovyr provider model llama3.2
 
 # LM Studio — start local server on port 1234
-blink provider use lmstudio
-blink provider model <model-id-from-lm-studio>
+tovyr provider use lmstudio
+tovyr provider model <model-id-from-lm-studio>
 ```
 
 ### OpenAI and Gemini (honest status)
 
-- **Native `api.openai.com`** is **not** directly supported (OpenAI-format only; Blink needs tool-calling via its proxy).
-- Use **OpenRouter**, **Portkey**, **LiteLLM**, or another gateway: `blink provider use openrouter`.
+- **Native `api.openai.com`** is **not** directly supported (OpenAI-format only; Tovyr needs tool-calling via its proxy).
+- Use **OpenRouter**, **Portkey**, **LiteLLM**, or another gateway: `tovyr provider use openrouter`.
 - **Gemini**: use OpenRouter/Portkey model ids (`google/gemini-…`) or point the `google` / `custom` provider at a Vertex-compatible gateway URL.
 
 ### Environment overrides
 
 | Variable | Purpose |
 |----------|---------|
-| `BLINK_API_KEY` | API key (alternative to `auth login`) |
-| `BLINK_PROVIDER_BASE_URL` | Override API base URL |
-| `BLINK_DEFAULT_MODEL` | Default model id |
-| `BLINK_AUTO_FAILOVER` | `1` = retry on hard provider failures |
-| `BLINK_CROSS_PROVIDER_FAILOVER` | `1` = allow hopping across providers (with `BLINK_AUTO_FAILOVER`) |
-| `BLINK_PROXY_DEBUG` | `1` = log proxy traffic to `.blink/proxy-debug.log` |
+| `TOVYR_API_KEY` | API key (alternative to `auth login`) |
+| `TOVYR_PROVIDER_BASE_URL` | Override API base URL |
+| `TOVYR_DEFAULT_MODEL` | Default model id |
+| `TOVYR_AUTO_FAILOVER` | `1` = retry on hard provider failures |
+| `TOVYR_CROSS_PROVIDER_FAILOVER` | `1` = allow hopping across providers (with `TOVYR_AUTO_FAILOVER`) |
+| `TOVYR_PROXY_DEBUG` | `1` = log proxy traffic to `.tovyr/proxy-debug.log` |
 
 ### Failover
 
 - **Same-provider model recovery** on 404 is automatic when a verified alternate model exists.
-- **Cross-provider failover** requires `BLINK_AUTO_FAILOVER=1` and `BLINK_CROSS_PROVIDER_FAILOVER=1`.
+- **Cross-provider failover** requires `TOVYR_AUTO_FAILOVER=1` and `TOVYR_CROSS_PROVIDER_FAILOVER=1`.
 
 ---
 
@@ -194,16 +224,16 @@ blink provider model <model-id-from-lm-studio>
 
 ### Curated vs free-form
 
-Each provider in the catalog has a **curated** `models` list (quick picks in `/model` and `blink models`). Providers marked `anyModel: true` (OpenRouter, Ollama, HuggingFace, …) accept **any** model id their platform supports:
+Each provider in the catalog has a **curated** `models` list (quick picks in `/model` and `tovyr models`). Providers marked `anyModel: true` (OpenRouter, Ollama, HuggingFace, …) accept **any** model id their platform supports:
 
 ```bash
-blink provider model openai/gpt-4o
-blink provider model your-custom-model-id
+tovyr provider model openai/gpt-4o
+tovyr provider model your-custom-model-id
 ```
 
 ### Model tiers
 
-In `blink models` and `/model`:
+In `tovyr models` and `/model`:
 
 | Tier | Meaning |
 |------|---------|
@@ -217,15 +247,15 @@ In the TUI model picker, **✓** means the provider confirmed the model works wi
 
 ### Capabilities metadata
 
-Blink tracks per-model capabilities (tool calling, streaming, vision, context window, cost tier) in `services/blink/modelCapabilities.ts`. Use `blink models` or `/model` for human-readable lists.
+Tovyr tracks per-model capabilities (tool calling, streaming, vision, context window, cost tier) in `services/tovyr/modelCapabilities.ts`. Use `tovyr models` or `/model` for human-readable lists.
 
 ---
 
 ## Configuration files
 
-### `~/.blink/providers.json`
+### `~/.tovyr/providers.json`
 
-Primary provider registry (read/written by `scripts/blink-providers.js`).
+Primary provider registry (read/written by `scripts/tovyr-providers.js`).
 
 ```json
 {
@@ -235,7 +265,7 @@ Primary provider registry (read/written by `scripts/blink-providers.js`).
     "openrouter": "sk-or-..."
   },
   "models": {
-    "freemodel": "blink-sonnet",
+    "freemodel": "tovyr-sonnet",
     "ollama": "llama3.2"
   },
   "endpoints": {
@@ -257,22 +287,22 @@ Primary provider registry (read/written by `scripts/blink-providers.js`).
 | `endpoints` | Per-provider base URL overrides |
 | `custom` | Label + URL for the `custom` provider entry |
 
-Legacy `~/.blink/api-key` is migrated to `keys.freemodel` on first load.
+Legacy `~/.tovyr/api-key` is migrated to `keys.freemodel` on first load.
 
 ### Project files
 
 | Path | Purpose |
 |------|---------|
-| `blink.md` | Project instructions for the agent (`/init` creates this) |
-| `blinkplan.md` | Plan artifact from `/plan` mode |
-| `.blink/` | Project-local settings, sessions |
-| `~/.blink/agent/session-*.json` | Persisted `/agent` sessions per project cwd |
+| `tovyr.md` | Project instructions for the agent (`/init` creates this) |
+| `tovyrplan.md` | Plan artifact from `/plan` mode |
+| `.tovyr/` | Project-local settings, sessions |
+| `~/.tovyr/agent/session-*.json` | Persisted `/agent` sessions per project cwd |
 
 ### View current config
 
 ```bash
-blink config
-blink config --json
+tovyr config
+tovyr config --json
 ```
 
 ---
@@ -283,20 +313,20 @@ blink config --json
 
 | Command | Example |
 |---------|---------|
-| `blink` | Start interactive UI |
-| `blink ask <q>` | `blink ask "explain main.tsx"` |
-| `blink -p <prompt>` | `blink -p "run tests"` |
-| `blink setup` | First-run checks |
-| `blink doctor [--json]` | `blink doctor --json` |
-| `blink bench [--live]` | `blink bench --suite smoke` |
-| `blink config [--json]` | Show provider + paths |
-| `blink auth login --key <k>` | Save API key |
-| `blink provider list` | List providers |
-| `blink provider use <id>` | `blink provider use ollama` |
-| `blink provider model <id>` | Set model |
-| `blink models [id]` | List models |
-| `blink --help` | Full launcher help |
-| `blink --version` | Version string |
+| `tovyr` | Start interactive UI |
+| `tovyr ask <q>` | `tovyr ask "explain main.tsx"` |
+| `tovyr -p <prompt>` | `tovyr -p "run tests"` |
+| `tovyr setup` | First-run checks |
+| `tovyr doctor [--json]` | `tovyr doctor --json` |
+| `tovyr bench [--live]` | `tovyr bench --suite smoke` |
+| `tovyr config [--json]` | Show provider + paths |
+| `tovyr auth login --key <k>` | Save API key |
+| `tovyr provider list` | List providers |
+| `tovyr provider use <id>` | `tovyr provider use ollama` |
+| `tovyr provider model <id>` | Set model |
+| `tovyr models [id]` | List models |
+| `tovyr --help` | Full launcher help |
+| `tovyr --version` | Version string |
 
 ### Global flags
 
@@ -315,17 +345,17 @@ blink config --json
 
 **Exit codes:** `0` success · `1` error · `2` usage
 
-### Commander subcommands (full CLI — `blink <cmd> --help`)
+### Commander subcommands (full CLI — `tovyr <cmd> --help`)
 
 Available after Bun loads `main.tsx`:
 
 | Command | Purpose |
 |---------|---------|
-| `blink mcp` | Add/list/remove MCP servers |
-| `blink plugin` | Install/validate plugins |
-| `blink auth` | login / status / logout (interactive OAuth paths) |
-| `blink update` | Update Blink |
-| `blink install` | Native binary install |
+| `tovyr mcp` | Add/list/remove MCP servers |
+| `tovyr plugin` | Install/validate plugins |
+| `tovyr auth` | login / status / logout (interactive OAuth paths) |
+| `tovyr update` | Update Tovyr |
+| `tovyr install` | Native binary install |
 
 ### Slash commands (in-app)
 
@@ -339,7 +369,7 @@ Available after Bun loads `main.tsx`:
 | **Memory** | `/buddy`, `/clear`, `/resume` |
 | **Config** | `/config`, `/theme`, `/permissions` |
 
-Plan mode writes `blinkplan.md`; `/code` implements the accepted plan.
+Plan mode writes `tovyrplan.md`; `/code` implements the accepted plan.
 
 ---
 
@@ -348,7 +378,7 @@ Plan mode writes `blinkplan.md`; `/code` implements the accepted plan.
 ### Paste a screenshot or image
 
 1. Copy an image to the clipboard (Win+Shift+S, snipping tool, etc.)
-2. In Blink, press **Ctrl+V** (or your `chat:imagePaste` binding)
+2. In Tovyr, press **Ctrl+V** (or your `chat:imagePaste` binding)
 3. You should see `[Image #N]` attached to your prompt — then ask about it
 
 Use a **vision-capable** model (`/model`) when describing screenshots UI, mockups, or errors. Text-only models may reject image payloads.
@@ -371,7 +401,7 @@ or
 /plan add user authentication with JWT
 ```
 
-Review `blinkplan.md`, then:
+Review `tovyrplan.md`, then:
 
 ```
 /code
@@ -388,10 +418,10 @@ Pick a **✓ Fast** (haiku-tier) verified model.
 ### Scripting / CI
 
 ```bash
-blink -p "summarize git diff" --output-format json
-blink doctor --json
-blink config --json
-blink provider list --json
+tovyr -p "summarize git diff" --output-format json
+tovyr doctor --json
+tovyr config --json
+tovyr provider list --json
 ```
 
 ### Local models with Ollama
@@ -399,20 +429,20 @@ blink provider list --json
 ```bash
 ollama serve
 ollama pull llama3.2
-blink provider use ollama
-blink provider model llama3.2
-cd your-project && blink
+tovyr provider use ollama
+tovyr provider model llama3.2
+cd your-project && tovyr
 ```
 
 ### Web tools
 
-Built-in **WebSearch**, **WebFetch**, and **BlinkWeb** work without a browser extension. Use `/browser` for research-style browsing when configured.
+Built-in **WebSearch**, **WebFetch**, and **TovyrWeb** work without a browser extension. Use `/browser` for research-style browsing when configured.
 
 ---
 
 ## Safety features
 
-Blink includes several layers of protection for tool execution. **Full details:** [docs/SAFETY.md](SAFETY.md).
+Tovyr includes several layers of protection for tool execution. **Full details:** [docs/SAFETY.md](SAFETY.md).
 
 ### Permission modes
 
@@ -425,7 +455,7 @@ Blink includes several layers of protection for tool execution. **Full details:*
 
 ### Destructive shell blocking
 
-In Blink runtime, commands matching patterns like `rm -rf`, `git push --force`, `git reset --hard`, `DROP DATABASE`, etc. are blocked or require explicit user confirmation (`services/blink/permissions/destructiveShell.ts`).
+In Tovyr runtime, commands matching patterns like `rm -rf`, `git push --force`, `git reset --hard`, `DROP DATABASE`, etc. are blocked or require explicit user confirmation (`services/tovyr/permissions/destructiveShell.ts`).
 
 ### Path validation
 
@@ -438,16 +468,16 @@ File tools validate paths before execution:
 
 ### Tool execution safety layer
 
-`services/blink/tools/safety.ts` provides:
+`services/tovyr/tools/safety.ts` provides:
 
 - Secret redaction in debug logs (API keys, bearer tokens, env assignments)
 - Structured error messages (timeout, cancellation, path denied, …)
 - Safe retry policy (transient network/timeout only — not permission errors)
-- Pre-flight path checks for Read/Edit/Write in Blink runtime
+- Pre-flight path checks for Read/Edit/Write in Tovyr runtime
 
 ### Agent loop limits
 
-When an `/agent` session is active (`services/blink/agent/loopGuard.ts`):
+When an `/agent` session is active (`services/tovyr/agent/loopGuard.ts`):
 
 | Limit | Default |
 |-------|---------|
@@ -461,15 +491,15 @@ The main REPL chat loop does **not** apply these limits unless an `/agent` sessi
 
 ### Unicode / prompt injection from files
 
-In Blink runtime, file read content is sanitized (`partiallySanitizeUnicode`) to remove hidden Unicode injection characters. MCP tool definitions receive the same treatment.
+In Tovyr runtime, file read content is sanitized (`partiallySanitizeUnicode`) to remove hidden Unicode injection characters. MCP tool definitions receive the same treatment.
 
 ### Log redaction
 
-Debug and tool logs redact API keys, bearer tokens, and env assignments when running as Blink (`bridge/debugUtils.ts`).
+Debug and tool logs redact API keys, bearer tokens, and env assignments when running as Tovyr (`bridge/debugUtils.ts`).
 
 ### Git checkpoints
 
-Before the first file edit in an assistant turn, Blink can create a git checkpoint (`services/blink/git/editHook.ts`) so changes can be recovered.
+Before the first file edit in an assistant turn, Tovyr can create a git checkpoint (`services/tovyr/git/editHook.ts`) so changes can be recovered.
 
 ### Home directory guard
 
@@ -479,9 +509,9 @@ Launching from `~` / `%USERPROFILE%` without project markers is blocked to preve
 
 ## Troubleshooting
 
-### `blink` not found (Windows)
+### `tovyr` not found (Windows)
 
-Open a **new** terminal after `npm install -g`. Or run `bin\install-blink.cmd` from the repo.
+Open a **new** terminal after `npm install -g`. Or run `bin\install-tovyr.cmd` from the repo.
 
 ### Compiling for minutes on first launch
 
@@ -489,17 +519,17 @@ Open a **new** terminal after `npm install -g`. Or run `bin\install-blink.cmd` f
 npm run warm
 ```
 
-Then restart `blink`. Spinner shows elapsed time during compile.
+Then restart `tovyr`. Spinner shows elapsed time during compile.
 
 ### No API key / auth errors
 
 ```bash
-blink auth login --key YOUR_KEY
-blink setup
-blink config
+tovyr auth login --key YOUR_KEY
+tovyr setup
+tovyr config
 ```
 
-Do **not** use `/login` for API-key auth — use `blink auth login` or `/provider`.
+Do **not** use `/login` for API-key auth — use `tovyr auth login` or `/provider`.
 
 ### Model silent 30–120 seconds
 
@@ -507,22 +537,22 @@ GPU providers (NIM, etc.) cold-start. Wait for the spinner timer, or switch mode
 
 ### Stream timeout after ~2 minutes
 
-Provider sent no tokens. Try another model, enable `BLINK_AUTO_FAILOVER=1`, or check `BLINK_PROXY_DEBUG=1` logs in `.blink/proxy-debug.log`.
+Provider sent no tokens. Try another model, enable `TOVYR_AUTO_FAILOVER=1`, or check `TOVYR_PROXY_DEBUG=1` logs in `.tovyr/proxy-debug.log`.
 
 ### Enter does nothing (Windows)
 
-Wait until the Blink prompt appears. Early keystrokes are replayed once the REPL mounts.
+Wait until the Tovyr prompt appears. Early keystrokes are replayed once the REPL mounts.
 
 ### Plugins / MCP missing
 
-Default `blink` uses `--bare` (fast startup) with a rich built-in toolset — shell, files, search, web, skills, and agents. Marketplace plugins and extra MCP servers require `blink --full`.
+Default `tovyr` uses `--bare` (fast startup) with a rich built-in toolset — shell, files, search, web, skills, and agents. Marketplace plugins and extra MCP servers require `tovyr --full`.
 
 ### Doctor vs setup
 
-Both run the same install checker (`scripts/blink-doctor.js`). `setup` uses onboarding-oriented messaging when the API key is missing.
+Both run the same install checker (`scripts/tovyr-doctor.js`). `setup` uses onboarding-oriented messaging when the API key is missing.
 
 ```bash
-blink doctor --json    # machine-readable for CI
+tovyr doctor --json    # machine-readable for CI
 ```
 
 ### Benchmarking the CLI
@@ -530,14 +560,14 @@ blink doctor --json    # machine-readable for CI
 Repeatable scorecard for comparing providers, models, or releases:
 
 ```bash
-blink bench                    # full offline suite (~10s, no API)
-blink bench --suite smoke      # fastest checks
-blink bench --live             # + model ping, math, latency (needs API key)
-blink bench --json             # CI-friendly JSON report
-blink bench compare            # diff latest vs previous run
+tovyr bench                    # full offline suite (~10s, no API)
+tovyr bench --suite smoke      # fastest checks
+tovyr bench --live             # + model ping, math, latency (needs API key)
+tovyr bench --json             # CI-friendly JSON report
+tovyr bench compare            # diff latest vs previous run
 ```
 
-Reports save to `.blink/benchmarks/latest.json` (and timestamped history). Offline cases cover doctor, project scan, safety patterns, permissions, and tool helpers. Live cases measure end-to-end print-mode latency and basic model quality.
+Reports save to `.tovyr/benchmarks/latest.json` (and timestamped history). Offline cases cover doctor, project scan, safety patterns, permissions, and tool helpers. Live cases measure end-to-end print-mode latency and basic model quality.
 
 ---
 
@@ -559,33 +589,33 @@ bun run entrypoints/cli.tsx --version
 
 ```bash
 npm test                                              # full suite (~550 tests)
-bun test scripts/blink-cli.integration.test.ts        # CLI integration
-bun test services/blink/tools/safety.test.ts          # tool safety
-bun test services/blink/agent/loopGuard.test.ts       # agent limits
+bun test scripts/tovyr-cli.integration.test.ts        # CLI integration
+bun test services/tovyr/tools/safety.test.ts          # tool safety
+bun test services/tovyr/agent/loopGuard.test.ts       # agent limits
 ```
 
 ### Key paths
 
 | Path | Purpose |
 |------|---------|
-| `bin/blink.js` | npm launcher |
+| `bin/tovyr.js` | npm launcher |
 | `entrypoints/cli.tsx` | Bun bootstrap |
 | `main.tsx` | Commander CLI + REPL |
 | `query.ts` | Agent tool loop |
 | `tools.ts` | Built-in tool registry |
-| `scripts/blink-providers.js` | Provider state |
-| `scripts/blink-provider-catalog.js` | Provider catalog |
-| `services/blink/agent/` | `/agent` autonomous loop |
-| `services/blink/tools/safety.ts` | Tool safety helpers |
+| `scripts/tovyr-providers.js` | Provider state |
+| `scripts/tovyr-provider-catalog.js` | Provider catalog |
+| `services/tovyr/agent/` | `/agent` autonomous loop |
+| `services/tovyr/tools/safety.ts` | Tool safety helpers |
 
 ### Environment (development)
 
 | Variable | Purpose |
 |----------|---------|
-| `BLINK_SRC` / `BLINK_PACKAGE_ROOT` | Package root override |
-| `BLINK_DEBUG` | Debug logging |
-| `BLINK_QUIET` | Suppress stderr |
-| `BLINK_SKIP_WARM` | Skip compile warm step |
+| `TOVYR_SRC` / `TOVYR_PACKAGE_ROOT` | Package root override |
+| `TOVYR_DEBUG` | Debug logging |
+| `TOVYR_QUIET` | Suppress stderr |
+| `TOVYR_SKIP_WARM` | Skip compile warm step |
 
 ---
 
@@ -595,9 +625,9 @@ bun test services/blink/agent/loopGuard.test.ts       # agent limits
 
 1. Switch to custom:
    ```bash
-   blink provider use custom
+   tovyr provider use custom
    ```
-2. Set URL via `/provider url <https://your-endpoint/v1>` in the TUI, or edit `~/.blink/providers.json`:
+2. Set URL via `/provider url <https://your-endpoint/v1>` in the TUI, or edit `~/.tovyr/providers.json`:
    ```json
    {
      "active": "custom",
@@ -605,11 +635,11 @@ bun test services/blink/agent/loopGuard.test.ts       # agent limits
      "custom": { "baseUrl": "https://your-endpoint.example.com/v1", "label": "My API" }
    }
    ```
-3. Set model: `blink provider model your-model-id`
+3. Set model: `tovyr provider model your-model-id`
 
 ### Option 2: Add to the catalog (contributors)
 
-1. Add an entry to `scripts/blink-provider-catalog.js` or `scripts/blink-provider-catalog-extra.js`:
+1. Add an entry to `scripts/tovyr-provider-catalog.js` or `scripts/tovyr-provider-catalog-extra.js`:
 
    ```javascript
    myprovider: {
@@ -628,14 +658,14 @@ bun test services/blink/agent/loopGuard.test.ts       # agent limits
    },
    ```
 
-2. For **local** providers (no key), add the id to `LOCAL_PROVIDER_IDS` in `scripts/blink-provider-local.js`.
+2. For **local** providers (no key), add the id to `LOCAL_PROVIDER_IDS` in `scripts/tovyr-provider-local.js`.
 
-3. Run tests: `bun test scripts/blink-provider-cli.test.ts`
+3. Run tests: `bun test scripts/tovyr-provider-cli.test.ts`
 
 4. Users activate with:
    ```bash
-   blink auth login --provider myprovider --key mp-...
-   blink provider use myprovider
+   tovyr auth login --provider myprovider --key mp-...
+   tovyr provider use myprovider
    ```
 
 ---
@@ -654,32 +684,32 @@ bun test services/blink/agent/loopGuard.test.ts       # agent limits
    MyTool,
    ```
 
-3. **Permissions** (optional): add rules in `utils/permissions/` or `services/blink/permissions/toolGate.ts` for Blink-specific gates.
+3. **Permissions** (optional): add rules in `utils/permissions/` or `services/tovyr/permissions/toolGate.ts` for Tovyr-specific gates.
 
-4. **Tests**: add `tools/MyTool/MyTool.test.ts` or integration tests under `services/blink/`.
+4. **Tests**: add `tools/MyTool/MyTool.test.ts` or integration tests under `services/tovyr/`.
 
 ### MCP tool (no core code change)
 
 ```bash
-blink mcp add-json myserver '{"command":"node","args":["path/to/server.js"]}'
-blink mcp list
+tovyr mcp add-json myserver '{"command":"node","args":["path/to/server.js"]}'
+tovyr mcp list
 ```
 
-Use `blink --full` to load MCP servers on startup (default `--bare` skips heavy plugin/MCP loading).
+Use `tovyr --full` to load MCP servers on startup (default `--bare` skips heavy plugin/MCP loading).
 
 ### Plugin tool
 
 Install a plugin that registers tools via the plugin system (`plugins/PluginSystem.ts`):
 
 ```bash
-blink plugin install <plugin>
+tovyr plugin install <plugin>
 ```
 
 ---
 
 ## How to add an agent
 
-Blink has **three** agent-related mechanisms — pick the one that fits:
+Tovyr has **three** agent-related mechanisms — pick the one that fits:
 
 ### 1. Autonomous `/agent` session (built-in, persisted)
 
@@ -693,11 +723,11 @@ Multi-step goals with phases (observe → plan → execute → verify → reflec
 /agent stop
 ```
 
-- Implementation: `services/blink/agent/` (`AgentManager`, `ExecutionEngine`, `loopGuard`)
-- State: `~/.blink/agent/session-<project-slug>.json`
-- Slash command: `commands/blink/agent.ts`
+- Implementation: `services/tovyr/agent/` (`AgentManager`, `ExecutionEngine`, `loopGuard`)
+- State: `~/.tovyr/agent/session-<project-slug>.json`
+- Slash command: `commands/tovyr/agent.ts`
 
-To extend behavior, edit prompts in `services/blink/agent/` (e.g. `ExecutionEngine.ts`, `specialists.ts`) or add specialist roles in `services/blink/agent/types.ts`.
+To extend behavior, edit prompts in `services/tovyr/agent/` (e.g. `ExecutionEngine.ts`, `specialists.ts`) or add specialist roles in `services/tovyr/agent/types.ts`.
 
 ### 2. Sub-agents via the `Agent` tool
 
@@ -708,8 +738,8 @@ The main chat loop can spawn sub-agents for parallel exploration using the built
 Pass custom agent definitions at startup:
 
 ```bash
-blink --agents '{"reviewer":{"description":"Code reviewer","prompt":"You review diffs..."}}'
-blink --agent reviewer
+tovyr --agents '{"reviewer":{"description":"Code reviewer","prompt":"You review diffs..."}}'
+tovyr --agent reviewer
 ```
 
 Parsed in `main.tsx` (~line 2055). Agents are session-scoped prompt presets, not persisted `/agent` sessions.
@@ -718,15 +748,43 @@ Parsed in `main.tsx` (~line 2055). Agents are session-scoped prompt presets, not
 
 To add a workflow command like `/myworkflow`:
 
-1. Create `commands/blink/myworkflow.ts` (see `commands/blink/fix.ts`)
+1. Create `commands/tovyr/myworkflow.ts` (see `commands/tovyr/fix.ts`)
 2. Register in `commands.ts`
 3. Command appears as `/myworkflow` in the REPL
+
+---
+
+## Browser automation
+
+Run `/browser setup` to configure the pinned Playwright MCP runtime with a
+Tovyr-owned profile. `/browser status` reports configuration, while
+`/browser connect chrome` or `/browser connect edge` explicitly opts into a
+running browser through CDP. The default never reuses the user's normal
+browser state.
+
+Tovyr stores the isolated profile under `~/.tovyr/browser/profile` and
+downloads/captures under `~/.tovyr/browser/output`. It uses accessibility
+snapshots before screenshots. Clicks, typing, forms, files, clipboard, and
+login actions require confirmation. Private-network navigation is blocked
+unless `TOVYR_BROWSER_ALLOW_PRIVATE_NETWORK=1` is deliberately enabled for a
+trusted local project.
+
+## Windows computer-use beta
+
+`/computer status` reports this feature honestly. It is off by default and is
+ready only on Windows after `/computer enable` and installation of the signed
+`~/.tovyr/runtime/tovyr-computer-host.exe`.
+
+Tovyr never substitutes a Claude, browser-extension, or unsigned host. The
+adapter enforces one active session lock, sends Escape/Ctrl+C stop keys to the
+host, redacts typed and clipboard text from its audit, and supports an
+application allowlist. Screenshot retention defaults to `never`.
 
 ---
 
 ## Getting help
 
 - **In-app:** `/guide`, `/help`
-- **Shell:** `blink --help`, `blink doctor --help`, `blink provider --help`
-- **GitHub:** [itsdexy/BlinkCode](https://github.com/itsdexy/BlinkCode)
-- **Issues:** [github.com/itsdexy/BlinkCode/issues](https://github.com/itsdexy/BlinkCode/issues)
+- **Shell:** `tovyr --help`, `tovyr doctor --help`, `tovyr provider --help`
+- **GitHub:** [itsdexy/Tovyr](https://github.com/itsdexy/Tovyr)
+- **Issues:** [github.com/itsdexy/Tovyr/issues](https://github.com/itsdexy/Tovyr/issues)

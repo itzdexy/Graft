@@ -42,12 +42,12 @@ const NO_PROXY_LIST = [
   '10.0.0.0/8',
   '172.16.0.0/12',
   '192.168.0.0/16',
-  // Blink API: no upstream route will ever match, and the MITM breaks
+  // Tovyr API: no upstream route will ever match, and the MITM breaks
   // non-Bun runtimes (Python httpx/certifi doesn't trust the forged CA).
   // Three forms because NO_PROXY parsing differs across runtimes:
-  //   *.blink.com  — Bun, curl, Go (glob match)
-  //   .blink.com   — Python urllib/httpx (suffix match, strips leading dot)
-  //   blink.com    — apex domain fallback
+  //   *.tovyr.com  — Bun, curl, Go (glob match)
+  //   .tovyr.com   — Python urllib/httpx (suffix match, strips leading dot)
+  //   tovyr.com    — apex domain fallback
   'anthropic.com',
   '.anthropic.com',
   '*.anthropic.com',
@@ -82,7 +82,7 @@ export async function initUpstreamProxy(opts?: {
   caBundlePath?: string
   ccrBaseUrl?: string
 }): Promise<UpstreamProxyState> {
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
+  if (!isEnvTruthy(process.env.TOVYR_CODE_REMOTE)) {
     return state
   }
   // CCR evaluates ccr_upstream_proxy_enabled server-side (where GrowthBook is
@@ -93,10 +93,10 @@ export async function initUpstreamProxy(opts?: {
     return state
   }
 
-  const sessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
+  const sessionId = process.env.TOVYR_CODE_REMOTE_SESSION_ID
   if (!sessionId) {
     logForDebugging(
-      '[upstreamproxy] CLAUDE_CODE_REMOTE_SESSION_ID unset; proxy disabled',
+      '[upstreamproxy] TOVYR_CODE_REMOTE_SESSION_ID unset; proxy disabled',
       { level: 'warn' },
     )
     return state
@@ -111,7 +111,7 @@ export async function initUpstreamProxy(opts?: {
 
   setNonDumpable()
 
-  // CCR injects ANTHROPIC_BASE_URL via StartupContext. In Blink the
+  // CCR injects ANTHROPIC_BASE_URL via StartupContext. In Tovyr the
   // upstream proxy is only enabled when an explicit remote base URL is set;
   // there is no hardcoded Anthropic fallback.
   const baseUrl = opts?.ccrBaseUrl ?? process.env.ANTHROPIC_BASE_URL

@@ -1,6 +1,6 @@
 import chokidar, { type FSWatcher } from 'chokidar'
 import * as platformPath from 'path'
-import { getAdditionalDirectoriesForBlinkMd } from '../../bootstrap/state.js'
+import { getAdditionalDirectoriesForTovyrMd } from '../../bootstrap/state.js'
 import {
   clearCommandMemoizationCaches,
   clearCommandsCache,
@@ -172,7 +172,7 @@ async function getWatchablePaths(): Promise<string[]> {
   const fs = getFsImplementation()
   const paths: string[] = []
 
-  // User skills directory (~/.blink/skills)
+  // User skills directory (~/.tovyr/skills)
   const userSkillsPath = getSkillsPath('userSettings', 'skills')
   if (userSkillsPath) {
     try {
@@ -183,7 +183,7 @@ async function getWatchablePaths(): Promise<string[]> {
     }
   }
 
-  // User commands directory (~/.blink/commands)
+  // User commands directory (~/.tovyr/commands)
   const userCommandsPath = getSkillsPath('userSettings', 'commands')
   if (userCommandsPath) {
     try {
@@ -194,7 +194,7 @@ async function getWatchablePaths(): Promise<string[]> {
     }
   }
 
-  // Project skills directory (.blink/skills)
+  // Project skills directory (.tovyr/skills)
   const projectSkillsPath = getSkillsPath('projectSettings', 'skills')
   if (projectSkillsPath) {
     try {
@@ -207,7 +207,7 @@ async function getWatchablePaths(): Promise<string[]> {
     }
   }
 
-  // Project commands directory (.blink/commands)
+  // Project commands directory (.tovyr/commands)
   const projectCommandsPath = getSkillsPath('projectSettings', 'commands')
   if (projectCommandsPath) {
     try {
@@ -221,7 +221,7 @@ async function getWatchablePaths(): Promise<string[]> {
   }
 
   // Additional directories (--add-dir) skills
-  for (const dir of getAdditionalDirectoriesForBlinkMd()) {
+  for (const dir of getAdditionalDirectoriesForTovyrMd()) {
     const additionalSkillsPath = platformPath.join(dir, '.claude', 'skills')
     try {
       await fs.stat(additionalSkillsPath)

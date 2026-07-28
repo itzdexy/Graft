@@ -73,7 +73,7 @@ import {
   renderToolUseProgressMessage,
   renderToolUseRejectedMessage,
 } from './UI.js'
-import { formatUnknownSkillCorrection } from '../../services/blink/modelCompatibility.js'
+import { formatUnknownSkillCorrection } from '../../services/tovyr/modelCompatibility.js'
 
 /**
  * Gets all commands including MCP skills/prompts from AppState.
@@ -293,7 +293,7 @@ export const inputSchema = lazySchema(() =>
   z.object({
     skill: z
       .string()
-      .describe('The skill name. E.g., "commit", "review-pr", or "pdf"'),
+      .describe('The exact name of an available skill from the system-reminder list. E.g., "commit", "review-pr", or "pdf". Never use a greeting like "hi"/"hello", the user\'s raw message, or generic words like "request" or "help" as the skill name.'),
     args: z.string().optional().describe('Optional arguments for the skill'),
   }),
 )
@@ -340,12 +340,12 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     return outputSchema()
   },
 
-  description: async ({ skill }) => `Execute skill: ${skill}`,
+  description: async () => 'Execute a slash-command skill by name.',
 
   prompt: async () => getPrompt(getProjectRoot()),
 
   // Only one skill/command should run at a time, since the tool expands the
-  // command into a full prompt that Blink must process before continuing.
+  // command into a full prompt that Tovyr must process before continuing.
   // Skill-coach needs the skill name to avoid false-positive "you could have
   // used skill X" suggestions when X was actually invoked. Backseat classifies
   // downstream tool calls from the expanded prompt, not this wrapper, so the
@@ -371,6 +371,32 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     const normalizedCommandName = hasLeadingSlash
       ? trimmed.substring(1)
       : trimmed
+
+    // Reject greetings and generic non-skill words so weak models don't turn
+    // casual chat into a Skill tool call.
+    const GENERIC_NON_SKILL_NAMES = new Set([
+      'request',
+      'hi',
+      'hello',
+      'hey',
+      'help',
+      'task',
+      'do',
+      'it',
+      'this',
+      'that',
+      'please',
+      'what',
+      'yes',
+      'no',
+    ])
+    if (GENERIC_NON_SKILL_NAMES.has(normalizedCommandName.toLowerCase())) {
+      return {
+        result: false,
+        message: `The input "${normalizedCommandName}" is not a skill name. Greetings and casual conversation should be answered directly, not by invoking Skill. Only invoke Skill when the user explicitly asks for a named skill from the available list.`,
+        errorCode: 7,
+      }
+    }
 
     // Remote canonical skill handling (ant-only experimental). Intercept
     // `_canonical_<slug>` names before local command lookup since remote

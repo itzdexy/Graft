@@ -15,13 +15,13 @@ import { getMainLoopModel } from '../../utils/model/model.js'
 import {
   getSessionId,
   getIsInteractive,
-  getBlinksActive,
+  getTovyrsActive,
   getClientType,
   getParentSessionId as getParentSessionIdFromState,
 } from '../../bootstrap/state.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { isOfficialMcpUrl } from '../mcp/officialRegistry.js'
-import { isBlinkWebSubscriber, getSubscriptionType } from '../../utils/auth.js'
+import { isTovyrWebSubscriber, getSubscriptionType } from '../../utils/auth.js'
 import { getRepoRemoteHash } from '../../utils/git.js'
 import {
   getWslVersion,
@@ -93,9 +93,9 @@ export function isToolDetailsLoggingEnabled(): boolean {
  *
  * Per go/taxonomy, MCP names are medium PII. We log them for:
  * - Cowork (entrypoint=local-agent) — no ZDR concept, log all MCPs
- * - blink web-proxied connectors — always official (from blink web's list)
+ * - tovyr web-proxied connectors — always official (from tovyr web's list)
  * - Servers whose URL matches the official MCP registry — directory
- *   connectors added via `blink mcp add`, not customer-specific config
+ *   connectors added via `tovyr mcp add`, not customer-specific config
  *
  * Custom/user-configured MCPs stay sanitized (toolName='mcp_tool').
  */
@@ -103,7 +103,7 @@ export function isAnalyticsToolDetailsLoggingEnabled(
   mcpServerType: string | undefined,
   mcpServerBaseUrl: string | undefined,
 ): boolean {
-  if (process.env.CLAUDE_CODE_ENTRYPOINT === 'local-agent') {
+  if (process.env.TOVYR_CODE_ENTRYPOINT === 'local-agent') {
     return true
   }
   if (mcpServerType === 'claudeai-proxy') {
@@ -425,7 +425,7 @@ export type EnvContext = {
   isRunningWithBun: boolean
   isCi: boolean
   isClaubbit: boolean
-  isBlinkCodeRemote: boolean
+  isTovyrCodeRemote: boolean
   isLocalAgentMode: boolean
   isConductor: boolean
   remoteEnvironmentType?: string
@@ -434,8 +434,8 @@ export type EnvContext = {
   claudeCodeRemoteSessionId?: string
   tags?: string
   isGithubAction: boolean
-  isBlinkCodeAction: boolean
-  isBlinkWebAuth: boolean
+  isTovyrCodeAction: boolean
+  isTovyrWebAuth: boolean
   version: string
   versionBase?: string
   buildTime: string
@@ -484,13 +484,13 @@ export type EventMetadata = {
   sweBenchInstanceId: string
   sweBenchTaskId: string
   // Swarm/team agent identification for analytics attribution
-  agentId?: string // CLAUDE_CODE_AGENT_ID (format: agentName@teamName) or subagent UUID
-  parentSessionId?: string // CLAUDE_CODE_PARENT_SESSION_ID (team lead's session)
+  agentId?: string // TOVYR_CODE_AGENT_ID (format: agentName@teamName) or subagent UUID
+  parentSessionId?: string // TOVYR_CODE_PARENT_SESSION_ID (team lead's session)
   agentType?: 'teammate' | 'subagent' | 'standalone' // Distinguishes swarm teammates, Agent tool subagents, and standalone agents
   teamName?: string // Team name for swarm agents (from env var or AsyncLocalStorage)
   subscriptionType?: string // OAuth subscription tier (max, pro, enterprise, team)
   rh?: string // Hashed repo remote URL (first 16 chars of SHA256), for joining with server-side data
-  blinksActive?: true // BLINKS assistant mode active (ant-only; set in main.tsx after gate check)
+  tovyrsActive?: true // TOVYRS assistant mode active (ant-only; set in main.tsx after gate check)
   skillMode?: 'discovery' | 'coach' | 'discovery_and_coach' // Which skill surfacing mechanism(s) are gated on (ant-only; for BQ session segmentation)
   observerMode?: 'backseat' | 'skillcoach' | 'both' // Which observer classifiers are gated on (ant-only; for BQ cohort splits on tengu_backseat_* events)
 }
@@ -583,8 +583,8 @@ const buildEnvContext = memoize(async (): Promise<EnvContext> => {
     platform: getHostPlatformForAnalytics(),
     // Raw process.platform so freebsd/openbsd/aix/sunos are visible in BQ.
     // getHostPlatformForAnalytics() buckets those into 'linux'; here we want
-    // the truth. CLAUDE_CODE_HOST_PLATFORM still overrides for container/remote.
-    platformRaw: process.env.CLAUDE_CODE_HOST_PLATFORM || process.platform,
+    // the truth. TOVYR_CODE_HOST_PLATFORM still overrides for container/remote.
+    platformRaw: process.env.TOVYR_CODE_HOST_PLATFORM || process.platform,
     arch: env.arch,
     nodeVersion: env.nodeVersion,
     terminal: envDynamic.terminal,
@@ -593,30 +593,30 @@ const buildEnvContext = memoize(async (): Promise<EnvContext> => {
     isRunningWithBun: env.isRunningWithBun(),
     isCi: isEnvTruthy(process.env.CI),
     isClaubbit: isEnvTruthy(process.env.CLAUBBIT),
-    isBlinkCodeRemote: isEnvTruthy(process.env.CLAUDE_CODE_REMOTE),
-    isLocalAgentMode: process.env.CLAUDE_CODE_ENTRYPOINT === 'local-agent',
+    isTovyrCodeRemote: isEnvTruthy(process.env.TOVYR_CODE_REMOTE),
+    isLocalAgentMode: process.env.TOVYR_CODE_ENTRYPOINT === 'local-agent',
     isConductor: env.isConductor(),
-    ...(process.env.CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE && {
-      remoteEnvironmentType: process.env.CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE,
+    ...(process.env.TOVYR_CODE_REMOTE_ENVIRONMENT_TYPE && {
+      remoteEnvironmentType: process.env.TOVYR_CODE_REMOTE_ENVIRONMENT_TYPE,
     }),
     // Gated by feature flag to prevent leaking "coworkerType" string in external builds
     ...(feature('COWORKER_TYPE_TELEMETRY')
-      ? process.env.CLAUDE_CODE_COWORKER_TYPE
-        ? { coworkerType: process.env.CLAUDE_CODE_COWORKER_TYPE }
+      ? process.env.TOVYR_CODE_COWORKER_TYPE
+        ? { coworkerType: process.env.TOVYR_CODE_COWORKER_TYPE }
         : {}
       : {}),
-    ...(process.env.CLAUDE_CODE_CONTAINER_ID && {
-      claudeCodeContainerId: process.env.CLAUDE_CODE_CONTAINER_ID,
+    ...(process.env.TOVYR_CODE_CONTAINER_ID && {
+      claudeCodeContainerId: process.env.TOVYR_CODE_CONTAINER_ID,
     }),
-    ...(process.env.CLAUDE_CODE_REMOTE_SESSION_ID && {
-      claudeCodeRemoteSessionId: process.env.CLAUDE_CODE_REMOTE_SESSION_ID,
+    ...(process.env.TOVYR_CODE_REMOTE_SESSION_ID && {
+      claudeCodeRemoteSessionId: process.env.TOVYR_CODE_REMOTE_SESSION_ID,
     }),
-    ...(process.env.CLAUDE_CODE_TAGS && {
-      tags: process.env.CLAUDE_CODE_TAGS,
+    ...(process.env.TOVYR_CODE_TAGS && {
+      tags: process.env.TOVYR_CODE_TAGS,
     }),
     isGithubAction: isEnvTruthy(process.env.GITHUB_ACTIONS),
-    isBlinkCodeAction: isEnvTruthy(process.env.CLAUDE_CODE_ACTION),
-    isBlinkWebAuth: isBlinkWebSubscriber(),
+    isTovyrCodeAction: isEnvTruthy(process.env.TOVYR_CODE_ACTION),
+    isTovyrWebAuth: isTovyrWebSubscriber(),
     version: MACRO.VERSION,
     versionBase: getVersionBase(),
     buildTime: MACRO.BUILD_TIME,
@@ -710,8 +710,8 @@ export async function getEventMetadata(
     userType: process.env.USER_TYPE || '',
     ...(betas.length > 0 ? { betas: betas } : {}),
     envContext,
-    ...(process.env.CLAUDE_CODE_ENTRYPOINT && {
-      entrypoint: process.env.CLAUDE_CODE_ENTRYPOINT,
+    ...(process.env.TOVYR_CODE_ENTRYPOINT && {
+      entrypoint: process.env.TOVYR_CODE_ENTRYPOINT,
     }),
     ...(process.env.CLAUDE_AGENT_SDK_VERSION && {
       agentSdkVersion: process.env.CLAUDE_AGENT_SDK_VERSION,
@@ -730,10 +730,10 @@ export async function getEventMetadata(
       subscriptionType: getSubscriptionType()!,
     }),
     // Assistant mode tag — lives outside memoized buildEnvContext() because
-    // setBlinksActive() runs at main.tsx:~1648, after the first event may
+    // setTovyrsActive() runs at main.tsx:~1648, after the first event may
     // have already fired and memoized the env. Read fresh per-event instead.
-    ...(feature('BLINKS') && getBlinksActive()
-      ? { blinksActive: true as const }
+    ...(feature('TOVYRS') && getTovyrsActive()
+      ? { tovyrsActive: true as const }
       : {}),
     // Repo remote hash for joining with server-side repo bundle data
     ...(repoRemoteHash && { rh: repoRemoteHash }),
@@ -771,14 +771,14 @@ export type FirstPartyEventLoggingCoreMetadata = {
 export type FirstPartyEventLoggingMetadata = {
   env: EnvironmentMetadata
   process?: string
-  // auth is a top-level field on BlinkCodeInternalEvent (proto PublicApiAuth).
+  // auth is a top-level field on TovyrCodeInternalEvent (proto PublicApiAuth).
   // account_id is intentionally omitted — only UUID fields are populated client-side.
   auth?: PublicApiAuth
-  // core fields correspond to the top level of BlinkCodeInternalEvent.
+  // core fields correspond to the top level of TovyrCodeInternalEvent.
   // They get directly exported to their individual columns in the BigQuery tables
   core: FirstPartyEventLoggingCoreMetadata
   // additional fields are populated in the additional_metadata field of the
-  // BlinkCodeInternalEvent proto. Includes but is not limited to information
+  // TovyrCodeInternalEvent proto. Includes but is not limited to information
   // that differs by event type.
   additional: Record<string, unknown>
 }
@@ -802,7 +802,7 @@ export function to1PEventFormat(
     envContext,
     processMetrics,
     rh,
-    blinksActive,
+    tovyrsActive,
     skillMode,
     observerMode,
     ...coreFields
@@ -815,7 +815,7 @@ export function to1PEventFormat(
   // parallel type previously let #11318, #13924, #19448, and coworker_type all
   // ship fields that never reached BQ.
   // Adding a field? Update the monorepo proto first (go/cc-logging):
-  //   event_schemas/.../blink_code/v1/blink_code_internal_event.proto
+  //   event_schemas/.../tovyr_code/v1/tovyr_code_internal_event.proto
   // then run `bun run generate:proto` here.
   const env: EnvironmentMetadata = {
     platform: envContext.platform,
@@ -828,12 +828,12 @@ export function to1PEventFormat(
     is_running_with_bun: envContext.isRunningWithBun,
     is_ci: envContext.isCi,
     is_claubbit: envContext.isClaubbit,
-    is_claude_code_remote: envContext.isBlinkCodeRemote,
+    is_claude_code_remote: envContext.isTovyrCodeRemote,
     is_local_agent_mode: envContext.isLocalAgentMode,
     is_conductor: envContext.isConductor,
     is_github_action: envContext.isGithubAction,
-    is_claude_code_action: envContext.isBlinkCodeAction,
-    is_claude_ai_auth: envContext.isBlinkWebAuth,
+    is_claude_code_action: envContext.isTovyrCodeAction,
+    is_claude_ai_auth: envContext.isTovyrWebAuth,
     version: envContext.version,
     build_time: envContext.buildTime,
     deployment_environment: envContext.deploymentEnvironment,
@@ -934,10 +934,10 @@ export function to1PEventFormat(
 
   // Map userMetadata to output fields.
   // Based on src/utils/user.ts getUser(), but with fields present in other
-  // parts of BlinkCodeInternalEvent deduplicated.
+  // parts of TovyrCodeInternalEvent deduplicated.
   // Convert camelCase GitHubActionsMetadata to snake_case for 1P API
   // Note: github_actions_metadata is placed inside env (EnvironmentMetadata)
-  // rather than at the top level of BlinkCodeInternalEvent
+  // rather than at the top level of TovyrCodeInternalEvent
   if (userMetadata.githubActionsMetadata) {
     const ghMeta = userMetadata.githubActionsMetadata
     env.github_actions_metadata = {
@@ -964,7 +964,7 @@ export function to1PEventFormat(
     core,
     additional: {
       ...(rh && { rh }),
-      ...(blinksActive && { is_assistant_mode: true }),
+      ...(tovyrsActive && { is_assistant_mode: true }),
       ...(skillMode && { skill_mode: skillMode }),
       ...(observerMode && { observer_mode: observerMode }),
       ...additionalMetadata,

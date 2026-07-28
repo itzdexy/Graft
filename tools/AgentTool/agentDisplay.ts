@@ -1,6 +1,6 @@
 /**
  * Shared utilities for displaying agent information.
- * Used by both the CLI `blink agents` handler and the interactive `/agents` command.
+ * Used by both the CLI `tovyr agents` handler and the interactive `/agents` command.
  */
 
 import { getDefaultSubagentModel } from '../../utils/model/agent.js'

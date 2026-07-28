@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { getOauthConfig } from 'src/constants/oauth.js'
 import { getOrganizationUUID } from 'src/services/oauth/client.js'
-import { getBlinkWebOAuthTokens } from '../auth.js'
+import { getTovyrWebOAuthTokens } from '../auth.js'
 import { toError } from '../errors.js'
 import { logError } from '../log.js'
 import { getOAuthHeaders } from './api.js'
@@ -30,10 +30,10 @@ export type EnvironmentListResponse = {
  * @throws Error if the API request fails or no access token is available
  */
 export async function fetchEnvironments(): Promise<EnvironmentResource[]> {
-  const accessToken = getBlinkWebOAuthTokens()?.accessToken
+  const accessToken = getTovyrWebOAuthTokens()?.accessToken
   if (!accessToken) {
     throw new Error(
-      'Blink web sessions require authentication with a Blink web account. API key authentication is not sufficient. Please run /login to authenticate, or check your authentication status with /status.',
+      'Tovyr web sessions require authentication with a Tovyr web account. API key authentication is not sufficient. Please run /login to authenticate, or check your authentication status with /status.',
     )
   }
 
@@ -70,13 +70,13 @@ export async function fetchEnvironments(): Promise<EnvironmentResource[]> {
 }
 
 /**
- * Creates a default blink_cloud environment for users who have none.
+ * Creates a default tovyr_cloud environment for users who have none.
  * Uses the public environment_providers route (same auth as fetchEnvironments).
  */
 export async function createDefaultCloudEnvironment(
   name: string,
 ): Promise<EnvironmentResource> {
-  const accessToken = getBlinkWebOAuthTokens()?.accessToken
+  const accessToken = getTovyrWebOAuthTokens()?.accessToken
   if (!accessToken) {
     throw new Error('No access token available')
   }

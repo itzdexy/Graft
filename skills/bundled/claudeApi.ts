@@ -2,8 +2,8 @@ import { readdir } from 'fs/promises'
 import { getCwd } from '../../utils/cwd.js'
 import { registerBundledSkill } from '../bundledSkills.js'
 
-// blinkApiContent.js bundles 247KB of .md strings. Lazy-load inside
-// getPromptForCommand so they only enter memory when /blink-api is invoked.
+// tovyrApiContent.js bundles 247KB of .md strings. Lazy-load inside
+// getPromptForCommand so they only enter memory when /tovyr-api is invoked.
 type SkillContent = typeof import('./claudeApiContent.js')
 
 type DetectedLanguage =
@@ -181,8 +181,8 @@ export function registerClaudeApiSkill(): void {
   registerBundledSkill({
     name: 'claude-api',
     description:
-      'Build apps with the Blink API or Blink SDK.\n' +
-      'TRIGGER when: code imports `anthropic`/`@anthropic-ai/sdk`/`claude_agent_sdk`, or user asks to use Claude API, Anthropic SDKs, or Agent SDK.\n' +
+      'Build apps with the Tovyr API or Tovyr SDK.\n' +
+      'TRIGGER when: code imports `anthropic`/`@anthropic-ai/sdk`/`claude_agent_sdk`, or user asks to use Tovyr API, Anthropic SDKs, or Agent SDK.\n' +
       'DO NOT TRIGGER when: code imports `openai`/other AI SDK, general programming, or ML/data-science tasks.',
     allowedTools: ['Read', 'Grep', 'Glob', 'WebFetch'],
     userInvocable: true,

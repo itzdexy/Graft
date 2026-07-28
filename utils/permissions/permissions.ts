@@ -12,10 +12,10 @@ import { BASH_TOOL_NAME } from '../../tools/BashTool/toolName.js'
 import { POWERSHELL_TOOL_NAME } from '../../tools/PowerShellTool/toolName.js'
 import { REPL_TOOL_NAME } from '../../tools/REPLTool/constants.js'
 import type { AssistantMessage } from '../../types/message.js'
-import { getAssistantName } from '../blinkBrand.js'
+import { getAssistantName } from '../tovyrBrand.js'
 import { logForDebugging } from '../debug.js'
 import { AbortError, toError } from '../errors.js'
-import { isBlinkRuntime } from '../blinkRuntime.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
 import { logError } from '../log.js'
 import { SandboxManager } from '../sandbox/sandbox-adapter.js'
 import {
@@ -76,7 +76,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from '../../services/analytics/index.js'
-import { getBlinkTierToolBlock } from '../../services/blink/permissions/toolGate.js'
+import { getTovyrTierToolBlock } from '../../services/tovyr/permissions/toolGate.js'
 import {
   clearClassifierChecking,
   setClassifierChecking,
@@ -1142,7 +1142,7 @@ export async function checkRuleBasedPermissions(
     return toolPermissionResult
   }
 
-  // 1g. Safety checks (e.g. .git/, .blink/, .vscode/, shell configs) are
+  // 1g. Safety checks (e.g. .git/, .tovyr/, .vscode/, shell configs) are
   // bypass-immune — they must prompt even when a PreToolUse hook returned
   // allow. checkPathSafetyForAutoEdit returns {type:'safetyCheck'} for these.
   if (
@@ -1167,8 +1167,8 @@ async function hasPermissionsToUseToolInner(
 
   let appState = context.getAppState()
 
-  if (isBlinkRuntime()) {
-    const tierBlock = getBlinkTierToolBlock(
+  if (isTovyrRuntime()) {
+    const tierBlock = getTovyrTierToolBlock(
       tool.name,
       appState.toolPermissionContext.mode,
       input,
@@ -1261,7 +1261,7 @@ async function hasPermissionsToUseToolInner(
     return toolPermissionResult
   }
 
-  // 1g. Safety checks (e.g. .git/, .blink/, .vscode/, shell configs) are
+  // 1g. Safety checks (e.g. .git/, .tovyr/, .vscode/, shell configs) are
   // bypass-immune — they must prompt even in bypassPermissions mode.
   // checkPathSafetyForAutoEdit returns {type:'safetyCheck'} for these paths.
   if (

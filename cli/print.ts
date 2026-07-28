@@ -28,7 +28,7 @@ import {
 } from 'src/services/analytics/index.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import { logForDebugging } from 'src/utils/debug.js'
-import { blinkCmd } from 'src/constants/blink.js'
+import { tovyrCmd } from 'src/constants/tovyr.js'
 import {
   logForDiagnosticsNoPII,
   withDiagnosticsTiming,
@@ -263,8 +263,8 @@ import { collectContextData } from 'src/commands/context/context-noninteractive.
 import { LOCAL_COMMAND_STDOUT_TAG } from 'src/constants/xml.js'
 import {
   statusListeners,
-  type BlinkWebLimits,
-} from 'src/services/blinkWebLimits.js'
+  type TovyrWebLimits,
+} from 'src/services/tovyrWebLimits.js'
 import {
   getDefaultMainLoopModel,
   getMainLoopModel,
@@ -360,7 +360,7 @@ const coordinatorModeModule = feature('COORDINATOR_MODE')
   ? (require('../coordinator/coordinatorMode.js') as typeof import('../coordinator/coordinatorMode.js'))
   : null
 const proactiveModule =
-  feature('PROACTIVE') || feature('BLINKS')
+  feature('PROACTIVE') || feature('TOVYRS')
     ? (require('../proactive/index.js') as typeof import('../proactive/index.js'))
     : null
 const cronSchedulerModule = feature('AGENT_TRIGGERS')
@@ -494,7 +494,7 @@ export async function runHeadless(
 ): Promise<void> {
   if (
     process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.CLAUDE_CODE_EXIT_AFTER_FIRST_RENDER)
+    isEnvTruthy(process.env.TOVYR_CODE_EXIT_AFTER_FIRST_RENDER)
   ) {
     process.stderr.write(
       `\nStartup time: ${Math.round(process.uptime() * 1000)}ms\n`,
@@ -510,7 +510,7 @@ export async function runHeadless(
   // enabledPlugins.
   if (
     feature('DOWNLOAD_USER_SETTINGS') &&
-    (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
+    (isEnvTruthy(process.env.TOVYR_CODE_REMOTE) || getIsRemoteMode())
   ) {
     void downloadUserSettings()
   }
@@ -534,13 +534,13 @@ export async function runHeadless(
 
   // Proactive activation is now handled in main.tsx before getTools() so
   // SleepTool passes isEnabled() filtering. This fallback covers the case
-  // where CLAUDE_CODE_PROACTIVE is set but main.tsx's check didn't fire
+  // where TOVYR_CODE_PROACTIVE is set but main.tsx's check didn't fire
   // (e.g. env was injected by the SDK transport after argv parsing).
   if (
-    (feature('PROACTIVE') || feature('BLINKS')) &&
+    (feature('PROACTIVE') || feature('TOVYRS')) &&
     proactiveModule &&
     !proactiveModule.isProactiveActive() &&
-    isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE)
+    isEnvTruthy(process.env.TOVYR_CODE_PROACTIVE)
   ) {
     proactiveModule.activateProactive('command')
   }
@@ -852,11 +852,11 @@ export async function runHeadless(
   const needsFullArray = options.outputFormat === 'json' && options.verbose
   const messages: SDKMessage[] = []
   let lastMessage: SDKMessage | undefined
-  // Streamlined mode transforms messages when CLAUDE_CODE_STREAMLINED_OUTPUT=true and using stream-json
+  // Streamlined mode transforms messages when TOVYR_CODE_STREAMLINED_OUTPUT=true and using stream-json
   // Build flag gates this out of external builds; env var is the runtime opt-in for ant builds
   const transformToStreamlined =
     feature('STREAMLINED_OUTPUT') &&
-    isEnvTruthy(process.env.CLAUDE_CODE_STREAMLINED_OUTPUT) &&
+    isEnvTruthy(process.env.TOVYR_CODE_STREAMLINED_OUTPUT) &&
     options.outputFormat === 'stream-json'
       ? createStreamlinedTransformer()
       : null
@@ -1127,7 +1127,7 @@ function runHeadlessStreaming(
   // Set up rate limit status listener to emit SDKRateLimitEvent for all status changes.
   // Emitting for all statuses (including 'allowed') ensures consumers can clear warnings
   // when rate limits reset. The upstream emitStatusChange already deduplicates via isEqual.
-  const rateLimitListener = (limits: BlinkWebLimits) => {
+  const rateLimitListener = (limits: TovyrWebLimits) => {
     const rateLimitInfo = toSDKRateLimitInfo(limits)
     if (rateLimitInfo) {
       output.enqueue({
@@ -1170,7 +1170,7 @@ function runHeadlessStreaming(
   // Auto-resume interrupted turns on restart so CC continues from where it
   // left off without requiring the SDK to re-send the prompt.
   const resumeInterruptedTurnEnv =
-    process.env.CLAUDE_CODE_RESUME_INTERRUPTED_TURN
+    process.env.TOVYR_CODE_RESUME_INTERRUPTED_TURN
   if (
     turnInterruptionState &&
     turnInterruptionState.kind !== 'none' &&
@@ -1509,7 +1509,7 @@ function runHeadlessStreaming(
   let bridgeLastForwardedIndex = 0
 
   // Forward new messages from mutableMessages to the bridge.
-  // Called incrementally during each turn (so blink web sees progress
+  // Called incrementally during each turn (so tovyr web sees progress
   // and stays alive during permission waits) and again after the turn.
   //
   // writeMessages has its own UUID-based dedup (initialMessageUUIDs,
@@ -1665,13 +1665,13 @@ function runHeadlessStreaming(
             }))
           : undefined
       // Capabilities passthrough with allowlist pre-filter. The IDE reads
-      // experimental['blink/channel'] to decide whether to show the
+      // experimental['tovyr/channel'] to decide whether to show the
       // Enable-channel prompt — only echo it if channel_enable would
       // actually pass the allowlist. Not a security boundary (the
       // handler re-runs the full gate); just avoids dead buttons.
       let capabilities: { experimental?: Record<string, unknown> } | undefined
       if (
-        (feature('BLINKS') || feature('BLINKS_CHANNELS')) &&
+        (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) &&
         connection.type === 'connected' &&
         connection.capabilities.experimental
       ) {
@@ -1709,7 +1709,7 @@ function runHeadlessStreaming(
       // its promise so this awaits the same in-flight request.
       await Promise.all([
         feature('DOWNLOAD_USER_SETTINGS') &&
-        (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
+        (isEnvTruthy(process.env.TOVYR_CODE_REMOTE) || getIsRemoteMode())
           ? withDiagnosticsTiming('headless_user_settings_download', () =>
               downloadUserSettings(),
             )
@@ -1731,13 +1731,13 @@ function runHeadlessStreaming(
 
   // Background plugin installation for all headless users
   // Installs marketplaces from extraKnownMarketplaces and missing enabled plugins
-  // CLAUDE_CODE_SYNC_PLUGIN_INSTALL=true: resolved in run() before the first
+  // TOVYR_CODE_SYNC_PLUGIN_INSTALL=true: resolved in run() before the first
   // query so plugins are guaranteed available on the first ask().
   let pluginInstallPromise: Promise<void> | null = null
   // --bare / SIMPLE: skip plugin install. Scripted calls don't add plugins
   // mid-session; the next interactive run reconciles.
   if (!isBareMode()) {
-    if (isEnvTruthy(process.env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL)) {
+    if (isEnvTruthy(process.env.TOVYR_CODE_SYNC_PLUGIN_INSTALL)) {
       pluginInstallPromise = installPluginsAndApplyMcpInBackground()
     } else {
       void installPluginsAndApplyMcpInBackground()
@@ -1752,7 +1752,7 @@ function runHeadlessStreaming(
   let currentAgents = agents
 
   // Clear all plugin-related caches, reload commands/agents/hooks.
-  // Called after CLAUDE_CODE_SYNC_PLUGIN_INSTALL completes (before first query)
+  // Called after TOVYR_CODE_SYNC_PLUGIN_INSTALL completes (before first query)
   // and after non-sync background install finishes.
   // refreshActivePlugins calls clearAllCaches() which is required because
   // loadAllPlugins() may have run during main.tsx startup BEFORE managed
@@ -1833,7 +1833,7 @@ function runHeadlessStreaming(
   // setTimeout(0) yields to the event loop so pending stdin messages
   // (interrupts, user messages) are processed before the tick fires.
   const scheduleProactiveTick =
-    feature('PROACTIVE') || feature('BLINKS')
+    feature('PROACTIVE') || feature('TOVYRS')
       ? () => {
           setTimeout(() => {
             if (
@@ -1879,14 +1879,14 @@ function runHeadlessStreaming(
     await updateSdkMcp()
     headlessProfilerCheckpoint('after_updateSdkMcp')
 
-    // Resolve deferred plugin installation (CLAUDE_CODE_SYNC_PLUGIN_INSTALL).
+    // Resolve deferred plugin installation (TOVYR_CODE_SYNC_PLUGIN_INSTALL).
     // The promise was started eagerly so installation overlaps with other init.
     // Awaiting here guarantees plugins are available before the first ask().
-    // If CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS is set, races against that
+    // If TOVYR_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS is set, races against that
     // deadline and proceeds without plugins on timeout (logging an error).
     if (pluginInstallPromise) {
       const timeoutMs = parseInt(
-        process.env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS || '',
+        process.env.TOVYR_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS || '',
         10,
       )
       if (timeoutMs > 0) {
@@ -1895,7 +1895,7 @@ function runHeadlessStreaming(
         if (result === 'timeout') {
           logError(
             new Error(
-              `CLAUDE_CODE_SYNC_PLUGIN_INSTALL: plugin installation timed out after ${timeoutMs}ms`,
+              `TOVYR_CODE_SYNC_PLUGIN_INSTALL: plugin installation timed out after ${timeoutMs}ms`,
             ),
           )
           logEvent('tengu_sync_plugin_install_timeout', {
@@ -2210,7 +2210,7 @@ function runHeadlessStreaming(
               },
             })) {
               // Forward messages to bridge incrementally (mid-turn) so
-              // blink web sees progress and the connection stays alive
+              // tovyr web sees progress and the connection stays alive
               // while blocked on permission requests.
               forwardMessagesToBridge()
 
@@ -2275,7 +2275,7 @@ function runHeadlessStreaming(
           // Generate and emit prompt suggestion for SDK consumers
           if (
             options.promptSuggestions &&
-            !isEnvDefinedFalsy(process.env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION)
+            !isEnvDefinedFalsy(process.env.TOVYR_CODE_ENABLE_PROMPT_SUGGESTION)
           ) {
             // TS narrows suggestionState to never in the while loop body;
             // cast via unknown to reset narrowing.
@@ -2475,7 +2475,7 @@ function runHeadlessStreaming(
 
     // Proactive tick: if proactive is active and queue is empty, inject a tick
     if (
-      (feature('PROACTIVE') || feature('BLINKS')) &&
+      (feature('PROACTIVE') || feature('TOVYRS')) &&
       proactiveModule?.isProactiveActive() &&
       !proactiveModule.isProactivePaused()
     ) {
@@ -2705,7 +2705,7 @@ function runHeadlessStreaming(
   if (
     feature('AGENT_TRIGGERS') &&
     cronSchedulerModule &&
-    cronGate?.isBlinksCronEnabled()
+    cronGate?.isTovyrsCronEnabled()
   ) {
     cronScheduler = cronSchedulerModule.createCronScheduler({
       onFire: prompt => {
@@ -2729,7 +2729,7 @@ function runHeadlessStreaming(
       },
       isLoading: () => running || inputClosed,
       getJitterConfig: cronJitterConfigModule?.getCronJitterConfig,
-      isKilled: () => !cronGate?.isBlinksCronEnabled(),
+      isKilled: () => !cronGate?.isTovyrsCronEnabled(),
     })
     cronScheduler.start()
   }
@@ -2795,7 +2795,7 @@ function runHeadlessStreaming(
   // extension via handleAuthDone → mcp_reconnect.
   const oauthAuthPromises = new Map<string, Promise<void>>()
 
-  // In-flight Blink OAuth flow (blink_authenticate). Single-slot: a
+  // In-flight Tovyr OAuth flow (tovyr_authenticate). Single-slot: a
   // second authenticate request cleans up the first. The service holds the
   // PKCE verifier + localhost listener; the promise settles after
   // installOAuthTokens — after it resolves, the in-process memoized token
@@ -3067,7 +3067,7 @@ function runHeadlessStreaming(
           try {
             if (
               feature('DOWNLOAD_USER_SETTINGS') &&
-              (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
+              (isEnvTruthy(process.env.TOVYR_CODE_REMOTE) || getIsRemoteMode())
             ) {
               // Re-pull user settings so enabledPlugins pushed from the
               // user's local CLI take effect before the cache sweep.
@@ -3513,11 +3513,11 @@ function runHeadlessStreaming(
             )
           }
         } else if (message.request.subtype === 'claude_authenticate') {
-          // Blink OAuth over the control channel. The SDK client owns
+          // Tovyr OAuth over the control channel. The SDK client owns
           // the user's browser (we're headless in -p mode); we hand back
           // both URLs and wait. Automatic URL → localhost listener catches
           // the redirect if the browser is on this host; manual URL → the
-          // success page shows "code#state" for blink_oauth_callback.
+          // success page shows "code#state" for tovyr_oauth_callback.
           const { loginWithClaudeAi } = message.request
 
           // Clean up any prior flow. cleanup() closes the localhost listener
@@ -3559,7 +3559,7 @@ function runHeadlessStreaming(
               // installOAuthTokens: performLogout (clear stale state) →
               // store profile → saveOAuthTokensIfNeeded → clearOAuthTokenCache
               // → clearAuthRelatedCaches. After this resolves, the memoized
-              // getBlinkAIOAuthTokens in this process is invalidated; the
+              // getTovyrAIOAuthTokens in this process is invalidated; the
               // next API call re-reads keychain/file and works. No respawn.
               await installOAuthTokens(tokens)
               logEvent('tengu_oauth_success', {
@@ -3577,7 +3577,7 @@ function runHeadlessStreaming(
 
           // Attach the rejection handler before awaiting so a synchronous
           // startOAuthFlow failure doesn't surface as an unhandled rejection.
-          // The blink_oauth_callback handler re-awaits flow for the manual
+          // The tovyr_oauth_callback handler re-awaits flow for the manual
           // path and surfaces the real error to the client.
           void flow.catch(err =>
             logForDebugging(`claude_authenticate flow ended: ${err}`, {
@@ -3617,7 +3617,7 @@ function runHeadlessStreaming(
             )
           } else {
             // Inject the manual code synchronously — must happen in stdin
-            // message order so a subsequent blink_authenticate doesn't
+            // message order so a subsequent tovyr_authenticate doesn't
             // replace the service before this code lands.
             if (message.request.subtype === 'claude_oauth_callback') {
               claudeOAuth.service.handleManualAuthCodeInput({
@@ -3626,10 +3626,10 @@ function runHeadlessStreaming(
               })
             }
             // Detach the await — the stdin reader is serial and blocking
-            // here deadlocks blink_oauth_wait_for_completion: flow may
-            // only resolve via a future blink_oauth_callback on stdin,
+            // here deadlocks tovyr_oauth_wait_for_completion: flow may
+            // only resolve via a future tovyr_oauth_callback on stdin,
             // which can't be read while we're parked. Capture the binding;
-            // blinkOAuth is nulled in flow's own .finally.
+            // tovyrOAuth is nulled in flow's own .finally.
             const { flow } = claudeOAuth
             void flow.then(
               () => {
@@ -3757,7 +3757,7 @@ function runHeadlessStreaming(
         } else if (message.request.subtype === 'get_settings') {
           const currentAppState = getAppState()
           const model = getMainLoopModel()
-          // modelSupportsEffort gate matches blink.ts — applied.effort must
+          // modelSupportsEffort gate matches tovyr.ts — applied.effort must
           // mirror what actually goes to the API, not just what's configured.
           const effort = modelSupportsEffort(model)
             ? resolveAppliedEffort(model, currentAppState.effortValue)
@@ -3874,7 +3874,7 @@ function runHeadlessStreaming(
             }
           })()
         } else if (
-          (feature('PROACTIVE') || feature('BLINKS')) &&
+          (feature('PROACTIVE') || feature('TOVYRS')) &&
           (message.request as { subtype: string }).subtype === 'set_proactive'
         ) {
           const req = message.request as unknown as {
@@ -4650,7 +4650,7 @@ function handleSetPermissionMode(
  * handler that enqueues channel messages at priority:'next' — drainCommandQueue
  * picks them up between turns.
  *
- * Intentionally does NOT register the blink/channel/permission handler that
+ * Intentionally does NOT register the tovyr/channel/permission handler that
  * useManageMCPConnections sets up for interactive mode. That handler resolves
  * a pending dialog inside handleInteractivePermission — but print.ts never
  * calls handleInteractivePermission. When SDK permission lands on 'ask', it
@@ -4672,7 +4672,7 @@ function handleChannelEnable(
       response: { subtype: 'error', request_id: requestId, error },
     })
 
-  if (!(feature('BLINKS') || feature('BLINKS_CHANNELS'))) {
+  if (!(feature('TOVYRS') || feature('TOVYRS_CHANNELS'))) {
     return respondError('channels feature not available in this build')
   }
 
@@ -4787,7 +4787,7 @@ function handleChannelEnable(
 function reregisterChannelHandlerAfterReconnect(
   connection: MCPServerConnection,
 ): void {
-  if (!(feature('BLINKS') || feature('BLINKS_CHANNELS'))) return
+  if (!(feature('TOVYRS') || feature('TOVYRS_CHANNELS'))) return
   if (connection.type !== 'connected') return
 
   const gate = gateChannelServer(
@@ -5037,7 +5037,7 @@ async function loadInitialMessages(
       )
       if (!parsedSessionId) {
         let errorMessage =
-          `Error: --resume requires a valid session ID when used with --print. Usage: ${blinkCmd('-p --resume <session-id>')}`
+          `Error: --resume requires a valid session ID when used with --print. Usage: ${tovyrCmd('-p --resume <session-id>')}`
         if (typeof options.resume === 'string') {
           errorMessage += `. Session IDs must be in UUID format (e.g., 550e8400-e29b-41d4-a716-446655440000). Provided value "${options.resume}" is not a valid UUID`
         }
@@ -5047,7 +5047,7 @@ async function loadInitialMessages(
       }
 
       // Hydrate local transcript from remote before loading
-      if (isEnvTruthy(process.env.CLAUDE_CODE_USE_CCR_V2)) {
+      if (isEnvTruthy(process.env.TOVYR_CODE_USE_CCR_V2)) {
         // Await restore alongside hydration so SSE catchup lands on
         // restored state, not a fresh default.
         const [, metadata] = await Promise.all([
@@ -5086,7 +5086,7 @@ async function loadInitialMessages(
         // For URL-based or CCR v2 resume, start with empty session (it was hydrated but empty)
         if (
           parsedSessionId.isUrl ||
-          isEnvTruthy(process.env.CLAUDE_CODE_USE_CCR_V2)
+          isEnvTruthy(process.env.TOVYR_CODE_USE_CCR_V2)
         ) {
           // Execute SessionStart hooks for startup since we're starting a new session
           return {

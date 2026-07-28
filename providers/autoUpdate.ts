@@ -18,7 +18,7 @@ export interface ProviderCatalogSnapshot {
   >
 }
 
-const CACHE_DIR = join(homedir(), '.blink', 'catalog-cache')
+const CACHE_DIR = join(homedir(), '.tovyr', 'catalog-cache')
 const CACHE_FILE = join(CACHE_DIR, 'remote-snapshot.json')
 const STALE_MS = 24 * 60 * 60 * 1000
 

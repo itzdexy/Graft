@@ -6,11 +6,11 @@ import {
 import { invalidateOverageCreditGrantCache } from '../../services/api/overageCreditGrant.js'
 import { type ExtraUsage, fetchUtilization } from '../../services/api/usage.js'
 import { getSubscriptionType } from '../../utils/auth.js'
-import { hasBlinkWebBillingAccess } from '../../utils/billing.js'
+import { hasTovyrWebBillingAccess } from '../../utils/billing.js'
 import { openBrowser } from '../../utils/browser.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logError } from '../../utils/log.js'
-import { getWebAppShortLink } from '../../utils/blinkBrand.js'
+import { getWebAppShortLink } from '../../utils/tovyrBrand.js'
 
 type ExtraUsageResult =
   | { type: 'message'; value: string }
@@ -28,10 +28,10 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   const subscriptionType = getSubscriptionType()
   const isTeamOrEnterprise =
     subscriptionType === 'team' || subscriptionType === 'enterprise'
-  const hasBillingAccess = hasBlinkWebBillingAccess()
+  const hasBillingAccess = hasTovyrWebBillingAccess()
 
   if (!hasBillingAccess && isTeamOrEnterprise) {
-    // Mirror apps/blink-ai useHasUnlimitedOverage(): if overage is enabled
+    // Mirror apps/tovyr-ai useHasUnlimitedOverage(): if overage is enabled
     // with no monthly cap, there is nothing to request. On fetch error, fall
     // through and let the user ask (matching web's "err toward show" behavior).
     let extraUsage: ExtraUsage | null | undefined

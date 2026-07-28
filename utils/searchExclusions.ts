@@ -8,7 +8,7 @@ const DEFAULT_EXCLUDED_DIRECTORY_NAMES = [
   '.jj',
   '.sl',
   '.claude',
-  '.blink',
+  '.tovyr',
   'node_modules',
   'dist',
   'build',

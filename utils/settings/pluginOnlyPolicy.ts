@@ -7,7 +7,7 @@ export type CustomizationSurface = (typeof CUSTOMIZATION_SURFACES)[number]
  * Check whether a customization surface is locked to plugin-only sources
  * by the managed `strictPluginOnlyCustomization` policy.
  *
- * "Locked" means user-level (~/.blink/*) and project-level (.blink/*)
+ * "Locked" means user-level (~/.tovyr/*) and project-level (.tovyr/*)
  * sources are skipped for that surface. Managed (policySettings) and
  * plugin-provided sources always load regardless — the policy is admin-set,
  * so managed sources are already admin-controlled, and plugins are gated

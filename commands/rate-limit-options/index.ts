@@ -1,12 +1,12 @@
 import type { Command } from '../../commands.js'
-import { isBlinkWebSubscriber } from '../../utils/auth.js'
+import { isTovyrWebSubscriber } from '../../utils/auth.js'
 
 const rateLimitOptions = {
   type: 'local-jsx',
   name: 'rate-limit-options',
   description: 'Show options when rate limit is reached',
   isEnabled: () => {
-    if (!isBlinkWebSubscriber()) {
+    if (!isTovyrWebSubscriber()) {
       return false
     }
 

@@ -17,7 +17,7 @@
 import { createHash } from 'crypto'
 import { userInfo } from 'os'
 import { getOauthConfig } from 'src/constants/oauth.js'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import type { SecureStorageData } from './types.js'
 
 // Suffix distinguishing the OAuth credentials keychain entry from the legacy
@@ -29,7 +29,7 @@ export const CREDENTIALS_SERVICE_SUFFIX = '-credentials'
 export function getMacOsKeychainStorageServiceName(
   serviceSuffix: string = '',
 ): string {
-  const configDir = getBlinkConfigHomeDir()
+  const configDir = getTovyrConfigHomeDir()
   const isDefaultDir = !process.env.CLAUDE_CONFIG_DIR
 
   // Use a hash of the config dir path to create a unique but stable suffix
@@ -37,7 +37,7 @@ export function getMacOsKeychainStorageServiceName(
   const dirHash = isDefaultDir
     ? ''
     : `-${createHash('sha256').update(configDir).digest('hex').substring(0, 8)}`
-  return `Blink${getOauthConfig().OAUTH_FILE_SUFFIX}${serviceSuffix}${dirHash}`
+  return `Tovyr${getOauthConfig().OAUTH_FILE_SUFFIX}${serviceSuffix}${dirHash}`
 }
 
 export function getUsername(): string {
@@ -55,7 +55,7 @@ export function getUsername(): string {
 // refreshing/invalidating tokens) without forcing a blocking spawnSync on
 // every read. In-process writes invalidate via clearKeychainCache() directly.
 //
-// The sync read() path takes ~500ms per `security` spawn. With 50+ blink web
+// The sync read() path takes ~500ms per `security` spawn. With 50+ tovyr web
 // MCP connectors authenticating at startup, a short TTL expires mid-storm and
 // triggers repeat sync reads — observed as a 5.5s event-loop stall
 // (go/ccshare/adamj-20260326-212235). 30s of cross-process staleness is fine:

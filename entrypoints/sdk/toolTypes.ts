@@ -1,2 +1,2 @@
-/** Internal SDK tool types — not used in Blink source builds. */
+/** Internal SDK tool types — not used in Tovyr source builds. */
 export type {}

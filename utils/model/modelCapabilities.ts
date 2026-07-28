@@ -6,9 +6,9 @@ import { join } from 'path'
 import { z } from 'zod/v4'
 import { OAUTH_BETA_HEADER } from '../../constants/oauth.js'
 import { getAnthropicClient } from '../../services/api/client.js'
-import { isBlinkWebSubscriber } from '../auth.js'
+import { isTovyrWebSubscriber } from '../auth.js'
 import { logForDebugging } from '../debug.js'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import { safeParseJSON } from '../json.js'
 import { lazySchema } from '../lazySchema.js'
 import { isEssentialTrafficOnly } from '../privacyLevel.js'
@@ -36,7 +36,7 @@ const CacheFileSchema = lazySchema(() =>
 export type ModelCapability = z.infer<ReturnType<typeof ModelCapabilitySchema>>
 
 function getCacheDir(): string {
-  return join(getBlinkConfigHomeDir(), 'cache')
+  return join(getTovyrConfigHomeDir(), 'cache')
 }
 
 function getCachePath(): string {
@@ -88,7 +88,7 @@ export async function refreshModelCapabilities(): Promise<void> {
 
   try {
     const anthropic = await getAnthropicClient({ maxRetries: 1 })
-    const betas = isBlinkWebSubscriber() ? [OAUTH_BETA_HEADER] : undefined
+    const betas = isTovyrWebSubscriber() ? [OAUTH_BETA_HEADER] : undefined
     const parsed: ModelCapability[] = []
     for await (const entry of anthropic.models.list({ betas })) {
       const result = ModelCapabilitySchema().safeParse(entry)

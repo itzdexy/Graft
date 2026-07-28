@@ -1,12 +1,12 @@
 import axios from 'axios'
 import { getOauthConfig } from '../../constants/oauth.js'
 import {
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
   hasProfileScope,
-  isBlinkWebSubscriber,
+  isTovyrWebSubscriber,
 } from '../../utils/auth.js'
 import { getAuthHeaders } from '../../utils/http.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 import { isOAuthTokenExpired } from '../oauth/client.js'
 
 export type RateLimit = {
@@ -31,12 +31,12 @@ export type Utilization = {
 }
 
 export async function fetchUtilization(): Promise<Utilization | null> {
-  if (!isBlinkWebSubscriber() || !hasProfileScope()) {
+  if (!isTovyrWebSubscriber() || !hasProfileScope()) {
     return {}
   }
 
   // Skip API call if OAuth token is expired to avoid 401 errors
-  const tokens = getBlinkWebOAuthTokens()
+  const tokens = getTovyrWebOAuthTokens()
   if (tokens && isOAuthTokenExpired(tokens.expiresAt)) {
     return null
   }
@@ -48,7 +48,7 @@ export async function fetchUtilization(): Promise<Utilization | null> {
 
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': getBlinkCodeUserAgent(),
+    'User-Agent': getTovyrCodeUserAgent(),
     ...authResult.headers,
   }
 

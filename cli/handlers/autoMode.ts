@@ -1,6 +1,6 @@
 /**
  * Auto mode subcommand handlers — dump default/merged classifier rules and
- * critique user-written rules. Dynamically imported when `blink auto-mode ...` runs.
+ * critique user-written rules. Dynamically imported when `tovyr auto-mode ...` runs.
  */
 
 import { errorMessage } from '../../utils/errors.js'
@@ -47,9 +47,9 @@ export function autoModeConfigHandler(): void {
 }
 
 const CRITIQUE_SYSTEM_PROMPT =
-  'You are an expert reviewer of auto mode classifier rules for Blink.\n' +
+  'You are an expert reviewer of auto mode classifier rules for Tovyr.\n' +
   '\n' +
-  'Blink has an "auto mode" that uses an AI classifier to decide whether ' +
+  'Tovyr has an "auto mode" that uses an AI classifier to decide whether ' +
   'tool calls should be auto-approved or require user confirmation. Users can ' +
   'write custom rules in three categories:\n' +
   '\n' +
@@ -83,7 +83,7 @@ export async function autoModeCritiqueHandler(options: {
     process.stdout.write(
       'No custom auto mode rules found.\n\n' +
         'Add rules to your settings file under autoMode.{allow, soft_deny, environment}.\n' +
-        'Run `blink auto-mode defaults` to see the default rules for reference.\n',
+        'Run `tovyr auto-mode defaults` to see the default rules for reference.\n',
     )
     return
   }

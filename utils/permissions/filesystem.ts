@@ -7,9 +7,9 @@ import { join, normalize, posix, sep } from 'path'
 import { hasAutoMemPathOverride, isAutoMemPath } from 'src/memdir/paths.js'
 import { isAgentMemoryPath } from 'src/tools/AgentTool/agentMemory.js'
 import {
-  BLINK_FOLDER_PERMISSION_PATTERN,
+  TOVYR_FOLDER_PERMISSION_PATTERN,
   FILE_EDIT_TOOL_NAME,
-  GLOBAL_BLINK_FOLDER_PERMISSION_PATTERN,
+  GLOBAL_TOVYR_FOLDER_PERMISSION_PATTERN,
 } from 'src/tools/FileEditTool/constants.js'
 import type { z } from 'zod/v4'
 import { getOriginalCwd, getSessionId } from '../../bootstrap/state.js'
@@ -17,8 +17,8 @@ import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../../services/anal
 import type { AnyObject, Tool, ToolPermissionContext } from '../../Tool.js'
 import { FILE_READ_TOOL_NAME } from '../../tools/FileReadTool/prompt.js'
 import { getCwd } from '../cwd.js'
-import { getAssistantName } from '../blinkBrand.js'
-import { getBlinkConfigHomeDir } from '../envUtils.js'
+import { getAssistantName } from '../tovyrBrand.js'
+import { getTovyrConfigHomeDir } from '../envUtils.js'
 import {
   getFsImplementation,
   getPathsForPermissionCheck,
@@ -77,7 +77,7 @@ export const DANGEROUS_DIRECTORIES = [
   '.vscode',
   '.idea',
   '.claude',
-  '.blink',
+  '.tovyr',
 ] as const
 
 /**
@@ -94,13 +94,13 @@ export function normalizeCaseForComparison(path: string): string {
 }
 
 /**
- * If filePath is inside a .blink/skills/{name}/ directory (project or global),
+ * If filePath is inside a .tovyr/skills/{name}/ directory (project or global),
  * return the skill name and a session-allow pattern scoped to just that skill.
  * Used to offer a narrower "allow edits to this skill only" option in the
  * permission dialog and SDK suggestions, so iterating on one skill doesn't
- * require granting session access to all of .blink/ (settings.json, hooks/, etc.).
+ * require granting session access to all of .tovyr/ (settings.json, hooks/, etc.).
  */
-export function getBlinkSkillScope(
+export function getTovyrSkillScope(
   filePath: string,
 ): { skillName: string; pattern: string } | null {
   const absolutePath = expandPath(filePath)
@@ -108,14 +108,14 @@ export function getBlinkSkillScope(
 
   const bases = [
     {
-      dir: expandPath(join(getOriginalCwd(), '.blink', 'skills')),
-      prefix: '/.blink/skills/',
+      dir: expandPath(join(getOriginalCwd(), '.tovyr', 'skills')),
+      prefix: '/.tovyr/skills/',
     },
     {
-      dir: expandPath(join(homedir(), '.blink', 'skills')),
-      prefix: '~/.blink/skills/',
+      dir: expandPath(join(homedir(), '.tovyr', 'skills')),
+      prefix: '~/.tovyr/skills/',
     },
-    // Legacy Claude Code paths (read/scope only)
+    // Legacy Tovyr paths (read/scope only)
     {
       dir: expandPath(join(getOriginalCwd(), '.claude', 'skills')),
       prefix: '/.claude/skills/',
@@ -156,7 +156,7 @@ export function getBlinkSkillScope(
         // Reject glob metacharacters. skillName is interpolated into a
         // gitignore pattern consumed by ignore().add() in matchingRuleForInput
         // at step 1.6. A directory literally named '*' (valid on POSIX) would
-        // produce '/.blink/skills/*/**' which matches ALL skills. Return null
+        // produce '/.tovyr/skills/*/**' which matches ALL skills. Return null
         // to fall through to generateSuggestions() instead.
         if (/[*?[\]]/.test(skillName)) return null
         return { skillName, pattern: prefix + skillName + '/**' }
@@ -208,9 +208,9 @@ function getSettingsPaths(): string[] {
   ).filter(path => path !== undefined)
 }
 
-export function isBlinkSettingsPath(filePath: string): boolean {
+export function isTovyrSettingsPath(filePath: string): boolean {
   // SECURITY: Normalize path structure first to prevent bypass via redundant ./
-  // sequences like `./.blink/./settings.json` which would evade the endsWith() check
+  // sequences like `./.tovyr/./settings.json` which would evade the endsWith() check
   const expandedPath = expandPath(filePath)
 
   // Normalize for case-insensitive comparison to prevent bypassing security
@@ -219,12 +219,12 @@ export function isBlinkSettingsPath(filePath: string): boolean {
 
   // Use platform separator so endsWith checks work on both Unix (/) and Windows (\)
   if (
-    normalizedPath.endsWith(`${sep}.blink${sep}settings.json`) ||
-    normalizedPath.endsWith(`${sep}.blink${sep}settings.local.json`) ||
+    normalizedPath.endsWith(`${sep}.tovyr${sep}settings.json`) ||
+    normalizedPath.endsWith(`${sep}.tovyr${sep}settings.local.json`) ||
     normalizedPath.endsWith(`${sep}.claude${sep}settings.json`) ||
     normalizedPath.endsWith(`${sep}.claude${sep}settings.local.json`)
   ) {
-    // Include .blink/settings.json even for other projects
+    // Include .tovyr/settings.json even for other projects
     return true
   }
   // Check for current project's settings files (including managed settings and CLI args)
@@ -234,18 +234,18 @@ export function isBlinkSettingsPath(filePath: string): boolean {
   )
 }
 
-// Always ask when Blink tries to edit its own config files
-function isBlinkConfigFilePath(filePath: string): boolean {
-  if (isBlinkSettingsPath(filePath)) {
+// Always ask when Tovyr tries to edit its own config files
+function isTovyrConfigFilePath(filePath: string): boolean {
+  if (isTovyrSettingsPath(filePath)) {
     return true
   }
 
-  // Check if file is within .blink/commands or .blink/agents directories
+  // Check if file is within .tovyr/commands or .tovyr/agents directories
   // using proper path segment validation (not string matching with includes())
   // pathInWorkingPath now handles case-insensitive comparison to prevent bypasses
-  const commandsDir = join(getOriginalCwd(), '.blink', 'commands')
-  const agentsDir = join(getOriginalCwd(), '.blink', 'agents')
-  const skillsDir = join(getOriginalCwd(), '.blink', 'skills')
+  const commandsDir = join(getOriginalCwd(), '.tovyr', 'commands')
+  const agentsDir = join(getOriginalCwd(), '.tovyr', 'agents')
+  const skillsDir = join(getOriginalCwd(), '.tovyr', 'skills')
   const legacyCommandsDir = join(getOriginalCwd(), '.claude', 'commands')
   const legacyAgentsDir = join(getOriginalCwd(), '.claude', 'agents')
   const legacySkillsDir = join(getOriginalCwd(), '.claude', 'skills')
@@ -297,7 +297,7 @@ function isSessionMemoryPath(absolutePath: string): boolean {
 
 /**
  * Check if file is within the current project's directory.
- * Path format: ~/.blink/projects/{sanitized-cwd}/...
+ * Path format: ~/.tovyr/projects/{sanitized-cwd}/...
  */
 function isProjectDirPath(absolutePath: string): boolean {
   const projectDir = getProjectDir(getCwd())
@@ -310,7 +310,7 @@ function isProjectDirPath(absolutePath: string): boolean {
 
 /**
  * Checks if the scratchpad directory feature is enabled.
- * The scratchpad is a per-session directory for Blink to write temporary files.
+ * The scratchpad is a per-session directory for Tovyr to write temporary files.
  * Controlled by the tengu_scratch Statsig gate.
  */
 export function isScratchpadEnabled(): boolean {
@@ -318,11 +318,11 @@ export function isScratchpadEnabled(): boolean {
 }
 
 /**
- * Returns the user-specific Blink temp directory name.
- * On Unix: 'blink-{uid}' to prevent multi-user permission conflicts
- * On Windows: 'blink' (tmpdir() is already per-user)
+ * Returns the user-specific Tovyr temp directory name.
+ * On Unix: 'tovyr-{uid}' to prevent multi-user permission conflicts
+ * On Windows: 'tovyr' (tmpdir() is already per-user)
  */
-export function getBlinkTempDirName(): string {
+export function getTovyrTempDirName(): string {
   if (getPlatform() === 'windows') {
     return 'claude'
   }
@@ -333,22 +333,22 @@ export function getBlinkTempDirName(): string {
 }
 
 /**
- * Returns the Blink temp directory path with symlinks resolved.
+ * Returns the Tovyr temp directory path with symlinks resolved.
  * Uses TMPDIR env var if set, otherwise:
- * - On Unix: /tmp/blink-{uid}/ (resolved to /private/tmp/blink-{uid}/ on macOS)
- * - On Windows: {tmpdir}/blink/ (e.g., C:\Users\{user}\AppData\Local\Temp\blink\)
- * This is a per-user temporary directory used by Blink for all temp files.
+ * - On Unix: /tmp/tovyr-{uid}/ (resolved to /private/tmp/tovyr-{uid}/ on macOS)
+ * - On Windows: {tmpdir}/tovyr/ (e.g., C:\Users\{user}\AppData\Local\Temp\tovyr\)
+ * This is a per-user temporary directory used by Tovyr for all temp files.
  *
  * NOTE: We resolve symlinks to ensure this path matches the resolved paths used
  * in permission checks. On macOS, /tmp is a symlink to /private/tmp, so without
- * resolution, paths like /tmp/blink-{uid}/... wouldn't match /private/tmp/blink-{uid}/...
+ * resolution, paths like /tmp/tovyr-{uid}/... wouldn't match /private/tmp/tovyr-{uid}/...
  */
 // Memoized: called per-tool from permission checks (yoloClassifier, sandbox-adapter)
-// and per-turn from BashTool prompt. Inputs (CLAUDE_CODE_TMPDIR env + platform) are
+// and per-turn from BashTool prompt. Inputs (TOVYR_CODE_TMPDIR env + platform) are
 // fixed at startup, and the realpath of the system tmp dir does not change mid-session.
-export const getBlinkTempDir = memoize(function getBlinkTempDir(): string {
+export const getTovyrTempDir = memoize(function getTovyrTempDir(): string {
   const baseTmpDir =
-    process.env.CLAUDE_CODE_TMPDIR ||
+    process.env.TOVYR_CODE_TMPDIR ||
     (getPlatform() === 'windows' ? tmpdir() : '/tmp')
 
   // Resolve symlinks in the base temp directory (e.g., /tmp -> /private/tmp on macOS)
@@ -361,7 +361,7 @@ export const getBlinkTempDir = memoize(function getBlinkTempDir(): string {
     // If resolution fails, use the original path
   }
 
-  return join(resolvedBaseTmpDir, getBlinkTempDirName()) + sep
+  return join(resolvedBaseTmpDir, getTovyrTempDirName()) + sep
 })
 
 /**
@@ -383,21 +383,21 @@ export const getBlinkTempDir = memoize(function getBlinkTempDir(): string {
 export const getBundledSkillsRoot = memoize(
   function getBundledSkillsRoot(): string {
     const nonce = randomBytes(16).toString('hex')
-    return join(getBlinkTempDir(), 'bundled-skills', MACRO.VERSION, nonce)
+    return join(getTovyrTempDir(), 'bundled-skills', MACRO.VERSION, nonce)
   },
 )
 
 /**
  * Returns the project temp directory path with trailing separator.
- * Path format: /tmp/blink-{uid}/{sanitized-cwd}/
+ * Path format: /tmp/tovyr-{uid}/{sanitized-cwd}/
  */
 export function getProjectTempDir(): string {
-  return join(getBlinkTempDir(), sanitizePath(getOriginalCwd())) + sep
+  return join(getTovyrTempDir(), sanitizePath(getOriginalCwd())) + sep
 }
 
 /**
  * Returns the scratchpad directory path for the current session.
- * Path format: /tmp/blink-{uid}/{sanitized-cwd}/{sessionId}/scratchpad/
+ * Path format: /tmp/tovyr-{uid}/{sanitized-cwd}/{sessionId}/scratchpad/
  */
 export function getScratchpadDir(): string {
   return join(getProjectTempDir(), getSessionId(), 'scratchpad')
@@ -432,7 +432,7 @@ function isScratchpadPath(absolutePath: string): boolean {
   const scratchpadDir = getScratchpadDir()
   // SECURITY: Normalize the path to resolve .. segments before checking
   // This prevents path traversal bypasses like:
-  //   echo "malicious" > /tmp/blink-0/proj/session/scratchpad/../../../etc/passwd
+  //   echo "malicious" > /tmp/tovyr-0/proj/session/scratchpad/../../../etc/passwd
   // Without normalization, the path would pass the startsWith check but write to /etc/passwd
   const normalizedPath = normalize(absolutePath)
   return (
@@ -471,9 +471,9 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
         continue
       }
 
-      // Special case: .blink/worktrees/ is a structural path (where Blink stores
-      // git worktrees), not a user-created dangerous directory. Skip the .blink
-      // segment when it's followed by 'worktrees'. Any nested .blink directories
+      // Special case: .tovyr/worktrees/ is a structural path (where Tovyr stores
+      // git worktrees), not a user-created dangerous directory. Skip the .tovyr
+      // segment when it's followed by 'worktrees'. Any nested .tovyr directories
       // within the worktree (not followed by 'worktrees') are still blocked.
       if (dir === '.claude') {
         const nextSegment = pathSegments[i + 1]
@@ -481,7 +481,7 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
           nextSegment &&
           normalizeCaseForComparison(nextSegment) === 'worktrees'
         ) {
-          break // Skip this .blink, continue checking other segments
+          break // Skip this .tovyr, continue checking other segments
         }
       }
 
@@ -511,7 +511,7 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
  * - NTFS Alternate Data Streams (e.g., file.txt::$DATA or file.txt:stream)
  * - 8.3 short names (e.g., GIT~1, CLAUDE~1, SETTIN~1.JSON)
  * - Long path prefixes (e.g., \\?\C:\..., \\.\C:\..., //?/C:/..., //./C:/...)
- * - Trailing dots and spaces (e.g., .git., .blink , .bashrc...)
+ * - Trailing dots and spaces (e.g., .git., .tovyr , .bashrc...)
  * - DOS device names (e.g., .git.CON, settings.json.PRN, .bashrc.AUX)
  * - Three or more consecutive dots (e.g., .../file.txt, path/.../file, file...txt)
  *
@@ -587,7 +587,7 @@ function hasSuspiciousWindowsPathPattern(path: string): boolean {
   }
 
   // Check for trailing dots and spaces that Windows strips during path resolution
-  // Examples: .git., .blink , .bashrc..., settings.json.
+  // Examples: .git., .tovyr , .bashrc..., settings.json.
   // This can bypass string matching if ".git" is blocked but ".git." is used
   if (/[.\s]+$/.test(path)) {
     return true
@@ -625,8 +625,8 @@ function hasSuspiciousWindowsPathPattern(path: string): boolean {
  *
  * This function performs comprehensive safety checks including:
  * - Suspicious Windows path patterns (NTFS streams, 8.3 names, long path prefixes, etc.)
- * - Blink config files (.blink/settings.json, .blink/commands/, .blink/agents/)
- * - MCP CLI state files (managed internally by Blink)
+ * - Tovyr config files (.tovyr/settings.json, .tovyr/commands/, .tovyr/agents/)
+ * - MCP CLI state files (managed internally by Tovyr)
  * - Dangerous files (.bashrc, .gitconfig, .git/, .vscode/, .idea/, etc.)
  *
  * IMPORTANT: This function checks BOTH the original path AND resolved symlink paths
@@ -656,9 +656,9 @@ export function checkPathSafetyForAutoEdit(
     }
   }
 
-  // Check for Blink config files on all paths
+  // Check for Tovyr config files on all paths
   for (const pathToCheck of pathsToCheck) {
-    if (isBlinkConfigFilePath(pathToCheck)) {
+    if (isTovyrConfigFilePath(pathToCheck)) {
       return {
         safe: false,
         message: `${getAssistantName()} requested permissions to write to ${path}, but you haven't granted it yet.`,
@@ -915,7 +915,7 @@ function patternWithRoot(
       root: homedir().normalize('NFC'),
     }
   } else if (pattern.startsWith(DIR_SEP)) {
-    // Patterns starting with / resolve relative to the directory where settings are stored (without .blink/)
+    // Patterns starting with / resolve relative to the directory where settings are stored (without .tovyr/)
     return {
       relativePattern: pattern,
       root: rootPathForSource(source),
@@ -1257,7 +1257,7 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
   }
 
   // 1.5. Allow writes to internal editable paths (plan files, scratchpad)
-  // This MUST come before isDangerousFilePathToAutoEdit check since .blink is a dangerous directory
+  // This MUST come before isDangerousFilePathToAutoEdit check since .tovyr is a dangerous directory
   const absolutePathForEdit = expandPath(path)
   const internalEditResult = checkEditableInternalPath(
     absolutePathForEdit,
@@ -1267,16 +1267,16 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     return internalEditResult
   }
 
-  // 1.6. Check for .blink/** allow rules BEFORE safety checks
-  // This allows session-level permissions to bypass the safety blocks for .blink/
+  // 1.6. Check for .tovyr/** allow rules BEFORE safety checks
+  // This allows session-level permissions to bypass the safety blocks for .tovyr/
   // We only allow this for session-level rules to prevent users from accidentally
-  // permanently granting broad access to their .blink/ folder.
+  // permanently granting broad access to their .tovyr/ folder.
   //
   // matchingRuleForInput returns the first match across all sources. If the user
-  // also has a broader Edit(.blink) rule in userSettings (e.g. from sandbox
+  // also has a broader Edit(.tovyr) rule in userSettings (e.g. from sandbox
   // write-allow conversion), that rule would be found first and its source check
   // below would fail. Scope the search to session-only rules so the dialog's
-  // "allow Blink to edit its own settings for this session" option actually works.
+  // "allow Tovyr to edit its own settings for this session" option actually works.
   const claudeFolderAllowRule = matchingRuleForInput(
     path,
     {
@@ -1289,19 +1289,19 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     'allow',
   )
   if (claudeFolderAllowRule) {
-    // Check if this rule is scoped under .blink/ (project or global).
-    // Accepts both the broad patterns ('/.blink/**', '~/.blink/**') and
-    // narrowed ones like '/.blink/skills/my-skill/**' so users can grant
+    // Check if this rule is scoped under .tovyr/ (project or global).
+    // Accepts both the broad patterns ('/.tovyr/**', '~/.tovyr/**') and
+    // narrowed ones like '/.tovyr/skills/my-skill/**' so users can grant
     // session access to a single skill without also exposing settings.json
     // or hooks/. The rule already matched the path via matchingRuleForInput;
     // this is an additional scope check. Reject '..' to prevent a rule like
-    // '/.blink/../**' from leaking this bypass outside .blink/.
+    // '/.tovyr/../**' from leaking this bypass outside .tovyr/.
     const ruleContent = claudeFolderAllowRule.ruleValue.ruleContent
     if (
       ruleContent &&
-      (ruleContent.startsWith(BLINK_FOLDER_PERMISSION_PATTERN.slice(0, -2)) ||
+      (ruleContent.startsWith(TOVYR_FOLDER_PERMISSION_PATTERN.slice(0, -2)) ||
         ruleContent.startsWith(
-          GLOBAL_BLINK_FOLDER_PERMISSION_PATTERN.slice(0, -2),
+          GLOBAL_TOVYR_FOLDER_PERMISSION_PATTERN.slice(0, -2),
         )) &&
       !ruleContent.includes('..') &&
       ruleContent.endsWith('/**')
@@ -1317,17 +1317,17 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     }
   }
 
-  // 1.7. Check comprehensive safety validations (Windows patterns, Blink config, dangerous files)
+  // 1.7. Check comprehensive safety validations (Windows patterns, Tovyr config, dangerous files)
   // This MUST come before checking allow rules to prevent users from accidentally granting
   // permission to edit protected files
   const safetyCheck = checkPathSafetyForAutoEdit(path, pathsToCheck)
   if (!safetyCheck.safe) {
-    // SDK suggestion: if under .blink/skills/{name}/, emit the narrowed
+    // SDK suggestion: if under .tovyr/skills/{name}/, emit the narrowed
     // session-scoped addRules that step 1.6 will honor on the next call.
-    // Everything else (.blink/settings.json, .git/, .vscode/, .idea/) falls
+    // Everything else (.tovyr/settings.json, .git/, .vscode/, .idea/) falls
     // back to generateSuggestions — its setMode suggestion doesn't bypass
     // this check, but preserving it avoids a surprising empty array.
-    const skillScope = getBlinkSkillScope(path)
+    const skillScope = getTovyrSkillScope(path)
     const safetySuggestions: PermissionUpdate[] = skillScope
       ? [
           {
@@ -1529,7 +1529,7 @@ export function checkEditableInternalPath(
   // Template job's own directory. Env key hardcoded (vs importing JOB_ENV_KEY
   // from jobs/state) so tree-shaking eliminates the string from external
   // builds — spawn.test.ts asserts the string matches. Hijack guard: the env
-  // var value must itself resolve under ~/.blink/jobs/. Symlink guard: every
+  // var value must itself resolve under ~/.tovyr/jobs/. Symlink guard: every
   // resolved form of the target (lexical + symlink chain) must fall under some
   // resolved form of the job dir, so a symlink inside the job dir pointing at
   // e.g. ~/.ssh/authorized_keys does not get a free write. Resolving both
@@ -1538,12 +1538,12 @@ export function checkEditableInternalPath(
   if (feature('TEMPLATES')) {
     const jobDir = process.env.CLAUDE_JOB_DIR
     if (jobDir) {
-      const jobsRoot = join(getBlinkConfigHomeDir(), 'jobs')
+      const jobsRoot = join(getTovyrConfigHomeDir(), 'jobs')
       const jobDirForms = getPathsForPermissionCheck(jobDir).map(normalize)
       const jobsRootForms = getPathsForPermissionCheck(jobsRoot).map(normalize)
       // Hijack guard: every resolved form of the job dir must sit under
       // some resolved form of the jobs root. Resolving both sides handles
-      // the case where ~/.blink is a symlink (e.g. to /data/blink-config).
+      // the case where ~/.tovyr is a symlink (e.g. to /data/tovyr-config).
       const isUnderJobsRoot = jobDirForms.every(jd =>
         jobsRootForms.some(jr => jd.startsWith(jr + sep)),
       )
@@ -1582,7 +1582,7 @@ export function checkEditableInternalPath(
 
   // Memdir directory (persistent memory for cross-session learning)
   // This pre-safety-check carve-out exists because the default path is under
-  // ~/.blink/, which is in DANGEROUS_DIRECTORIES. The CLAUDE_COWORK_MEMORY_PATH_OVERRIDE
+  // ~/.tovyr/, which is in DANGEROUS_DIRECTORIES. The CLAUDE_COWORK_MEMORY_PATH_OVERRIDE
   // override is an arbitrary caller-designated directory with no such conflict,
   // so it gets NO special permission treatment here — writes go through normal
   // permission flow (step 5 → ask). SDK callers who want silent memory should
@@ -1598,16 +1598,16 @@ export function checkEditableInternalPath(
     }
   }
 
-  // .blink/launch.json — desktop preview config (dev server command + port).
-  // The desktop's preview_start MCP tool instructs Blink to create/update
+  // .tovyr/launch.json — desktop preview config (dev server command + port).
+  // The desktop's preview_start MCP tool instructs Tovyr to create/update
   // this file as part of the preview workflow. Without this carve-out the
-  // .blink/ DANGEROUS_DIRECTORIES check prompts for it, which in SDK mode
+  // .tovyr/ DANGEROUS_DIRECTORIES check prompts for it, which in SDK mode
   // cascades: user clicks "Always allow" → setMode:acceptEdits suggestion
   // applied → silent downgrade from auto mode. Matches the project-level
-  // .blink/ only (not ~/.blink/) since launch.json is per-project.
+  // .tovyr/ only (not ~/.tovyr/) since launch.json is per-project.
   if (
     normalizeCaseForComparison(normalizedPath) ===
-    normalizeCaseForComparison(join(getOriginalCwd(), '.blink', 'launch.json')) ||
+    normalizeCaseForComparison(join(getOriginalCwd(), '.tovyr', 'launch.json')) ||
     normalizeCaseForComparison(normalizedPath) ===
     normalizeCaseForComparison(join(getOriginalCwd(), '.claude', 'launch.json'))
   ) {
@@ -1649,7 +1649,7 @@ export function checkReadableInternalPath(
   }
 
   // Project directory (for reading past session memories)
-  // Path format: ~/.blink/projects/{sanitized-cwd}/...
+  // Path format: ~/.tovyr/projects/{sanitized-cwd}/...
   if (isProjectDirPath(normalizedPath)) {
     return {
       behavior: 'allow',
@@ -1705,7 +1705,7 @@ export function checkReadableInternalPath(
     }
   }
 
-  // Project temp directory (/tmp/blink/{sanitized-cwd}/)
+  // Project temp directory (/tmp/tovyr/{sanitized-cwd}/)
   // Intentionally allows reading files from all sessions in this project, not just the current session.
   // This enables cross-session file access within the same project's temp space.
   const projectTempDir = getProjectTempDir()
@@ -1744,8 +1744,8 @@ export function checkReadableInternalPath(
     }
   }
 
-  // Tasks directory (~/.blink/tasks/) for swarm task coordination
-  const tasksDir = join(getBlinkConfigHomeDir(), 'tasks') + sep
+  // Tasks directory (~/.tovyr/tasks/) for swarm task coordination
+  const tasksDir = join(getTovyrConfigHomeDir(), 'tasks') + sep
   if (
     normalizedPath === tasksDir.slice(0, -1) ||
     normalizedPath.startsWith(tasksDir)
@@ -1760,8 +1760,8 @@ export function checkReadableInternalPath(
     }
   }
 
-  // Teams directory (~/.blink/teams/) for swarm coordination
-  const teamsReadDir = join(getBlinkConfigHomeDir(), 'teams') + sep
+  // Teams directory (~/.tovyr/teams/) for swarm coordination
+  const teamsReadDir = join(getTovyrConfigHomeDir(), 'teams') + sep
   if (
     normalizedPath === teamsReadDir.slice(0, -1) ||
     normalizedPath.startsWith(teamsReadDir)

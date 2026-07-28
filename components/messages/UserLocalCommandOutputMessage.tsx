@@ -3,10 +3,10 @@ import { DIAMOND_FILLED, DIAMOND_OPEN } from '../../constants/figures.js'
 import { NO_CONTENT_MESSAGE } from '../../constants/messages.js'
 import { Box, Text } from '../../ink.js'
 import { extractTag } from '../../utils/messages.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { Markdown } from '../Markdown.js'
 import { MessageResponse } from '../MessageResponse.js'
-import { BlinkLocalCommandOutput } from '../blink/BlinkLocalCommandOutput.js'
+import { TovyrLocalCommandOutput } from '../tovyr/TovyrLocalCommandOutput.js'
 
 type Props = {
   content: string
@@ -17,8 +17,8 @@ export function UserLocalCommandOutputMessage({
   content,
   addMargin = false,
 }: Props): ReactNode {
-  if (isBlinkRuntime()) {
-    return <BlinkLocalCommandOutput content={content} addMargin={addMargin} />
+  if (isTovyrRuntime()) {
+    return <TovyrLocalCommandOutput content={content} addMargin={addMargin} />
   }
 
   const stdout = extractTag(content, 'local-command-stdout')

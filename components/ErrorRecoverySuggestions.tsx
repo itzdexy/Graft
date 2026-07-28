@@ -139,9 +139,9 @@ export function getCommonErrorSuggestions(errorCode?: string): ErrorSuggestion[]
 }
 
 /**
- * Actionable recovery hints for Blink API / stream failures (shown in the REPL).
+ * Actionable recovery hints for Tovyr API / stream failures (shown in the REPL).
  */
-export function getBlinkApiErrorSuggestions(errorText: string): ErrorSuggestion[] {
+export function getTovyrApiErrorSuggestions(errorText: string): ErrorSuggestion[] {
   const text = errorText.toLowerCase();
   const suggestions: ErrorSuggestion[] = [];
 
@@ -150,7 +150,7 @@ export function getBlinkApiErrorSuggestions(errorText: string): ErrorSuggestion[
       title: 'Model took too long to respond',
       description:
         'GPU-backed providers (e.g. NVIDIA NIM) can cold-start 30–90s. Bun’s first compile on Windows can add 1–3 minutes before any network call.',
-      action: 'Run `npm run warm` once, try `/model` for a smaller model, or `BLINK_AUTO_FAILOVER=1`.',
+      action: 'Run `npm run warm` once, try `/model` for a smaller model, or `TOVYR_AUTO_FAILOVER=1`.',
       severity: 'high',
     });
   }
@@ -159,7 +159,7 @@ export function getBlinkApiErrorSuggestions(errorText: string): ErrorSuggestion[
     suggestions.push({
       title: 'Authentication failed',
       description: 'The active provider rejected your API key or token.',
-      action: 'Run `blink auth login --key YOUR_KEY` or `/provider` to switch provider.',
+      action: 'Run `tovyr auth login --key YOUR_KEY` or `/provider` to switch provider.',
       severity: 'high',
     });
   }
@@ -185,8 +185,8 @@ export function getBlinkApiErrorSuggestions(errorText: string): ErrorSuggestion[
   if (text.includes('econnrefused') || text.includes('enotfound') || text.includes('fetch failed')) {
     suggestions.push({
       title: 'Network error',
-      description: 'Blink could not reach the provider endpoint.',
-      action: 'Check `BLINK_PROVIDER_BASE_URL`, VPN/firewall, and run `blink setup`.',
+      description: 'Tovyr could not reach the provider endpoint.',
+      action: 'Check `TOVYR_PROVIDER_BASE_URL`, VPN/firewall, and run `tovyr setup`.',
       severity: 'high',
     });
   }
@@ -195,7 +195,7 @@ export function getBlinkApiErrorSuggestions(errorText: string): ErrorSuggestion[
     suggestions.push({
       title: 'Request issue',
       description: 'The provider returned an error before the turn could complete.',
-      action: 'Try `/provider`, `/model`, or `blink setup`. Set `BLINK_AUTO_FAILOVER=1` for automatic recovery.',
+      action: 'Try `/provider`, `/model`, or `tovyr setup`. Set `TOVYR_AUTO_FAILOVER=1` for automatic recovery.',
       severity: 'medium',
     });
   }

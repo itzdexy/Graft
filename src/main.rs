@@ -8,7 +8,7 @@ struct Hello {
 
 async fn root() -> Json<Hello> {
     Json(Hello {
-        message: format!("Hello from blink — starter Rust web server"),
+        message: format!("Hello from tovyr — starter Rust web server"),
     })
 }
 

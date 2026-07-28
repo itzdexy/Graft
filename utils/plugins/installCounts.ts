@@ -2,10 +2,10 @@
  * Plugin install counts data layer
  *
  * This module fetches and caches plugin install counts from the official
- * Blink plugins statistics repository. The cache is refreshed if older
+ * Tovyr plugins statistics repository. The cache is refreshed if older
  * than 24 hours.
  *
- * Cache location: ~/.blink/plugins/install-counts-cache.json
+ * Cache location: ~/.tovyr/plugins/install-counts-cache.json
  */
 
 import axios from 'axios'

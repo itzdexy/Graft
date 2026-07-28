@@ -6,7 +6,7 @@ export default {
   type: 'local-jsx',
   name: 'model',
   get description() {
-    return `Set the AI model for Blink (currently ${renderModelName(getMainLoopModel())})`
+    return `Set the AI model for Tovyr (currently ${renderModelName(getMainLoopModel())})`
   },
   argumentHint: '[model]',
   get immediate() {

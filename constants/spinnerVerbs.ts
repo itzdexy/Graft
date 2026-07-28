@@ -3,11 +3,11 @@ import sample from 'lodash-es/sample.js'
 
 /**
  * Codex-style status labels (Thinking / Waiting / Running tools) are the default.
- * Set BLINK_ACCURATE_SPINNER=0 to restore silly random verbs (Schlepping, …).
+ * Set TOVYR_ACCURATE_SPINNER=0 to restore silly random verbs (Schlepping, …).
  */
-export function isBlinkAccurateSpinnerEnabled(): boolean {
-  if (process.env.BLINK_ACCURATE_SPINNER === '0') return false
-  if (process.env.BLINK_ACCURATE_SPINNER === '1') return true
+export function isTovyrAccurateSpinnerEnabled(): boolean {
+  if (process.env.TOVYR_ACCURATE_SPINNER === '0') return false
+  if (process.env.TOVYR_ACCURATE_SPINNER === '1') return true
   return true
 }
 
@@ -304,8 +304,8 @@ export const SPINNER_VERBS = [
   'Ghost-coding',
   'Cursoring',
   'Codexing',
-  'Blink-coding',
-  'Blinking',
+  'Tovyr-coding',
+  'Tovyring',
   'Prompt-engineering',
   'Agent-swarming',
   'Tool-calling',

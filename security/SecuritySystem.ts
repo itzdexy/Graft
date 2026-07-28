@@ -1,5 +1,5 @@
 /**
- * Advanced security features for Blink
+ * Advanced security features for Tovyr
  * Provides secure credential management, code scanning, and security best practices
  */
 
@@ -236,7 +236,7 @@ class SecuritySystem {
 
     if (this.config.blockSuspiciousCommands) {
       // Additional checks
-      if (command.includes('sudo') && !command.includes('blink')) {
+      if (command.includes('sudo') && !command.includes('tovyr')) {
         return {
           safe: false,
           reason: 'Sudo commands require explicit approval',

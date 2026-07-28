@@ -122,7 +122,7 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
     source: 'settings',
     type: 'string',
     description:
-      'Preferred language for Blink responses and voice dictation (e.g., "japanese", "spanish")',
+      'Preferred language for Tovyr responses and voice dictation (e.g., "japanese", "spanish")',
   },
   teammateMode: {
     source: 'global',
@@ -161,13 +161,13 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
         },
       }
     : {}),
-  ...(feature('BLINKS') || feature('BLINKS_PUSH_NOTIFICATION')
+  ...(feature('TOVYRS') || feature('TOVYRS_PUSH_NOTIFICATION')
     ? {
         taskCompleteNotifEnabled: {
           source: 'global' as const,
           type: 'boolean' as const,
           description:
-            'Push to your mobile device when idle after Blink finishes (requires Remote Control)',
+            'Push to your mobile device when idle after Tovyr finishes (requires Remote Control)',
         },
         inputNeededNotifEnabled: {
           source: 'global' as const,
@@ -179,7 +179,7 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
           source: 'global' as const,
           type: 'boolean' as const,
           description:
-            'Allow Blink to push to your mobile device when it deems it appropriate (requires Remote Control)',
+            'Allow Tovyr to push to your mobile device when it deems it appropriate (requires Remote Control)',
         },
       }
     : {}),

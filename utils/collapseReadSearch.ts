@@ -432,7 +432,7 @@ function isCollapsibleToolResult(
   msg: RenderableMessage,
   collapsibleToolUseIds: Set<string>,
 ): msg is CollapsibleMessage {
-  if (msg.type === 'user') {
+  if (msg.type === 'user' && Array.isArray(msg.message.content)) {
     const toolResults = msg.message.content.filter(
       (c): c is { type: 'tool_result'; tool_use_id: string } =>
         c.type === 'tool_result',
@@ -817,7 +817,7 @@ export function collapseReadSearchGroups(
         currentGroup.bashCount = (currentGroup.bashCount ?? 0) + count
         const input = toolInfo.input as { command?: string } | undefined
         if (input?.command) {
-          // Prefer the stripped `# comment` if present (it's what Blink wrote
+          // Prefer the stripped `# comment` if present (it's what Tovyr wrote
           // for the human — same trigger as the comment-as-label tool-use render).
           currentGroup.latestDisplayHint =
             extractBashCommentLabel(input.command) ??

@@ -38,7 +38,7 @@ Usage:
 ${offsetInstruction}
 ${lineFormat}
 - When exploring an unfamiliar project, list or glob files first and only read paths that are present. Do not assume common files like README.md, package.json, or AGENTS.md exist unless they appeared in a listing or the user provided them.
-- This tool allows Blink to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually as Blink is a multimodal LLM.${
+- This tool allows Tovyr to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually as Tovyr is a multimodal LLM.${
     isPDFSupported()
       ? '\n- This tool can read PDF files (.pdf). For large PDFs (more than 10 pages), you MUST provide the pages parameter to read specific page ranges (e.g., pages: "1-5"). Reading a large PDF without the pages parameter will fail. Maximum 20 pages per request.'
       : ''

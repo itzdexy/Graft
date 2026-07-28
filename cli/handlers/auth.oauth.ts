@@ -10,7 +10,7 @@ import { fetchAndStoreClaudeCodeFirstTokenDate } from '../../services/api/firstT
 import {
   createAndStoreApiKey,
   fetchAndStoreUserRoles,
-  shouldUseBlinkWebAuth,
+  shouldUseTovyrWebAuth,
   storeOAuthAccountInfo,
 } from '../../services/oauth/client.js'
 import { getOauthProfileFromOauthToken } from '../../services/oauth/getOauthProfile.js'
@@ -65,7 +65,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
     logForDebugging(String(err), { level: 'error' }),
   )
 
-  if (shouldUseBlinkWebAuth(tokens.scopes)) {
+  if (shouldUseTovyrWebAuth(tokens.scopes)) {
     await fetchAndStoreClaudeCodeFirstTokenDate().catch(err =>
       logForDebugging(String(err), { level: 'error' }),
     )

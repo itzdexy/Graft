@@ -16,8 +16,8 @@ import { getCwd } from '../utils/cwd.js'
 import { registerCleanup } from './cleanupRegistry.js'
 import { logForDebugging } from './debug.js'
 import { logForDiagnosticsNoPII } from './diagLogs.js'
-import { getGlobalBlinkFile } from './env.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getGlobalTovyrFile } from './env.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { ConfigParseError, getErrnoCode } from './errors.js'
 import { writeFileSyncAndFlush_DEPRECATED } from './file.js'
 import { getFsImplementation } from './fsOperations.js'
@@ -112,8 +112,8 @@ export type ProjectConfig = {
 
   hasCompletedProjectOnboarding?: boolean
   projectOnboardingSeenCount: number
-  hasBlinkMdExternalIncludesApproved?: boolean
-  hasBlinkMdExternalIncludesWarningShown?: boolean
+  hasTovyrMdExternalIncludesApproved?: boolean
+  hasTovyrMdExternalIncludesWarningShown?: boolean
   // MCP server approval fields - migrated to settings but kept for backward compatibility
   enabledMcpjsonServers?: string[]
   disabledMcpjsonServers?: string[]
@@ -131,7 +131,7 @@ export type ProjectConfig = {
     sessionId: string
     hookBased?: boolean
   }
-  /** Spawn mode for `blink remote-control` multi-session. Set by first-run dialog or `w` toggle. */
+  /** Spawn mode for `tovyr remote-control` multi-session. Set by first-run dialog or `w` toggle. */
   remoteControlSpawnMode?: 'same-dir' | 'worktree'
 }
 
@@ -143,8 +143,8 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   disabledMcpjsonServers: [],
   hasTrustDialogAccepted: false,
   projectOnboardingSeenCount: 0,
-  hasBlinkMdExternalIncludesApproved: false,
-  hasBlinkMdExternalIncludesWarningShown: false,
+  hasTovyrMdExternalIncludesApproved: false,
+  hasTovyrMdExternalIncludesWarningShown: false,
 }
 
 export type InstallMethod = 'local' | 'native' | 'global' | 'unknown'
@@ -200,12 +200,12 @@ export type GlobalConfig = {
   lastOnboardingVersion?: string
   // Tracks the last version for which release notes were seen, used for managing release notes
   lastReleaseNotesSeen?: string
-  // Timestamp when changelog was last fetched (content stored in ~/.blink/cache/changelog.md)
+  // Timestamp when changelog was last fetched (content stored in ~/.tovyr/cache/changelog.md)
   changelogLastFetched?: number
-  // @deprecated - Migrated to ~/.blink/cache/changelog.md. Keep for migration support.
+  // @deprecated - Migrated to ~/.tovyr/cache/changelog.md. Keep for migration support.
   cachedChangelog?: string
   mcpServers?: Record<string, McpServerConfig>
-  // blink web MCP connectors that have successfully connected at least once.
+  // tovyr web MCP connectors that have successfully connected at least once.
   // Used to gate "connector unavailable" / "needs auth" startup notifications:
   // a connector the user has actually used is worth flagging when it breaks,
   // but an org-configured connector that's been needs-auth since day one is
@@ -222,7 +222,7 @@ export type GlobalConfig = {
     rejected?: string[]
   }
   primaryApiKey?: string // Primary API key for the user when no environment variable is set, set via oauth (TODO: rename)
-  blinkProvider?: {
+  tovyrProvider?: {
     name: string
     baseUrl: string
     connectedAt: number
@@ -375,9 +375,9 @@ export type GlobalConfig = {
   showSpinnerTree?: boolean // Whether to show the teammate spinner tree instead of pills
 
   // First start time tracking
-  firstStartTime?: string // ISO timestamp when Blink was first started on this machine
+  firstStartTime?: string // ISO timestamp when Tovyr was first started on this machine
 
-  messageIdleNotifThresholdMs: number // How long the user has to have been idle to get a notification that Blink is done generating
+  messageIdleNotifThresholdMs: number // How long the user has to have been idle to get a notification that Tovyr is done generating
 
   githubActionSetupCount?: number // Number of times the user has set up the GitHub Action
   slackAppInstallCount?: number // Number of times the user has clicked to install the Slack app
@@ -398,8 +398,8 @@ export type GlobalConfig = {
   inputNeededNotifEnabled?: boolean
   agentPushNotifEnabled?: boolean
 
-  // Blink usage tracking
-  claudeCodeFirstTokenDate?: string // ISO timestamp of the user's first Blink OAuth token
+  // Tovyr usage tracking
+  claudeCodeFirstTokenDate?: string // ISO timestamp of the user's first Tovyr OAuth token
 
   // Model switch callout tracking (ant-only)
   modelSwitchCalloutDismissed?: boolean // Whether user chose "Don't show again"
@@ -473,7 +473,7 @@ export type GlobalConfig = {
   // Key: "owner/repo" (lowercase), Value: array of absolute paths where repo is cloned
   githubRepoPaths?: Record<string, string[]>
 
-  // Terminal emulator to launch for blink-cli:// deep links. Captured from
+  // Terminal emulator to launch for tovyr-cli:// deep links. Captured from
   // TERM_PROGRAM during interactive sessions since the deep link handler runs
   // headless (LaunchServices/xdg) with no TERM_PROGRAM set.
   deepLinkTerminal?: string
@@ -496,7 +496,7 @@ export type GlobalConfig = {
   officialMarketplaceAutoInstallLastAttemptTime?: number // Timestamp of last attempt
   officialMarketplaceAutoInstallNextRetryTime?: number // Earliest time to retry again
 
-  // Blink in Chrome removed — legacy config keys kept for migration only
+  // Tovyr in Chrome removed — legacy config keys kept for migration only
   hasCompletedClaudeInChromeOnboarding?: boolean
   claudeInChromeDefaultEnabled?: boolean
   cachedChromeExtensionInstalled?: boolean // Cached result of whether Chrome extension is installed
@@ -512,7 +512,7 @@ export type GlobalConfig = {
   lspRecommendationNeverPlugins?: string[] // Plugin IDs to never suggest
   lspRecommendationIgnoredCount?: number // Track ignored recommendations (stops after 5)
 
-  // Blink hint protocol state (<blink-hint /> tags from CLIs/SDKs).
+  // Tovyr hint protocol state (<tovyr-hint /> tags from CLIs/SDKs).
   // Nested by hint type so future types (docs, mcp, ...) slot in without new
   // top-level keys.
   claudeCodeHints?: {
@@ -568,9 +568,9 @@ export type GlobalConfig = {
   // Additional model options for the model picker (fetched during bootstrap).
   additionalModelOptionsCache?: ModelOption[]
 
-  // Disk cache for /api/blink_code/organizations/metrics_enabled.
+  // Disk cache for /api/tovyr_code/organizations/metrics_enabled.
   // Org-level settings change rarely; persisting across processes avoids a
-  // cold API call on every `blink -p` invocation.
+  // cold API call on every `tovyr -p` invocation.
   metricsStatusCache?: {
     enabled: boolean
     timestamp: number
@@ -658,7 +658,7 @@ export const GLOBAL_CONFIG_KEYS = [
   'agentPushNotifEnabled',
   'respectGitignore',
   'claudeInChromeDefaultEnabled',
-  'hasCompletedBlinkInChromeOnboarding',
+  'hasCompletedTovyrInChromeOnboarding',
   'lspRecommendationDisabled',
   'lspRecommendationNeverPlugins',
   'lspRecommendationIgnoredCount',
@@ -815,7 +815,7 @@ export function saveGlobalConfig(
   let written: GlobalConfig | null = null
   try {
     const didWrite = saveConfigWithLock(
-      getGlobalBlinkFile(),
+      getGlobalTovyrFile(),
       createDefaultGlobalConfig,
       current => {
         const config = updater(current)
@@ -845,7 +845,7 @@ export function saveGlobalConfig(
     // getConfig returns defaults. Refuse to write those over a good cached
     // config to avoid wiping auth. See GH #3117.
     const currentConfig = getConfig(
-      getGlobalBlinkFile(),
+      getGlobalTovyrFile(),
       createDefaultGlobalConfig,
     )
     if (wouldLoseAuthState(currentConfig)) {
@@ -865,7 +865,7 @@ export function saveGlobalConfig(
       ...config,
       projects: removeProjectHistory(currentConfig.projects),
     }
-    saveConfig(getGlobalBlinkFile(), written, DEFAULT_GLOBAL_CONFIG)
+    saveConfig(getGlobalTovyrFile(), written, DEFAULT_GLOBAL_CONFIG)
     writeThroughGlobalConfigCache(written)
   }
 }
@@ -882,7 +882,7 @@ let configCacheHits = 0
 let configCacheMisses = 0
 // Session-total count of actual disk writes to the global config file.
 // Exposed for ant-only dev diagnostics (see inc-4552) so anomalous write
-// rates surface in the UI before they corrupt ~/.blink.json.
+// rates surface in the UI before they corrupt ~/.tovyr.json.
 let globalConfigWriteCount = 0
 
 export function getGlobalConfigWriteCount(): number {
@@ -1002,7 +1002,7 @@ let freshnessWatcherStarted = false
 function startGlobalConfigFreshnessWatcher(): void {
   if (freshnessWatcherStarted || process.env.NODE_ENV === 'test') return
   freshnessWatcherStarted = true
-  const file = getGlobalBlinkFile()
+  const file = getGlobalTovyrFile()
   watchFile(
     file,
     { interval: CONFIG_FRESHNESS_POLL_MS, persistent: false },
@@ -1066,12 +1066,12 @@ export function getGlobalConfig(): GlobalConfig {
   try {
     let stats: { mtimeMs: number; size: number } | null = null
     try {
-      stats = getFsImplementation().statSync(getGlobalBlinkFile())
+      stats = getFsImplementation().statSync(getGlobalTovyrFile())
     } catch {
       // File doesn't exist
     }
     const config = migrateConfigFields(
-      getConfig(getGlobalBlinkFile(), createDefaultGlobalConfig),
+      getConfig(getGlobalTovyrFile(), createDefaultGlobalConfig),
     )
     globalConfigCache = {
       config,
@@ -1085,7 +1085,7 @@ export function getGlobalConfig(): GlobalConfig {
   } catch {
     // If anything goes wrong, fall back to uncached behavior
     return migrateConfigFields(
-      getConfig(getGlobalBlinkFile(), createDefaultGlobalConfig),
+      getConfig(getGlobalTovyrFile(), createDefaultGlobalConfig),
     )
   }
 }
@@ -1144,7 +1144,7 @@ function saveConfig<A extends object>(
       mode: 0o600,
     },
   )
-  if (file === getGlobalBlinkFile()) {
+  if (file === getGlobalTovyrFile()) {
     globalConfigWriteCount++
   }
 }
@@ -1183,7 +1183,7 @@ function saveConfigWithLock<A extends object>(
     const lockTime = Date.now() - startTime
     if (lockTime > 100) {
       logForDebugging(
-        'Lock acquisition took longer than expected - another Blink instance may be running',
+        'Lock acquisition took longer than expected - another Tovyr instance may be running',
       )
       logEvent('tengu_config_lock_contention', {
         lock_time_ms: lockTime,
@@ -1192,7 +1192,7 @@ function saveConfigWithLock<A extends object>(
 
     // Check for stale write - file changed since we last read it
     // Only check for global config file since lastReadFileStats tracks that specific file
-    if (lastReadFileStats && file === getGlobalBlinkFile()) {
+    if (lastReadFileStats && file === getGlobalTovyrFile()) {
       try {
         const currentStats = fs.statSync(file)
         if (
@@ -1219,7 +1219,7 @@ function saveConfigWithLock<A extends object>(
     // momentarily corrupted (concurrent writes, kill-during-write), this
     // returns defaults -- we must not write those back over good config.
     const currentConfig = getConfig(file, createDefault)
-    if (file === getGlobalBlinkFile() && wouldLoseAuthState(currentConfig)) {
+    if (file === getGlobalTovyrFile() && wouldLoseAuthState(currentConfig)) {
       logForDebugging(
         'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.claude.json. See GH #3117.',
         { level: 'error' },
@@ -1245,7 +1245,7 @@ function saveConfigWithLock<A extends object>(
 
     // Create timestamped backup of existing config before writing
     // We keep multiple backups to prevent data loss if a reset/corrupted config
-    // overwrites a good backup. Backups are stored in ~/.blink/backups/ to
+    // overwrites a good backup. Backups are stored in ~/.tovyr/backups/ to
     // keep the home directory clean.
     try {
       const fileBase = basename(file)
@@ -1322,7 +1322,7 @@ function saveConfigWithLock<A extends object>(
         mode: 0o600,
       },
     )
-    if (file === getGlobalBlinkFile()) {
+    if (file === getGlobalTovyrFile()) {
       globalConfigWriteCount++
     }
     return true
@@ -1350,7 +1350,7 @@ export function enableConfigs(): void {
   configReadingAllowed = true
   // We only check the global config because currently all the configs share a file
   getConfig(
-    getGlobalBlinkFile(),
+    getGlobalTovyrFile(),
     createDefaultGlobalConfig,
     true /* throw on invalid */,
   )
@@ -1362,15 +1362,15 @@ export function enableConfigs(): void {
 
 /**
  * Returns the directory where config backup files are stored.
- * Uses ~/.blink/backups/ to keep the home directory clean.
+ * Uses ~/.tovyr/backups/ to keep the home directory clean.
  */
 function getConfigBackupDir(): string {
-  return join(getBlinkConfigHomeDir(), 'backups')
+  return join(getTovyrConfigHomeDir(), 'backups')
 }
 
 /**
  * Find the most recent backup file for a given config file.
- * Checks ~/.blink/backups/ first, then falls back to the legacy location
+ * Checks ~/.tovyr/backups/ first, then falls back to the legacy location
  * (next to the config file) for backwards compatibility.
  * Returns the full path to the most recent backup, or null if none exist.
  */
@@ -1459,7 +1459,7 @@ function getConfig<A>(
       const backupPath = findMostRecentBackup(file)
       if (backupPath) {
         process.stderr.write(
-          `\nBlink configuration file not found at: ${file}\n` +
+          `\nTovyr configuration file not found at: ${file}\n` +
             `A backup file exists at: ${backupPath}\n` +
             `You can manually restore it by running: cp "${backupPath}" "${file}"\n\n`,
         )
@@ -1506,7 +1506,7 @@ function getConfig<A>(
       }
 
       process.stderr.write(
-        `\nBlink configuration file at ${file} is corrupted: ${error.message}\n`,
+        `\nTovyr configuration file at ${file} is corrupted: ${error.message}\n`,
       )
 
       // Try to backup the corrupted config file (only if not already backed up)
@@ -1630,17 +1630,17 @@ export function getCurrentProjectConfig(): ProjectConfig {
     hasClaudeMdExternalIncludesWarningShown?: boolean
   }
   if (
-    legacy.hasBlinkMdExternalIncludesApproved === undefined &&
+    legacy.hasTovyrMdExternalIncludesApproved === undefined &&
     legacy.hasClaudeMdExternalIncludesApproved !== undefined
   ) {
-    legacy.hasBlinkMdExternalIncludesApproved =
+    legacy.hasTovyrMdExternalIncludesApproved =
       legacy.hasClaudeMdExternalIncludesApproved
   }
   if (
-    legacy.hasBlinkMdExternalIncludesWarningShown === undefined &&
+    legacy.hasTovyrMdExternalIncludesWarningShown === undefined &&
     legacy.hasClaudeMdExternalIncludesWarningShown !== undefined
   ) {
-    legacy.hasBlinkMdExternalIncludesWarningShown =
+    legacy.hasTovyrMdExternalIncludesWarningShown =
       legacy.hasClaudeMdExternalIncludesWarningShown
   }
 
@@ -1664,7 +1664,7 @@ export function saveCurrentProjectConfig(
   let written: GlobalConfig | null = null
   try {
     const didWrite = saveConfigWithLock(
-      getGlobalBlinkFile(),
+      getGlobalTovyrFile(),
       createDefaultGlobalConfig,
       current => {
         const currentProjectConfig =
@@ -1694,7 +1694,7 @@ export function saveCurrentProjectConfig(
 
     // Same race window as saveGlobalConfig's fallback -- refuse to write
     // defaults over good cached config. See GH #3117.
-    const config = getConfig(getGlobalBlinkFile(), createDefaultGlobalConfig)
+    const config = getConfig(getGlobalTovyrFile(), createDefaultGlobalConfig)
     if (wouldLoseAuthState(config)) {
       logForDebugging(
         'saveCurrentProjectConfig fallback: re-read config is missing auth that cache has; refusing to write. See GH #3117.',
@@ -1717,7 +1717,7 @@ export function saveCurrentProjectConfig(
         [absolutePath]: newProjectConfig,
       },
     }
-    saveConfig(getGlobalBlinkFile(), written, DEFAULT_GLOBAL_CONFIG)
+    saveConfig(getGlobalTovyrFile(), written, DEFAULT_GLOBAL_CONFIG)
     writeThroughGlobalConfigCache(written)
   }
 }
@@ -1801,18 +1801,18 @@ export function recordFirstStartTime(): void {
   }
 }
 
-// Blink writes blink.md by default, but keeps using an existing CLAUDE.md so we
+// Tovyr writes tovyr.md by default, but keeps using an existing CLAUDE.md so we
 // never silently create a duplicate memory file next to one a repo already has.
-function preferBlinkMemoryPath(
+function preferTovyrMemoryPath(
   dir: string,
-  blinkName: string,
+  tovyrName: string,
   legacyName: string,
 ): string {
-  const blinkPath = join(dir, blinkName)
-  if (existsSync(blinkPath)) return blinkPath
+  const tovyrPath = join(dir, tovyrName)
+  if (existsSync(tovyrPath)) return tovyrPath
   const legacyPath = join(dir, legacyName)
   if (existsSync(legacyPath)) return legacyPath
-  return blinkPath
+  return tovyrPath
 }
 
 export function getMemoryPath(memoryType: MemoryType): string {
@@ -1820,13 +1820,13 @@ export function getMemoryPath(memoryType: MemoryType): string {
 
   switch (memoryType) {
     case 'User':
-      return preferBlinkMemoryPath(getBlinkConfigHomeDir(), 'blink.md', 'CLAUDE.md')
+      return preferTovyrMemoryPath(getTovyrConfigHomeDir(), 'tovyr.md', 'CLAUDE.md')
     case 'Local':
-      return preferBlinkMemoryPath(cwd, 'blink.local.md', 'CLAUDE.local.md')
+      return preferTovyrMemoryPath(cwd, 'tovyr.local.md', 'CLAUDE.local.md')
     case 'Project':
-      return preferBlinkMemoryPath(cwd, 'blink.md', 'CLAUDE.md')
+      return preferTovyrMemoryPath(cwd, 'tovyr.md', 'CLAUDE.md')
     case 'Managed':
-      return preferBlinkMemoryPath(getManagedFilePath(), 'blink.md', 'CLAUDE.md')
+      return preferTovyrMemoryPath(getManagedFilePath(), 'tovyr.md', 'CLAUDE.md')
     case 'AutoMem':
       return getAutoMemEntrypoint()
   }
@@ -1837,12 +1837,12 @@ export function getMemoryPath(memoryType: MemoryType): string {
   return '' // unreachable in external builds where TeamMem is not in MemoryType
 }
 
-export function getManagedBlinkRulesDir(): string {
-  return join(getManagedFilePath(), '.blink', 'rules')
+export function getManagedTovyrRulesDir(): string {
+  return join(getManagedFilePath(), '.tovyr', 'rules')
 }
 
-export function getUserBlinkRulesDir(): string {
-  return join(getBlinkConfigHomeDir(), 'rules')
+export function getUserTovyrRulesDir(): string {
+  return join(getTovyrConfigHomeDir(), 'rules')
 }
 
 // Exported for testing only

@@ -12,7 +12,7 @@ import { getFsImplementation } from './fsOperations.js'
 
 /**
  * Well-known token file locations in CCR. The Go environment-manager creates
- * /home/blink/.blink/remote/ and will (eventually) write these files too.
+ * /home/tovyr/.tovyr/remote/ and will (eventually) write these files too.
  * Until then, this module writes them on successful FD read so subprocesses
  * spawned inside the CCR container can find the token without inheriting
  * the FD — which they can't: pipe FDs don't cross tmux/shell boundaries.
@@ -24,7 +24,7 @@ export const CCR_SESSION_INGRESS_TOKEN_PATH = `${CCR_TOKEN_DIR}/.session_ingress
 
 /**
  * Best-effort write of the token to a well-known location for subprocess
- * access. CCR-gated: outside CCR there's no /home/blink/ and no reason to
+ * access. CCR-gated: outside CCR there's no /home/tovyr/ and no reason to
  * put a token on disk that the FD was meant to keep off disk.
  */
 export function maybePersistTokenForSubprocesses(
@@ -32,7 +32,7 @@ export function maybePersistTokenForSubprocesses(
   token: string,
   tokenName: string,
 ): void {
-  if (!isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
+  if (!isEnvTruthy(process.env.TOVYR_CODE_REMOTE)) {
     return
   }
   try {
@@ -167,12 +167,12 @@ function getCredentialFromFd({
 
 /**
  * Get the CCR-injected OAuth token. See getCredentialFromFd for FD-vs-disk
- * rationale. Env var: CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR.
- * Well-known file: /home/blink/.blink/remote/.oauth_token.
+ * rationale. Env var: TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR.
+ * Well-known file: /home/tovyr/.tovyr/remote/.oauth_token.
  */
 export function getOAuthTokenFromFileDescriptor(): string | null {
   return getCredentialFromFd({
-    envVar: 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR',
+    envVar: 'TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR',
     wellKnownPath: CCR_OAUTH_TOKEN_PATH,
     label: 'OAuth token',
     getCached: getOauthTokenFromFd,
@@ -182,12 +182,12 @@ export function getOAuthTokenFromFileDescriptor(): string | null {
 
 /**
  * Get the CCR-injected API key. See getCredentialFromFd for FD-vs-disk
- * rationale. Env var: CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR.
- * Well-known file: /home/blink/.blink/remote/.api_key.
+ * rationale. Env var: TOVYR_CODE_API_KEY_FILE_DESCRIPTOR.
+ * Well-known file: /home/tovyr/.tovyr/remote/.api_key.
  */
 export function getApiKeyFromFileDescriptor(): string | null {
   return getCredentialFromFd({
-    envVar: 'CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR',
+    envVar: 'TOVYR_CODE_API_KEY_FILE_DESCRIPTOR',
     wellKnownPath: CCR_API_KEY_PATH,
     label: 'API key',
     getCached: getApiKeyFromFd,

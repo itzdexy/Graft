@@ -1,5 +1,5 @@
 /**
- * Auto-install logic for the official Blink marketplace.
+ * Auto-install logic for the official Tovyr marketplace.
  *
  * This module handles automatically installing the official marketplace
  * on startup for new users, with appropriate checks for:
@@ -13,6 +13,7 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/gr
 import { logEvent } from '../../services/analytics/index.js'
 import { getGlobalConfig, saveGlobalConfig } from '../config.js'
 import { logForDebugging } from '../debug.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { toError } from '../errors.js'
 import { logError } from '../log.js'
@@ -46,7 +47,7 @@ export type OfficialMarketplaceSkipReason =
  */
 export function isOfficialMarketplaceAutoInstallDisabled(): boolean {
   return isEnvTruthy(
-    process.env.CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL,
+    process.env.TOVYR_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL,
   )
 }
 
@@ -145,6 +146,9 @@ export type OfficialMarketplaceCheckResult = {
  * @returns Result indicating whether installation succeeded or was skipped
  */
 export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMarketplaceCheckResult> {
+  if (isTovyrRuntime()) {
+    return { installed: false, skipped: true, reason: 'policy_blocked' }
+  }
   const config = getGlobalConfig()
 
   // Check if we should retry installation
@@ -214,7 +218,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
     }
 
     // inc-5046: try GCS mirror first — doesn't need git, doesn't hit GitHub.
-    // Backend (blink#317037) publishes a marketplace zip to the same
+    // Backend (tovyr#317037) publishes a marketplace zip to the same
     // bucket as the native binary. If GCS succeeds, register the marketplace
     // with source:'github' (still true — GCS is a mirror) and skip git
     // entirely.

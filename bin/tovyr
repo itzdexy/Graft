@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Unix launcher (macOS, Linux) — delegates to Node entry.
+DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+exec node "$DIR/tovyr.js" "$@"

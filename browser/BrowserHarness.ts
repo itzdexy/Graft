@@ -1,5 +1,5 @@
 /**
- * Blink Rust Core Browser Harness
+ * Tovyr Rust Core Browser Harness
  * Inspired by Browser Use's Rust-based browser automation
  * Provides TypeScript interface to Rust browser automation backend
  */

@@ -175,7 +175,7 @@ class SkillManager {
       name: 'Mock Skill',
       description: 'A mock skill for testing',
       version: '1.0.0',
-      author: 'Blink',
+      author: 'Tovyr',
       category: 'custom',
       instructions: 'This is a mock skill for testing the skill system.',
       capabilities: [

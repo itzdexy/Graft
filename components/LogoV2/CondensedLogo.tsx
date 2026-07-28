@@ -10,7 +10,7 @@ import { truncate } from '../../utils/format.js'
 import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js'
 import {
   formatModelAndBilling,
-  getBlinkHeaderModelDisplay,
+  getTovyrHeaderModelDisplay,
   getLogoDisplayData,
   truncatePath,
 } from '../../utils/logoV2Utils.js'
@@ -29,7 +29,7 @@ import {
   OverageCreditUpsell,
   useShowOverageCreditUpsell,
 } from './OverageCreditUpsell.js'
-import { isBlinkRuntime } from './blinkFeedConfigs.js'
+import { isTovyrRuntime } from './tovyrFeedConfigs.js'
 
 type Props = {
   /** True while the model is processing or tools are in flight. */
@@ -42,13 +42,13 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
   const effortValue = useAppState(s => s.effortValue)
   const permissionMode = useAppState(s => s.toolPermissionContext.mode)
   const model = useMainLoopModel()
-  const blink = isBlinkRuntime()
+  const tovyr = isTovyrRuntime()
   const clawdMood = resolveClawdMood({
     isWorking,
     permissionMode,
   })
-  const modelDisplayName = blink
-    ? getBlinkHeaderModelDisplay(model)
+  const modelDisplayName = tovyr
+    ? getTovyrHeaderModelDisplay(model)
     : renderModelSetting(model)
   const {
     version,
@@ -86,7 +86,7 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
     : textWidth
   const truncatedCwd = truncatePath(cwd, Math.max(cwdAvailableWidth, 10))
 
-  const clawd = blink ? (
+  const clawd = tovyr ? (
     <ActivityClawd
       isActive={isWorking}
       mood={clawdMood}
@@ -98,30 +98,22 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
     <Clawd inline />
   )
 
-  const title = blink ? (
+  const title = (
     <Text>
       <Text bold>
-        <Text color="#2dd4bf">K</Text>
-        <Text color="#22d3ee">a</Text>
-        <Text color="#38bdf8">i</Text>
-        <Text color="#0ea5e9">r</Text>
-        <Text color="#0284c7">o</Text>{' '}
-        <Text color="#3b82f6">C</Text>
-        <Text color="#6366f1">o</Text>
-        <Text color="#818cf8">d</Text>
-        <Text color="#a78bfa">e</Text>
+        <Text color="#2dd4bf">T</Text>
+        <Text color="#22d3ee">O</Text>
+        <Text color="#38bdf8">V</Text>
+        <Text color="#6366f1">Y</Text>
+        <Text color="#a78bfa">R</Text>
       </Text>{' '}
       <Text dimColor>v{truncatedVersion}</Text>
     </Text>
-  ) : (
-    <Text>
-      <Text bold>Blink</Text> <Text dimColor>v{truncatedVersion}</Text>
-    </Text>
   )
 
-  const modelLine = blink ? (
+  const modelLine = tovyr ? (
     <Box flexDirection="column" gap={0}>
-      <Text color="blinkPrimary" dimColor>
+      <Text color="tovyrPrimary" dimColor>
         {shouldSplit ? truncatedModel : `${truncatedModel} · ${truncatedBilling}`}
       </Text>
       {shouldSplit ? <Text dimColor>{truncatedBilling}</Text> : null}
@@ -141,7 +133,7 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
     <OffscreenFreeze>
       <Box
         borderStyle="round"
-        borderColor={blink ? 'blinkPrimary' : 'cyan'}
+        borderColor={tovyr ? 'tovyrPrimary' : 'cyan'}
         borderDimColor
         paddingX={1}
         paddingY={0}
@@ -166,7 +158,7 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
           <Text dimColor color="subtle">
             {agentName ? (
               <>
-                <Text color="blinkPrimary" bold>{'@'}</Text>
+                <Text color="tovyrPrimary" bold>{'@'}</Text>
                 <Text color="text">{agentName}</Text>
                 <Text color="subtle">{' · '}</Text>
                 <Text>{truncatedCwd}</Text>
@@ -175,8 +167,8 @@ export function CondensedLogo({ isWorking = false }: Props): ReactNode {
               truncatedCwd
             )}
           </Text>
-          {!blink && showGuestPassesUpsell ? <GuestPassesUpsell /> : null}
-          {!blink && !showGuestPassesUpsell && showOverageCreditUpsell ? (
+          {!tovyr && showGuestPassesUpsell ? <GuestPassesUpsell /> : null}
+          {!tovyr && !showGuestPassesUpsell && showOverageCreditUpsell ? (
             <OverageCreditUpsell maxWidth={textWidth} twoLine />
           ) : null}
         </Box>

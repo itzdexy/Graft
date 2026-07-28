@@ -32,11 +32,11 @@ function getClipboardCommands() {
   const platform = process.platform as SupportedPlatform
 
   // Platform-specific temporary file paths
-  // Use CLAUDE_CODE_TMPDIR if set, otherwise fall back to platform defaults
+  // Use TOVYR_CODE_TMPDIR if set, otherwise fall back to platform defaults
   const baseTmpDir =
-    process.env.CLAUDE_CODE_TMPDIR ||
+    process.env.TOVYR_CODE_TMPDIR ||
     (platform === 'win32' ? process.env.TEMP || 'C:\\Temp' : '/tmp')
-  const screenshotFilename = 'blink_cli_latest_screenshot.png'
+  const screenshotFilename = 'tovyr_cli_latest_screenshot.png'
   const tempPaths: Record<SupportedPlatform, string> = {
     darwin: join(baseTmpDir, screenshotFilename),
     linux: join(baseTmpDir, screenshotFilename),

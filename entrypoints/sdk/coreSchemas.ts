@@ -71,7 +71,7 @@ export const ThinkingAdaptiveSchema = lazySchema(() =>
     .object({
       type: z.literal('adaptive'),
     })
-    .describe('Blink decides when and how much to think (Opus 4.6+).'),
+    .describe('Tovyr decides when and how much to think (Opus 4.6+).'),
 )
 
 export const ThinkingEnabledSchema = lazySchema(() =>
@@ -99,7 +99,7 @@ export const ThinkingConfigSchema = lazySchema(() =>
       ThinkingDisabledSchema(),
     ])
     .describe(
-      "Controls Blink's thinking/reasoning behavior. When set, takes precedence over the deprecated maxThinkingTokens.",
+      "Controls Tovyr's thinking/reasoning behavior. When set, takes precedence over the deprecated maxThinkingTokens.",
     ),
 )
 
@@ -156,7 +156,7 @@ export const McpClaudeAIProxyServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Broader config type for status responses (includes blinkai-proxy which is output-only)
+// Broader config type for status responses (includes tovyrai-proxy which is output-only)
 export const McpServerStatusConfigSchema = lazySchema(() =>
   z.union([
     McpServerConfigForProcessTransportSchema(),
@@ -1064,7 +1064,7 @@ export const ModelInfoSchema = lazySchema(() =>
         .boolean()
         .optional()
         .describe(
-          'Whether this model supports adaptive thinking (Blink decides when and how much to think)',
+          'Whether this model supports adaptive thinking (Tovyr decides when and how much to think)',
         ),
       supportsFastMode: z
         .boolean()
@@ -1090,7 +1090,7 @@ export const AccountInfoSchema = lazySchema(() =>
         .enum(['firstParty', 'bedrock', 'vertex', 'foundry'])
         .optional()
         .describe(
-          'Active API backend. Blink OAuth login only applies when "firstParty"; for 3P providers the other fields are absent and auth is external (AWS creds, gcloud ADC, etc.).',
+          'Active API backend. Tovyr OAuth login only applies when "firstParty"; for 3P providers the other fields are absent and auth is external (AWS creds, gcloud ADC, etc.).',
         ),
     })
     .describe("Information about the logged in user's account."),
@@ -1234,13 +1234,13 @@ export const RewindFilesResultSchema = lazySchema(() =>
 // The generation script uses TypeOverrideMap to output the correct TS type references.
 // This allows us to define SDK message types in Zod while maintaining proper typing.
 
-/** Placeholder for APIUserMessage from @blink-ai/sdk */
+/** Placeholder for APIUserMessage from @tovyr-ai/sdk */
 export const APIUserMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for APIAssistantMessage from @blink-ai/sdk */
+/** Placeholder for APIAssistantMessage from @tovyr-ai/sdk */
 export const APIAssistantMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for RawMessageStreamEvent from @blink-ai/sdk */
+/** Placeholder for RawMessageStreamEvent from @tovyr-ai/sdk */
 export const RawMessageStreamEventPlaceholder = lazySchema(() => z.unknown())
 
 /** Placeholder for UUID from crypto */
@@ -1341,7 +1341,7 @@ export const SDKRateLimitInfoSchema = lazySchema(() =>
       isUsingOverage: z.boolean().optional(),
       surpassedThreshold: z.number().optional(),
     })
-    .describe('Rate limit information for Blink subscription users.'),
+    .describe('Rate limit information for Tovyr subscription users.'),
 )
 
 export const SDKAssistantMessageSchema = lazySchema(() =>

@@ -8,22 +8,22 @@
 import { homedir, userInfo } from 'os'
 import { join } from 'path'
 
-/** macOS preference domain for Blink MDM profiles. */
+/** macOS preference domain for Tovyr MDM profiles. */
 export const MACOS_PREFERENCE_DOMAIN = 'com.anthropic.claudecode'
 
 /**
- * Windows registry key paths for Blink MDM policies.
+ * Windows registry key paths for Tovyr MDM policies.
  *
  * These keys live under SOFTWARE\Policies which is on the WOW64 shared key
  * list — both 32-bit and 64-bit processes see the same values without
- * redirection. Do not move these to SOFTWARE\BlinkCode, as SOFTWARE is
+ * redirection. Do not move these to SOFTWARE\TovyrCode, as SOFTWARE is
  * redirected and 32-bit processes would silently read from WOW6432Node.
  * See: https://learn.microsoft.com/en-us/windows/win32/winprog64/shared-registry-keys
  */
 export const WINDOWS_REGISTRY_KEY_PATH_HKLM =
-  'HKLM\\SOFTWARE\\Policies\\BlinkCode'
+  'HKLM\\SOFTWARE\\Policies\\TovyrCode'
 export const WINDOWS_REGISTRY_KEY_PATH_HKCU =
-  'HKCU\\SOFTWARE\\Policies\\BlinkCode'
+  'HKCU\\SOFTWARE\\Policies\\TovyrCode'
 
 /** Windows registry value name containing the JSON settings blob. */
 export const WINDOWS_REGISTRY_VALUE_NAME = 'Settings'

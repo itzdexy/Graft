@@ -8,7 +8,7 @@ import { registerSimplifySkill } from './simplify.js'
 import { registerSkillifySkill } from './skillify.js'
 import { registerStuckSkill } from './stuck.js'
 import { registerSubagentDrivenDevelopmentSkill } from './subagentDrivenDevelopment.js'
-import { registerBlinkPackSkills } from './blinkPack.js'
+import { registerTovyrPackSkills } from './tovyrPack.js'
 import { registerEcosystemPackSkills } from './ecosystemPack.js'
 import { registerUpdateConfigSkill } from './updateConfig.js'
 import { registerVerifySkill } from './verify.js'
@@ -33,12 +33,12 @@ export function initBundledSkills(): void {
   registerSimplifySkill()
   registerBatchSkill()
   registerStuckSkill()
-  if (process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC) {
+  if (process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC) {
     registerSubagentDrivenDevelopmentSkill()
-    registerBlinkPackSkills()
+    registerTovyrPackSkills()
     registerEcosystemPackSkills()
   }
-  if (feature('BLINKS') || feature('BLINKS_DREAM')) {
+  if (feature('TOVYRS') || feature('TOVYRS_DREAM')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { registerDreamSkill } = require('./dream.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
@@ -54,7 +54,7 @@ export function initBundledSkills(): void {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { registerLoopSkill } = require('./loop.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
-    // /loop's isEnabled delegates to isBlinksCronEnabled() — same lazy
+    // /loop's isEnabled delegates to isTovyrsCronEnabled() — same lazy
     // per-invocation pattern as the cron tools. Registered unconditionally;
     // the skill's own isEnabled callback decides visibility.
     registerLoopSkill()

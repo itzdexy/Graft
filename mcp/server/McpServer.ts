@@ -383,13 +383,13 @@ class McpServerManager {
 const mcpServerManager = new McpServerManager();
 
 /**
- * Create a default Blink MCP server with common tools
+ * Create a default Tovyr MCP server with common tools
  */
-export function createBlinkMcpServer(): McpServer {
+export function createTovyrMcpServer(): McpServer {
   const server = mcpServerManager.createServer({
-    name: 'blink',
+    name: 'tovyr',
     version: '1.0.0',
-    description: 'Blink MCP Server',
+    description: 'Tovyr MCP Server',
     capabilities: {
       tools: true,
       resources: true,
@@ -561,7 +561,7 @@ export function createBlinkMcpServer(): McpServer {
     ],
   });
 
-  mcpServerManager.setDefaultServer('blink');
+  mcpServerManager.setDefaultServer('tovyr');
   return server;
 }
 

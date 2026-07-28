@@ -28,7 +28,7 @@ export interface BmadWorkflow {
 const workflows = new Map<string, BmadWorkflow>()
 
 export function bmadStorageDir(cwd: string): string {
-  return join(cwd, '.blink', 'bmad')
+  return join(cwd, '.tovyr', 'bmad')
 }
 
 function persistBmadWorkflow(cwd: string, workflow: BmadWorkflow): void {

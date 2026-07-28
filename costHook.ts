@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { getTotalOutputTokens } from './bootstrap/state.js'
 import { formatTotalCost, saveCurrentSessionCosts } from './cost-tracker.js'
 import { hasConsoleBillingAccess } from './utils/billing.js'
-import { isBlinkRuntime } from './utils/blinkRuntime.js'
+import { isTovyrRuntime } from './utils/tovyrRuntime.js'
 import type { FpsMetrics } from './utils/fpsTracker.js'
 
 export function useCostSummary(
@@ -12,7 +12,7 @@ export function useCostSummary(
     const f = () => {
       if (hasConsoleBillingAccess()) {
         process.stdout.write('\n' + formatTotalCost() + '\n')
-      } else if (isBlinkRuntime() && getTotalOutputTokens() > 0) {
+      } else if (isTovyrRuntime() && getTotalOutputTokens() > 0) {
         process.stdout.write('\n' + formatTotalCost() + '\n')
       }
 

@@ -60,8 +60,8 @@ import {
 } from '../ultraplan/keyword.js'
 import { processTextPrompt } from './processTextPrompt.js'
 import { getCwd } from '../cwd.js'
-import { isBlinkRuntime } from '../blinkRuntime.js'
-import { resolveBlinkExamplePromptInput } from '../../services/blink/dx/blinkExamplePrompts.js'
+import { isTovyrRuntime } from '../tovyrRuntime.js'
+import { resolveTovyrExamplePromptInput } from '../../services/tovyr/dx/tovyrExamplePrompts.js'
 export type ProcessUserInputContext = ToolUseContext & LocalJSXCommandContext
 
 export type ProcessUserInputBaseResult = {
@@ -156,10 +156,10 @@ export async function processUserInput({
   let autoCodeModeNotice: string | undefined
 
   if (inputString && mode === 'prompt' && !isMeta) {
-    const { isBlinkRuntime } = await import('../../utils/blinkRuntime.js')
-    if (isBlinkRuntime()) {
+    const { isTovyrRuntime } = await import('../../utils/tovyrRuntime.js')
+    if (isTovyrRuntime()) {
       const { tryAutoEnterCodeMode } = await import(
-        '../../services/blink/modes.js'
+        '../../services/tovyr/modes.js'
       )
       if (
         tryAutoEnterCodeMode(
@@ -170,14 +170,14 @@ export async function processUserInput({
       ) {
         permissionMode = context.getAppState().toolPermissionContext.mode
         autoCodeModeNotice =
-          'Blink switched to code mode for this request. Call the **Write** tool now to save files (e.g. index.html) — do **not** use Bash for file creation and do **not** paste file contents in chat. Bash is blocked for touch/echo/redirect on Windows; Write is required.'
+          'Tovyr switched to code mode for this request. Call the **Write** tool now to save files (e.g. index.html) — do **not** use Bash for file creation and do **not** paste file contents in chat. Bash is blocked for touch/echo/redirect on Windows; Write is required.'
       }
 
       const {
         ensureAgentSessionForPrompt,
         formatAgentBootstrapNotice,
         pauseAgentSessionIfCasual,
-      } = await import('../../services/blink/agent/autoBootstrap.js')
+      } = await import('../../services/tovyr/agent/autoBootstrap.js')
       const agentSession = ensureAgentSessionForPrompt(inputString)
       if (agentSession) {
         autoCodeModeNotice = autoCodeModeNotice
@@ -390,8 +390,8 @@ async function processUserInputBase(
     }
   }
 
-  if (typeof normalizedInput === 'string' && isBlinkRuntime()) {
-    const resolved = resolveBlinkExamplePromptInput(normalizedInput)
+  if (typeof normalizedInput === 'string' && isTovyrRuntime()) {
+    const resolved = resolveTovyrExamplePromptInput(normalizedInput)
     if (resolved !== normalizedInput) {
       normalizedInput = resolved
       inputString = resolved
@@ -409,7 +409,7 @@ async function processUserInputBase(
     : []
   const imagePasteIds = imageContents.map(img => img.id)
 
-  // Store images to disk so Blink can reference the path in context
+  // Store images to disk so Tovyr can reference the path in context
   // (for manipulation with CLI tools, uploading to PRs, etc.)
   const storedImagePaths = pastedContents
     ? await storeImages(pastedContents)
@@ -546,10 +546,10 @@ async function processUserInputBase(
     return addImageMetadataMessage(slashResult, imageMetadataTexts)
   }
 
-  // Blink superthinker: when mode is ON, substantial goals route to /superthink
+  // Tovyr superthinker: when mode is ON, substantial goals route to /superthink
   // (skip casual chat like "hi there" — whitespace alone is not enough).
   if (
-    (process.env.BLINK_PACKAGE_ROOT || process.env.BLINK_SRC) &&
+    (process.env.TOVYR_PACKAGE_ROOT || process.env.TOVYR_SRC) &&
     mode === 'prompt' &&
     inputString !== null &&
     !effectiveSkipSlash &&
@@ -565,15 +565,15 @@ async function processUserInputBase(
     if (looksLikeSuperthinkGoal) {
     const { getCwd } = await import('../../utils/cwd.js')
     const { isSuperthinkEnabled } = await import(
-      '../../services/blink/superthink/state.js'
+      '../../services/tovyr/superthink/state.js'
     )
     if (isSuperthinkEnabled(getCwd())) {
       const cwd = getCwd()
       const { isVagueSuperthinkGoal } = await import(
-        '../../services/blink/superthink/goalResolve.js'
+        '../../services/tovyr/superthink/goalResolve.js'
       )
       const { getActiveSuperthinkGoal } = await import(
-        '../../services/blink/superthink/sessionStore.js'
+        '../../services/tovyr/superthink/sessionStore.js'
       )
       const trimmed = inputString.trim()
       const active = getActiveSuperthinkGoal(cwd)
@@ -696,14 +696,14 @@ async function processUserInputBase(
     normalizedInput.trim() &&
     !isMeta
   ) {
-    const { enrichBlinkPrompt } = await import(
-      '../../services/blink/ecosystem/prompt/enrich.js'
+    const { enrichTovyrPrompt } = await import(
+      '../../services/tovyr/ecosystem/prompt/enrich.js'
     )
-    const { blocks } = enrichBlinkPrompt(normalizedInput, getCwd())
-    const { isBlinkRuntime } = await import('../../utils/blinkRuntime.js')
-    if (isBlinkRuntime()) {
+    const { blocks } = enrichTovyrPrompt(normalizedInput, getCwd())
+    const { isTovyrRuntime } = await import('../../utils/tovyrRuntime.js')
+    if (isTovyrRuntime()) {
       const { recordCommandHistory } = await import(
-        '../../services/blink/terminal/commandHistory.js'
+        '../../services/tovyr/terminal/commandHistory.js'
       )
       recordCommandHistory(normalizedInput, getCwd())
     }

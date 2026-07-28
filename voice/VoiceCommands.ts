@@ -509,7 +509,7 @@ class VoiceCommandSystem {
       interimResults: true,
       maxAlternatives: 3,
       autoStart: false,
-      wakeWord: 'blink',
+      wakeWord: 'tovyr',
     };
   }
 }

@@ -8,7 +8,7 @@ import type { ToolUseContext } from '../../Tool.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import {
   checkAndRefreshOAuthTokenIfNeeded,
-  getBlinkWebOAuthTokens,
+  getTovyrWebOAuthTokens,
 } from '../../utils/auth.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
@@ -77,10 +77,10 @@ export const RemoteTriggerTool = buildTool({
   },
   async call(input: Input, context: ToolUseContext) {
     await checkAndRefreshOAuthTokenIfNeeded()
-    const accessToken = getBlinkWebOAuthTokens()?.accessToken
+    const accessToken = getTovyrWebOAuthTokens()?.accessToken
     if (!accessToken) {
       throw new Error(
-        'Not authenticated with a Blink web account. Run /login and try again.',
+        'Not authenticated with a Tovyr web account. Run /login and try again.',
       )
     }
     const orgUUID = await getOrganizationUUID()

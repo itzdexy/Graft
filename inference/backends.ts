@@ -37,10 +37,10 @@ export function setBackendConfig(patch: Partial<BackendConfig>): BackendConfig {
 }
 
 export function backendFromEnv(): BackendConfig {
-  const backend = (process.env.BLINK_INFERENCE_BACKEND ??
+  const backend = (process.env.TOVYR_INFERENCE_BACKEND ??
     process.env.LLAMA_BACKEND ??
     'auto') as InferenceBackend
-  const threads = Number(process.env.BLINK_INFERENCE_THREADS ?? 0)
+  const threads = Number(process.env.TOVYR_INFERENCE_THREADS ?? 0)
   return setBackendConfig({
     backend,
     threads: Number.isFinite(threads) ? threads : 0,

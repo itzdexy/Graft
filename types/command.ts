@@ -162,14 +162,14 @@ type LocalJSXCommand = {
  * Commands with `availability` are only shown if the user matches at least one
  * of the listed auth types. See meetsAvailabilityRequirement() in commands.ts.
  *
- * Example: `availability: ['blink-ai', 'console']` shows the command to
- * blink web subscribers and direct Console API key users (api.blink.com),
+ * Example: `availability: ['tovyr-ai', 'console']` shows the command to
+ * tovyr web subscribers and direct Console API key users (api.tovyr.com),
  * but hides it from Bedrock/Vertex/Foundry users and custom base URL users.
  */
 export type CommandAvailability =
-  // blink web OAuth subscriber (Pro/Max/Team/Enterprise via blink web)
+  // tovyr web OAuth subscriber (Pro/Max/Team/Enterprise via tovyr web)
   | 'claude-ai'
-  // Console API key user (direct api.blink.com, not via blink web OAuth)
+  // Console API key user (direct api.tovyr.com, not via tovyr web OAuth)
   | 'console'
 
 export type CommandBase = {

@@ -1,0 +1,12 @@
+{
+  "name": "@kairo/for-chrome-mcp",
+  "version": "1.0.0",
+  "description": "Tovyr in Chrome MCP server — bridges CLI to the Tovyr Chrome extension via native messaging socket",
+  "type": "module",
+  "license": "MIT",
+  "main": "./index.ts",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  }
+}

@@ -5,7 +5,7 @@ import {
   getChicagoDisabledReason,
   isChicagoEnabledFromInput,
   type ChicagoGateInput,
-} from '../../services/blink/computer/disabledReason.js'
+} from '../../services/tovyr/computer/disabledReason.js'
 import { getSubscriptionType } from '../auth.js'
 import { isEnvTruthy } from '../envUtils.js'
 

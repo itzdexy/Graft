@@ -1,25 +1,25 @@
 /**
  * TMUX SOCKET ISOLATION
  * =====================
- * This module manages an isolated tmux socket for Blink's operations.
+ * This module manages an isolated tmux socket for Tovyr's operations.
  *
  * WHY THIS EXISTS:
- * Without isolation, Blink could accidentally affect the user's tmux sessions.
+ * Without isolation, Tovyr could accidentally affect the user's tmux sessions.
  * For example, running `tmux kill-session` via the Bash tool would kill the
- * user's current session if they started Blink from within tmux.
+ * user's current session if they started Tovyr from within tmux.
  *
  * HOW IT WORKS:
- * 1. Blink creates its own tmux socket: `blink-<PID>` (e.g., `blink-12345`)
+ * 1. Tovyr creates its own tmux socket: `tovyr-<PID>` (e.g., `tovyr-12345`)
  * 2. ALL Tmux tool commands use this socket via the `-L` flag
  * 3. ALL Bash tool commands inherit TMUX env var pointing to this socket
- *    (set in Shell.ts via getBlinkTmuxEnv())
+ *    (set in Shell.ts via getTovyrTmuxEnv())
  *
- * This means ANY tmux command run through Blink - whether via the Tmux tool
- * directly or via Bash - will operate on Blink's isolated socket, NOT the
+ * This means ANY tmux command run through Tovyr - whether via the Tmux tool
+ * directly or via Bash - will operate on Tovyr's isolated socket, NOT the
  * user's tmux session.
  *
  * IMPORTANT: The user's original TMUX env var is NOT used. After socket
- * initialization, getBlinkTmuxEnv() returns a value that overrides the
+ * initialization, getTovyrTmuxEnv() returns a value that overrides the
  * user's TMUX in all child processes spawned by Shell.ts.
  */
 
@@ -85,10 +85,10 @@ let tmuxAvailable = false
 let tmuxToolUsed = false
 
 /**
- * Gets the socket name for Blink's isolated tmux session.
- * Format: blink-<PID>
+ * Gets the socket name for Tovyr's isolated tmux session.
+ * Format: tovyr-<PID>
  */
-export function getBlinkSocketName(): string {
+export function getTovyrSocketName(): string {
   if (!socketName) {
     socketName = `${CLAUDE_SOCKET_PREFIX}-${process.pid}`
   }
@@ -99,7 +99,7 @@ export function getBlinkSocketName(): string {
  * Gets the socket path if the socket has been initialized.
  * Returns null if not yet initialized.
  */
-export function getBlinkSocketPath(): string | null {
+export function getTovyrSocketPath(): string | null {
   return socketPath
 }
 
@@ -120,19 +120,19 @@ export function isSocketInitialized(): boolean {
 }
 
 /**
- * Gets the TMUX environment variable value for Blink's isolated socket.
+ * Gets the TMUX environment variable value for Tovyr's isolated socket.
  *
  * CRITICAL: This value is used by Shell.ts to override the TMUX env var
  * in ALL child processes. This ensures that any `tmux` command run via
- * the Bash tool will operate on Blink's socket, NOT the user's session.
+ * the Bash tool will operate on Tovyr's socket, NOT the user's session.
  *
  * Format: "socket_path,server_pid,pane_index" (matches tmux's TMUX env var)
- * Example: "/tmp/tmux-501/blink-12345,54321,0"
+ * Example: "/tmp/tmux-501/tovyr-12345,54321,0"
  *
  * Returns null if socket is not yet initialized.
  * When null, Shell.ts does not override TMUX, preserving user's environment.
  */
-export function getBlinkTmuxEnv(): string | null {
+export function getTovyrTmuxEnv(): string | null {
   if (!socketPath || serverPid === null) {
     return null
   }
@@ -202,7 +202,7 @@ export function hasTmuxToolBeenUsed(): boolean {
  * Safe to call multiple times; will only initialize once.
  *
  * If tmux is not installed, this function returns gracefully without
- * initializing the socket. getBlinkTmuxEnv() will return null, and
+ * initializing the socket. getTovyrTmuxEnv() will return null, and
  * Bash commands will run without tmux isolation.
  */
 export async function ensureSocketInitialized(): Promise<void> {
@@ -246,11 +246,11 @@ export async function ensureSocketInitialized(): Promise<void> {
 }
 
 /**
- * Kills the tmux server for Blink's isolated socket.
+ * Kills the tmux server for Tovyr's isolated socket.
  * Called during graceful shutdown to clean up resources.
  */
 async function killTmuxServer(): Promise<void> {
-  const socket = getBlinkSocketName()
+  const socket = getTovyrSocketName()
   logForDebugging(`[Socket] Killing tmux server for socket: ${socket}`)
 
   const result = await execTmux(['-L', socket, 'kill-server'])
@@ -266,10 +266,10 @@ async function killTmuxServer(): Promise<void> {
 }
 
 async function doInitialize(): Promise<void> {
-  const socket = getBlinkSocketName()
+  const socket = getTovyrSocketName()
 
   // Create a new session with our custom socket
-  // Pass CLAUDE_CODE_SKIP_PROMPT_HISTORY via -e so it's set in the initial shell environment
+  // Pass TOVYR_CODE_SKIP_PROMPT_HISTORY via -e so it's set in the initial shell environment
   //
   // On Windows, the tmux server inherits WSL_INTEROP from the short-lived
   // wsl.exe that spawns it; once `new-session -d` detaches and wsl.exe exits,
@@ -287,7 +287,7 @@ async function doInitialize(): Promise<void> {
     '-s',
     'base',
     '-e',
-    'CLAUDE_CODE_SKIP_PROMPT_HISTORY=true',
+    'TOVYR_CODE_SKIP_PROMPT_HISTORY=true',
     ...(getPlatform() === 'windows'
       ? ['-e', 'WSL_INTEROP=/run/WSL/1_interop']
       : []),
@@ -313,10 +313,10 @@ async function doInitialize(): Promise<void> {
   // Register cleanup to kill the tmux server on exit
   registerCleanup(killTmuxServer)
 
-  // Set CLAUDE_CODE_SKIP_PROMPT_HISTORY in the tmux GLOBAL environment (-g).
+  // Set TOVYR_CODE_SKIP_PROMPT_HISTORY in the tmux GLOBAL environment (-g).
   // Without -g this would only apply to the 'base' session, and new sessions
   // created by TungstenTool (e.g. 'test', 'verify') would not inherit it.
-  // Any Blink instance spawned on this socket will inherit this env var,
+  // Any Tovyr instance spawned on this socket will inherit this env var,
   // preventing test/verification sessions from polluting the user's real
   // command history and --resume session list.
   await execTmux([
@@ -324,7 +324,7 @@ async function doInitialize(): Promise<void> {
     socket,
     'set-environment',
     '-g',
-    'CLAUDE_CODE_SKIP_PROMPT_HISTORY',
+    'TOVYR_CODE_SKIP_PROMPT_HISTORY',
     'true',
   ])
 

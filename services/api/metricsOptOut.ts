@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { hasProfileScope, isBlinkWebSubscriber } from '../../utils/auth.js'
+import { hasProfileScope, isTovyrWebSubscriber } from '../../utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { errorMessage } from '../../utils/errors.js'
@@ -7,7 +7,7 @@ import { getAuthHeaders, withOAuth401Retry } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
 import { memoizeWithTTLAsync } from '../../utils/memoize.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
-import { getBlinkCodeUserAgent } from '../../utils/userAgent.js'
+import { getTovyrCodeUserAgent } from '../../utils/userAgent.js'
 
 type MetricsEnabledResponse = {
   metrics_logging_enabled: boolean
@@ -23,7 +23,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000
 
 // Disk TTL — org settings rarely change. When disk cache is fresher than this,
 // we skip the network entirely (no background refresh). This is what collapses
-// N `blink -p` invocations into ~1 API call/day.
+// N `tovyr -p` invocations into ~1 API call/day.
 const DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 /**
@@ -38,7 +38,7 @@ async function _fetchMetricsEnabled(): Promise<MetricsEnabledResponse> {
 
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': getBlinkCodeUserAgent(),
+    'User-Agent': getTovyrCodeUserAgent(),
     ...authResult.headers,
   }
 
@@ -131,7 +131,7 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
   // This check runs before the disk read so we never persist auth-state-derived
   // answers — only real API responses go to disk. Otherwise a service-key
   // session would poison the cache for a later full-OAuth session.
-  if (isBlinkWebSubscriber() && !hasProfileScope()) {
+  if (isTovyrWebSubscriber() && !hasProfileScope()) {
     return { enabled: false, hasError: false }
   }
 

@@ -32,8 +32,8 @@ export function createFallbackStorage(
 
       if (result.success) {
         // Delete secondary when migrating to primary for the first time
-        // This preserves credentials when sharing .blink between host and containers
-        // See: https://github.com/blinks/blink/issues/1414
+        // This preserves credentials when sharing .tovyr between host and containers
+        // See: https://github.com/tovyrs/tovyr/issues/1414
         if (primaryDataBefore === null) {
           secondary.delete()
         }

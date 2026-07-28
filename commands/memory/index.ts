@@ -3,7 +3,7 @@ import type { Command } from '../../commands.js'
 const memory: Command = {
   type: 'local-jsx',
   name: 'memory',
-  description: 'Edit Blink memory files',
+  description: 'Edit Tovyr memory files',
   load: () => import('./memory.js'),
 }
 

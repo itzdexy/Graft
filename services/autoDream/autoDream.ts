@@ -29,7 +29,7 @@ import { isAutoDreamEnabled } from './config.js'
 import { getProjectDir } from '../../utils/sessionStorage.js'
 import {
   getOriginalCwd,
-  getBlinksActive,
+  getTovyrsActive,
   getIsRemoteMode,
   getSessionId,
 } from '../../bootstrap/state.js'
@@ -93,7 +93,7 @@ function getConfig(): AutoDreamConfig {
 }
 
 function isGateOpen(): boolean {
-  if (getBlinksActive()) return false // BLINKS mode uses disk-skill dream
+  if (getTovyrsActive()) return false // TOVYRS mode uses disk-skill dream
   if (getIsRemoteMode()) return false
   if (!isAutoMemoryEnabled()) return false
   return isAutoDreamEnabled()

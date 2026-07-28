@@ -1,5 +1,5 @@
 /**
- * Real-time collaboration system for Blink
+ * Real-time collaboration system for Tovyr
  * Enables multiple users to work together on the same project with shared sessions
  */
 

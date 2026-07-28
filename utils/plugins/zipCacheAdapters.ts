@@ -114,7 +114,7 @@ export async function saveMarketplaceJsonToZipCache(
 
 /**
  * Read marketplace.json content from a cloned marketplace directory or file.
- * For directory sources: checks .blink-plugin/marketplace.json, marketplace.json
+ * For directory sources: checks .tovyr-plugin/marketplace.json, marketplace.json
  * For URL sources: the installLocation IS the marketplace JSON file itself.
  */
 async function readMarketplaceJsonContent(dir: string): Promise<string | null> {

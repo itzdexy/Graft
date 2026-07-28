@@ -10,12 +10,12 @@ import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js
 import { z } from 'zod/v4'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { queryModelWithStreaming } from '../../services/api/claude.js'
-import { runLocalWebSearch } from '../../services/blink/web/localWebSearch.js'
+import { runLocalWebSearch } from '../../services/tovyr/web/localWebSearch.js'
 import { buildTool, type ToolDef } from '../../Tool.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { logError } from '../../utils/log.js'
-import { getAssistantName } from '../../utils/blinkBrand.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { getAssistantName } from '../../utils/tovyrBrand.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { createUserMessage } from '../../utils/messages.js'
 import { getMainLoopModel, getSmallFastModel } from '../../utils/model/model.js'
 import { jsonParse, jsonStringify } from '../../utils/slowOperations.js'
@@ -88,7 +88,10 @@ function supportsAnthropicServerWebSearch(): boolean {
     return (
       model.includes('claude-opus-4') ||
       model.includes('claude-sonnet-4') ||
-      model.includes('claude-haiku-4')
+      model.includes('claude-sonnet-5') ||
+      model.includes('claude-haiku-4') ||
+      model.includes('claude-fable-5') ||
+      model.includes('claude-mythos-5')
     )
   }
   if (provider === 'foundry') return true
@@ -191,8 +194,8 @@ export const WebSearchTool = buildTool({
     return summary ? `Searching for ${summary}` : 'Searching the web'
   },
   isEnabled() {
-    // Blink always enables WebSearch (local DuckDuckGo fallback when needed)
-    if (isBlinkRuntime()) {
+    // Tovyr always enables WebSearch (local DuckDuckGo fallback when needed)
+    if (isTovyrRuntime()) {
       return true
     }
 
@@ -204,7 +207,7 @@ export const WebSearchTool = buildTool({
       return true
     }
 
-    // Enable for Vertex AI with supported models (Blink 4.0+)
+    // Enable for Vertex AI with supported models (Tovyr 4.0+)
     if (provider === 'vertex') {
       const supportsWebSearch =
         model.includes('claude-opus-4') ||

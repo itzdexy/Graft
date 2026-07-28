@@ -1,5 +1,5 @@
 import { z } from 'zod/v4'
-import { normalizeEditToolInputShape } from '../../services/blink/edits/normalizeEditInput.js'
+import { normalizeEditToolInputShape } from '../../services/tovyr/edits/normalizeEditInput.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { semanticBoolean } from '../../utils/semanticBoolean.js'
 

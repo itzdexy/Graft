@@ -5,7 +5,7 @@ import { Pane } from '../../components/design-system/Pane.js'
 import { Card } from '../../components/design-system/Card.js'
 import { Section } from '../../components/design-system/Section.js'
 import type { LocalJSXCommandOnDone } from '../../types/command.js'
-import { randomBlinkTip } from '../../constants/blinkTips.js'
+import { randomTovyrTip } from '../../constants/tovyrTips.js'
 
 const STEPS = [
   { cmd: '/provider', desc: 'Choose who powers your sessions' },
@@ -24,7 +24,7 @@ export async function call(
   return (
     <Pane color="permission">
       <Card
-        title="Welcome to Blink"
+        title="Welcome to Tovyr"
         subtitle="Your AI coding agent, right in the terminal."
         color="permission"
       >
@@ -43,7 +43,7 @@ export async function call(
         </Section>
 
         <Section title="Tip">
-          <Text wrap="wrap">{randomBlinkTip()}</Text>
+          <Text wrap="wrap">{randomTovyrTip()}</Text>
         </Section>
       </Card>
     </Pane>

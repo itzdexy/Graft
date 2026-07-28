@@ -1,6 +1,6 @@
 import type { Command } from '../../commands.js'
 
-import { isBlinkWebOnlyCommandEnabled } from '../../utils/blinkRuntime.js'
+import { isTovyrWebOnlyCommandEnabled } from '../../utils/tovyrRuntime.js'
 
 function isSupportedPlatform(): boolean {
   if (process.platform === 'darwin') {
@@ -16,9 +16,9 @@ const desktop = {
   type: 'local-jsx',
   name: 'desktop',
   aliases: ['app'],
-  description: 'Continue the current session in Blink on desktop',
+  description: 'Continue the current session in Tovyr on desktop',
   availability: ['claude-ai'],
-  isEnabled: () => isBlinkWebOnlyCommandEnabled() && isSupportedPlatform(),
+  isEnabled: () => isTovyrWebOnlyCommandEnabled() && isSupportedPlatform(),
   get isHidden() {
     return !isSupportedPlatform()
   },

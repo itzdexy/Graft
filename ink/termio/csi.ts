@@ -113,14 +113,14 @@ export const ERASE_LINE_REGION = ['toEnd', 'toStart', 'all'] as const
  */
 export type CursorStyle = 'block' | 'underline' | 'bar'
 
-export const CURSOR_STYLES: Array<{ style: CursorStyle; blinking: boolean }> = [
-  { style: 'block', blinking: true }, // 0 - default
-  { style: 'block', blinking: true }, // 1
-  { style: 'block', blinking: false }, // 2
-  { style: 'underline', blinking: true }, // 3
-  { style: 'underline', blinking: false }, // 4
-  { style: 'bar', blinking: true }, // 5
-  { style: 'bar', blinking: false }, // 6
+export const CURSOR_STYLES: Array<{ style: CursorStyle; tovyring: boolean }> = [
+  { style: 'block', tovyring: true }, // 0 - default
+  { style: 'block', tovyring: true }, // 1
+  { style: 'block', tovyring: false }, // 2
+  { style: 'underline', tovyring: true }, // 3
+  { style: 'underline', tovyring: false }, // 4
+  { style: 'bar', tovyring: true }, // 5
+  { style: 'bar', tovyring: false }, // 6
 ]
 
 // Cursor movement generators

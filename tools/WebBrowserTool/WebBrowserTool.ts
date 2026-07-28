@@ -1,8 +1,11 @@
 import { z } from 'zod/v4'
 import { buildTool } from '../../Tool.js'
-import { formatBrowserToolCatalog } from '../../services/blink/browser/registry.js'
-import { getPlaywrightMcpHint } from '../../services/blink/browser/playwright.js'
-import { isBlinkRuntime } from '../../utils/blinkRuntime.js'
+import { formatBrowserToolCatalog } from '../../services/tovyr/browser/registry.js'
+import {
+  configurePlaywrightMcp,
+  getPlaywrightMcpHint,
+} from '../../services/tovyr/browser/playwright.js'
+import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 
 export const WEB_BROWSER_TOOL_NAME = 'WebBrowser'
@@ -10,8 +13,16 @@ export const WEB_BROWSER_TOOL_NAME = 'WebBrowser'
 const inputSchema = lazySchema(() =>
   z.strictObject({
     action: z
-      .enum(['open_url', 'read_page', 'catalog', 'playwright_hint'])
-      .describe('open_url/read_page for static fetch; catalog lists browser tools; playwright_hint for MCP setup'),
+      .enum([
+        'open_url',
+        'read_page',
+        'catalog',
+        'playwright_status',
+        'configure_playwright',
+      ])
+      .describe(
+        'Static fetch guidance, browser catalog, Playwright status, or explicit Playwright setup',
+      ),
     target: z
       .string()
       .optional()
@@ -32,11 +43,11 @@ function hasBunWebView(): boolean {
 
 export const WebBrowserTool = buildTool({
   name: WEB_BROWSER_TOOL_NAME,
-  searchHint: 'local or MCP browser (Blink WebBrowser)',
+  searchHint: 'local or MCP browser (Tovyr WebBrowser)',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   isEnabled() {
-    return isBlinkRuntime()
+    return isTovyrRuntime()
   },
   userFacingName() {
     return 'WebBrowser'
@@ -50,23 +61,30 @@ export const WebBrowserTool = buildTool({
   isConcurrencySafe() {
     return false
   },
-  isReadOnly() {
-    return true
+  isReadOnly(input) {
+    return input.action !== 'configure_playwright'
   },
   async description(input) {
-    return `Blink WebBrowser ${input.action}${input.target ? `: ${input.target.slice(0, 60)}` : ''}`
+    return `Tovyr WebBrowser ${input.action}${input.target ? `: ${input.target.slice(0, 60)}` : ''}`
   },
   async prompt() {
     return [
-      'Blink WebBrowser — unified browser surface (Phases 2 & 11).',
-      'Prefer WebFetch/WebSearch for static pages; use BrowserUse for cloud interactive sessions.',
-      'Use action=playwright_hint when Playwright MCP is needed for tabs, forms, or screenshots.',
+      'Tovyr WebBrowser: browser discovery and safe Playwright setup.',
+      'Prefer WebFetch/WebSearch for static pages. Use configured mcp__playwright__browser_* tools for interactive work.',
+      'Use action=playwright_status to inspect setup or configure_playwright after user approval.',
       '',
       formatBrowserToolCatalog(),
     ].join('\n')
   },
-  async checkPermissions() {
-    return { behavior: 'allow', updatedInput: undefined }
+  async checkPermissions(input) {
+    if (input.action === 'configure_playwright') {
+      return {
+        behavior: 'ask',
+        message:
+          'Configure pinned Playwright MCP in Tovyr user settings and create ~/.tovyr/browser?',
+      }
+    }
+    return { behavior: 'allow', updatedInput: input }
   },
   async call(input) {
     if (input.action === 'catalog') {
@@ -78,11 +96,21 @@ export const WebBrowserTool = buildTool({
       }
     }
 
-    if (input.action === 'playwright_hint') {
+    if (input.action === 'playwright_status') {
       return {
         data: {
           action: input.action,
           output: getPlaywrightMcpHint(),
+        },
+      }
+    }
+
+    if (input.action === 'configure_playwright') {
+      await configurePlaywrightMcp()
+      return {
+        data: {
+          action: input.action,
+          output: `${getPlaywrightMcpHint()}\n\nRestart Tovyr or run /mcp to connect it.`,
         },
       }
     }
@@ -92,7 +120,8 @@ export const WebBrowserTool = buildTool({
       return {
         data: {
           action: input.action,
-          output: 'Provide target URL. Example: { "action": "read_page", "target": "https://example.com" }',
+          output:
+            'Provide target URL. Example: { "action": "read_page", "target": "https://example.com" }',
         },
       }
     }
@@ -102,8 +131,8 @@ export const WebBrowserTool = buildTool({
         data: {
           action: input.action,
           output: [
-            `Bun WebView is available on this host.`,
-            `Open ${url} in the WebBrowser panel (footer) or use Chrome MCP for interactive control.`,
+            'Bun WebView is available on this host.',
+            `Open ${url} in the WebBrowser panel or use Playwright MCP for interactive control.`,
             `For automation: ${getPlaywrightMcpHint()}`,
           ].join('\n'),
         },
@@ -115,10 +144,20 @@ export const WebBrowserTool = buildTool({
         action: input.action,
         output: [
           `Use WebFetch on: ${url}`,
-          'For interactive pages: BrowserUse (BROWSER_USE_API_KEY) or Playwright/Chrome MCP.',
+          'For interactive pages, use the pinned Playwright MCP runtime.',
           getPlaywrightMcpHint(),
         ].join('\n\n'),
       },
     }
+  },
+  mapToolResultToToolResultBlockParam({ output, action }, toolUseID) {
+    return {
+      tool_use_id: toolUseID,
+      type: 'tool_result',
+      content: `[WebBrowser ${action}]\n${output}`,
+    }
+  },
+  renderToolUseMessage(input) {
+    return `WebBrowser ${input.action}${input.target ? ` ${input.target}` : ''}`
   },
 })

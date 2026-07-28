@@ -6,7 +6,7 @@ import {
   SUPPORTED_SETTINGS,
 } from './supportedSettings.js'
 
-export const DESCRIPTION = 'Get or set Blink configuration settings.'
+export const DESCRIPTION = 'Get or set Tovyr configuration settings.'
 
 /**
  * Generate the prompt documentation from the registry
@@ -47,9 +47,9 @@ export function generatePrompt(): string {
 
   const modelSection = generateModelSection()
 
-  return `Get or set Blink configuration settings.
+  return `Get or set Tovyr configuration settings.
 
-  View or change Blink settings. Use when the user requests configuration changes, asks about current settings, or when adjusting a setting would benefit them.
+  View or change Tovyr settings. Use when the user requests configuration changes, asks about current settings, or when adjusting a setting would benefit them.
 
 
 ## Usage

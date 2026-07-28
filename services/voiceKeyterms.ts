@@ -12,7 +12,7 @@ import { getBranch } from '../utils/git.js'
 
 const GLOBAL_KEYTERMS: readonly string[] = [
   // Terms Deepgram consistently mangles without keyword hints.
-  // Note: "Blink" and "Blink" are already server-side base keyterms.
+  // Note: "Tovyr" and "Tovyr" are already server-side base keyterms.
   // Avoid terms nobody speaks aloud as-spelled (stdout → "standard out").
   'MCP',
   'symlink',
@@ -65,7 +65,7 @@ export async function getVoiceKeyterms(
 ): Promise<string[]> {
   const terms = new Set<string>(GLOBAL_KEYTERMS)
 
-  // Project root basename as a single term — users say "blink CLI internal"
+  // Project root basename as a single term — users say "tovyr CLI internal"
   // as a phrase, not isolated words. Keeping the whole basename lets the
   // STT's keyterm boosting match the phrase regardless of separator.
   try {

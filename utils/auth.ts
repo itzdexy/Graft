@@ -5,7 +5,7 @@ import { mkdir, stat } from 'fs/promises'
 import memoize from 'lodash-es/memoize.js'
 import { join } from 'path'
 import { CLAUDE_AI_PROFILE_SCOPE } from 'src/constants/oauth.js'
-import { blinkCmd } from 'src/constants/blink.js'
+import { tovyrCmd } from 'src/constants/tovyr.js'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
@@ -23,7 +23,7 @@ import {
 import {
   isOAuthTokenExpired,
   refreshOAuthToken,
-  shouldUseBlinkWebAuth,
+  shouldUseTovyrWebAuth,
 } from '../services/oauth/client.js'
 import { getOauthProfileFromOauthToken } from '../services/oauth/getOauthProfile.js'
 import type { OAuthTokens, SubscriptionType } from '../services/oauth/types.js'
@@ -50,7 +50,7 @@ import {
 } from './config.js'
 import { logAntError, logForDebugging } from './debug.js'
 import {
-  getBlinkConfigHomeDir,
+  getTovyrConfigHomeDir,
   isBareMode,
   isEnvTruthy,
   isRunningOnHomespace,
@@ -82,17 +82,29 @@ import { clearToolSchemaCache } from './toolSchemaCache.js'
 const DEFAULT_API_KEY_HELPER_TTL = 5 * 60 * 1000
 
 /**
- * CCR and Blink Desktop spawn the CLI with OAuth and should never fall back
- * to the user's ~/.blink/settings.json API-key config (apiKeyHelper,
+ * Tovyr normally launches with --bare for fast, isolated startup. A provider
+ * explicitly connected through Tovyr's own Anthropic OAuth flow is the one
+ * exception: its tokens live under ~/.tovyr and must remain readable.
+ */
+function isTovyrAnthropicOAuthSession(): boolean {
+  return (
+    process.env.TOVYR_ACTIVE_PROVIDER === 'anthropic' &&
+    process.env.TOVYR_PROVIDER_AUTH_MODE === 'oauth'
+  )
+}
+
+/**
+ * CCR and Claude Desktop spawn the CLI with OAuth and should never fall back
+ * to the user's ~/.claude/settings.json API-key config (apiKeyHelper,
  * env.ANTHROPIC_API_KEY, env.ANTHROPIC_AUTH_TOKEN). Those settings exist for
  * the user's terminal CLI, not managed sessions. Without this guard, a user
- * who runs `blink` in their terminal with an API key sees every CCD session
+ * who runs `claude` in their terminal with an API key sees every CCD session
  * also use that key — and fail if it's stale/wrong-org.
  */
 function isManagedOAuthContext(): boolean {
   return (
-    isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) ||
-    process.env.CLAUDE_CODE_ENTRYPOINT === 'claude-desktop'
+    isEnvTruthy(process.env.TOVYR_CODE_REMOTE) ||
+    process.env.TOVYR_CODE_ENTRYPOINT === 'claude-desktop'
   )
 }
 
@@ -100,23 +112,23 @@ function isManagedOAuthContext(): boolean {
 // this code is closely related to getAuthTokenSource
 export function isAnthropicAuthEnabled(): boolean {
   // --bare: API-key-only, never OAuth.
-  if (isBareMode()) return false
+  if (isBareMode() && !isTovyrAnthropicOAuthSession()) return false
 
-  // `blink ssh` remote: ANTHROPIC_UNIX_SOCKET tunnels API calls through a
-  // local auth-injecting proxy. The launcher sets CLAUDE_CODE_OAUTH_TOKEN as a
+  // `claude ssh` remote: ANTHROPIC_UNIX_SOCKET tunnels API calls through a
+  // local auth-injecting proxy. The launcher sets TOVYR_CODE_OAUTH_TOKEN as a
   // placeholder iff the local side is a subscriber (so the remote includes the
   // oauth-2025 beta header to match what the proxy will inject). The remote's
-  // ~/.blink settings (apiKeyHelper, settings.env.ANTHROPIC_API_KEY) MUST NOT
+  // ~/.claude settings (apiKeyHelper, settings.env.ANTHROPIC_API_KEY) MUST NOT
   // flip this — they'd cause a header mismatch with the proxy and a bogus
   // "invalid x-api-key" from the API. See src/ssh/sshAuthProxy.ts.
   if (process.env.ANTHROPIC_UNIX_SOCKET) {
-    return !!process.env.CLAUDE_CODE_OAUTH_TOKEN
+    return !!process.env.TOVYR_CODE_OAUTH_TOKEN
   }
 
   const is3P =
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+    isEnvTruthy(process.env.TOVYR_CODE_USE_BEDROCK) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_VERTEX) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_FOUNDRY)
 
   // Check if user has configured an external API key source
   // This allows externally-provided API keys to work (without requiring proxy configuration)
@@ -125,7 +137,7 @@ export function isAnthropicAuthEnabled(): boolean {
   const hasExternalAuthToken =
     process.env.ANTHROPIC_AUTH_TOKEN ||
     apiKeyHelper ||
-    process.env.CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR
+    process.env.TOVYR_CODE_API_KEY_FILE_DESCRIPTOR
 
   // Check if API key is from an external source (not managed by /login)
   const { source: apiKeySource } = getAnthropicApiKeyWithSource({
@@ -134,12 +146,12 @@ export function isAnthropicAuthEnabled(): boolean {
   const hasExternalApiKey =
     apiKeySource === 'ANTHROPIC_API_KEY' || apiKeySource === 'apiKeyHelper'
 
-  // Disable Blink auth if:
+  // Disable Anthropic auth if:
   // 1. Using 3rd party services (Bedrock/Vertex/Foundry)
   // 2. User has an external API key (regardless of proxy configuration)
   // 3. User has an external auth token (regardless of proxy configuration)
   // this may cause issues if users have complex proxy / gateway "client-side creds" auth scenarios,
-  // e.g. if they want to set X-Api-Key to a gateway key but use Blink OAuth for the Authorization
+  // e.g. if they want to set X-Api-Key to a gateway key but use Anthropic OAuth for the Authorization
   // if we get reports of that, we should probably add an env var to force OAuth enablement
   const shouldDisableAuth =
     is3P ||
@@ -150,12 +162,12 @@ export function isAnthropicAuthEnabled(): boolean {
 }
 
 /** Where the auth token is being sourced from, if any. */
-// this code is closely related to isBlinkAuthEnabled
+// this code is closely related to isAnthropicAuthEnabled
 export function getAuthTokenSource() {
   // --bare: API-key-only. apiKeyHelper (from --settings) is the only
   // bearer-token-shaped source allowed. OAuth env vars, FD tokens, and
   // keychain are ignored.
-  if (isBareMode()) {
+  if (isBareMode() && !isTovyrAnthropicOAuthSession()) {
     if (getConfiguredApiKeyHelper()) {
       return { source: 'apiKeyHelper' as const, hasToken: true }
     }
@@ -166,8 +178,8 @@ export function getAuthTokenSource() {
     return { source: 'ANTHROPIC_AUTH_TOKEN' as const, hasToken: true }
   }
 
-  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-    return { source: 'CLAUDE_CODE_OAUTH_TOKEN' as const, hasToken: true }
+  if (process.env.TOVYR_CODE_OAUTH_TOKEN) {
+    return { source: 'TOVYR_CODE_OAUTH_TOKEN' as const, hasToken: true }
   }
 
   // Check for OAuth token from file descriptor (or its CCR disk fallback)
@@ -179,9 +191,9 @@ export function getAuthTokenSource() {
     // doesn't exist. Call sites fall through correctly — the new source is
     // !== 'none' (cli/handlers/auth.ts → oauth_token) and not in the
     // isEnvVarToken set (auth.ts:1844 → generic re-login message).
-    if (process.env.CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR) {
+    if (process.env.TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR) {
       return {
-        source: 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR' as const,
+        source: 'TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR' as const,
         hasToken: true,
       }
     }
@@ -198,9 +210,9 @@ export function getAuthTokenSource() {
     return { source: 'apiKeyHelper' as const, hasToken: true }
   }
 
-  const oauthTokens = getBlinkWebOAuthTokens()
-  if (shouldUseBlinkWebAuth(oauthTokens?.scopes) && oauthTokens?.accessToken) {
-    return { source: 'blink-web' as const, hasToken: true }
+  const oauthTokens = getTovyrWebOAuthTokens()
+  if (shouldUseTovyrWebAuth(oauthTokens?.scopes) && oauthTokens?.accessToken) {
+    return { source: 'claude.ai' as const, hasToken: true }
   }
 
   return { source: 'none' as const, hasToken: false }
@@ -249,12 +261,12 @@ export function getAnthropicApiKeyWithSource(
   }
 
   // On homespace, don't use ANTHROPIC_API_KEY (use Console key instead)
-  // https://blink.slack.com/archives/C08428WSLKV/p1747331773214779
+  // https://anthropic.slack.com/archives/C08428WSLKV/p1747331773214779
   const apiKeyEnv = isRunningOnHomespace()
     ? undefined
     : process.env.ANTHROPIC_API_KEY
 
-  // Always check for direct environment variable when the user ran blink --print.
+  // Always check for direct environment variable when the user ran claude --print.
   // This is useful for CI, etc.
   if (preferThirdPartyAuthentication() && apiKeyEnv) {
     return {
@@ -275,11 +287,11 @@ export function getAnthropicApiKeyWithSource(
 
     if (
       !apiKeyEnv &&
-      !process.env.CLAUDE_CODE_OAUTH_TOKEN &&
-      !process.env.CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR
+      !process.env.TOVYR_CODE_OAUTH_TOKEN &&
+      !process.env.TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR
     ) {
       throw new Error(
-        'ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN env var is required',
+        'ANTHROPIC_API_KEY or TOVYR_CODE_OAUTH_TOKEN env var is required',
       )
     }
 
@@ -351,15 +363,15 @@ export function getAnthropicApiKeyWithSource(
 /**
  * Get the configured apiKeyHelper from settings.
  * In bare mode, only the --settings flag source is consulted — apiKeyHelper
- * from ~/.blink/settings.json or project settings is ignored.
+ * from ~/.claude/settings.json or project settings is ignored.
  */
 export function getConfiguredApiKeyHelper(): string | undefined {
   if (isBareMode()) {
     const fromFlag = getSettingsForSource('flagSettings')?.apiKeyHelper
     if (fromFlag) return fromFlag
-    // Blink launcher syncs apiKeyHelper to ~/.blink/settings.json; --bare only
-    // reads flagSettings unless we also allow user settings when Blink is active.
-    if (process.env.BLINK_PACKAGE_ROOT) {
+    // Tovyr launcher syncs apiKeyHelper to ~/.claude/settings.json; --bare only
+    // reads flagSettings unless we also allow user settings when Tovyr is active.
+    if (process.env.TOVYR_PACKAGE_ROOT) {
       return getSettingsForSource('userSettings')?.apiKeyHelper
     }
     return undefined
@@ -437,11 +449,11 @@ export function isAwsCredentialExportFromProjectSettings(): boolean {
 
 /**
  * Calculate TTL in milliseconds for the API key helper cache
- * Uses CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var if set and valid,
+ * Uses TOVYR_CODE_API_KEY_HELPER_TTL_MS env var if set and valid,
  * otherwise defaults to 5 minutes
  */
 export function calculateApiKeyHelperTTL(): number {
-  const envTtl = process.env.CLAUDE_CODE_API_KEY_HELPER_TTL_MS
+  const envTtl = process.env.TOVYR_CODE_API_KEY_HELPER_TTL_MS
 
   if (envTtl) {
     const parsed = parseInt(envTtl, 10)
@@ -449,7 +461,7 @@ export function calculateApiKeyHelperTTL(): number {
       return parsed
     }
     logForDebugging(
-      `Found CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var, but it was not a valid number. Got ${envTtl}`,
+      `Found TOVYR_CODE_API_KEY_HELPER_TTL_MS env var, but it was not a valid number. Got ${envTtl}`,
       { level: 'error' },
     )
   }
@@ -1055,7 +1067,7 @@ export function prefetchAwsCredentialsAndBedRockInfoIfSafe(): void {
   getModelStrings()
 }
 
-/** @private Use {@link getBlinkApiKey} or {@link getBlinkApiKeyWithSource} */
+/** @private Use {@link getAnthropicApiKey} or {@link getAnthropicApiKeyWithSource} */
 export const getApiKeyFromConfigOrMacOSKeychain = memoize(
   (): { key: string; source: ApiKeySource } | null => {
     if (isBareMode()) return null
@@ -1203,7 +1215,7 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
   success: boolean
   warning?: string
 } {
-  if (!shouldUseBlinkWebAuth(tokens.scopes)) {
+  if (!shouldUseTovyrWebAuth(tokens.scopes)) {
     logEvent('tengu_oauth_tokens_not_claude_ai', {})
     return { success: true }
   }
@@ -1244,7 +1256,7 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
       logEvent('tengu_oauth_tokens_save_failed', { storageBackend })
     }
 
-    getBlinkWebOAuthTokens.cache?.clear?.()
+    getTovyrWebOAuthTokens.cache?.clear?.()
     clearBetasCaches()
     clearToolSchemaCache()
     return updateStatus
@@ -1260,15 +1272,15 @@ export function saveOAuthTokensIfNeeded(tokens: OAuthTokens): {
   }
 }
 
-export const getBlinkWebOAuthTokens = memoize((): OAuthTokens | null => {
+export const getTovyrWebOAuthTokens = memoize((): OAuthTokens | null => {
   // --bare: API-key-only. No OAuth env tokens, no keychain, no credentials file.
-  if (isBareMode()) return null
+  if (isBareMode() && !isTovyrAnthropicOAuthSession()) return null
 
   // Check for force-set OAuth token from environment variable
-  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+  if (process.env.TOVYR_CODE_OAUTH_TOKEN) {
     // Return an inference-only token (unknown refresh and expiry)
     return {
-      accessToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+      accessToken: process.env.TOVYR_CODE_OAUTH_TOKEN,
       refreshToken: null,
       expiresAt: null,
       scopes: ['user:inference'],
@@ -1314,7 +1326,7 @@ export const getBlinkWebOAuthTokens = memoize((): OAuthTokens | null => {
  * server (e.g., due to clock corrections after token was issued).
  */
 export function clearOAuthTokenCache(): void {
-  getBlinkWebOAuthTokens.cache?.clear?.()
+  getTovyrWebOAuthTokens.cache?.clear?.()
   clearKeychainCache()
 }
 
@@ -1328,7 +1340,7 @@ let lastCredentialsMtimeMs = 0
 async function invalidateOAuthCacheIfDiskChanged(): Promise<void> {
   try {
     const { mtimeMs } = await stat(
-      join(getBlinkConfigHomeDir(), '.credentials.json'),
+      join(getTovyrConfigHomeDir(), '.credentials.json'),
     )
     if (mtimeMs !== lastCredentialsMtimeMs) {
       lastCredentialsMtimeMs = mtimeMs
@@ -1339,11 +1351,11 @@ async function invalidateOAuthCacheIfDiskChanged(): Promise<void> {
     // the memoize so it delegates to the keychain cache's 30s TTL instead
     // of caching forever on top. `security find-generic-password` is
     // ~15ms; bounded to once per 30s by the keychain cache.
-    getBlinkWebOAuthTokens.cache?.clear?.()
+    getTovyrWebOAuthTokens.cache?.clear?.()
   }
 }
 
-// In-flight dedup: when N blink web proxy connectors hit 401 with the same
+// In-flight dedup: when N claude.ai proxy connectors hit 401 with the same
 // token simultaneously (common at startup — #20930), only one should clear
 // caches and re-read the keychain. Without this, each call's clearOAuthTokenCache()
 // nukes readInFlight in macOsKeychainStorage and triggers a fresh spawn —
@@ -1383,7 +1395,7 @@ async function handleOAuth401ErrorImpl(
 ): Promise<boolean> {
   // Clear caches and re-read from keychain (async — sync read blocks ~100ms/call)
   clearOAuthTokenCache()
-  const currentTokens = await getBlinkWebOAuthTokensAsync()
+  const currentTokens = await getTovyrWebOAuthTokensAsync()
 
   if (!currentTokens?.refreshToken) {
     return false
@@ -1404,15 +1416,15 @@ async function handleOAuth401ErrorImpl(
  * Delegates to the sync memoized version for env var / file descriptor tokens
  * (which don't hit the keychain), and only uses async for storage reads.
  */
-export async function getBlinkWebOAuthTokensAsync(): Promise<OAuthTokens | null> {
-  if (isBareMode()) return null
+export async function getTovyrWebOAuthTokensAsync(): Promise<OAuthTokens | null> {
+  if (isBareMode() && !isTovyrAnthropicOAuthSession()) return null
 
   // Env var and FD tokens are sync and don't hit the keychain
   if (
-    process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+    process.env.TOVYR_CODE_OAUTH_TOKEN ||
     getOAuthTokenFromFileDescriptor()
   ) {
-    return getBlinkWebOAuthTokens()
+    return getTovyrWebOAuthTokens()
   }
 
   try {
@@ -1462,7 +1474,7 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
 
   // First check if token is expired with cached value
   // Skip this check if force=true (server already told us token is bad)
-  const tokens = getBlinkWebOAuthTokens()
+  const tokens = getTovyrWebOAuthTokens()
   if (!force) {
     if (!tokens?.refreshToken || !isOAuthTokenExpired(tokens.expiresAt)) {
       return false
@@ -1473,15 +1485,15 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
     return false
   }
 
-  if (!shouldUseBlinkWebAuth(tokens.scopes)) {
+  if (!shouldUseTovyrWebAuth(tokens.scopes)) {
     return false
   }
 
   // Re-read tokens async to check if they're still expired
   // Another process might have refreshed them
-  getBlinkWebOAuthTokens.cache?.clear?.()
+  getTovyrWebOAuthTokens.cache?.clear?.()
   clearKeychainCache()
-  const freshTokens = await getBlinkWebOAuthTokensAsync()
+  const freshTokens = await getTovyrWebOAuthTokensAsync()
   if (
     !freshTokens?.refreshToken ||
     !isOAuthTokenExpired(freshTokens.expiresAt)
@@ -1490,7 +1502,7 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
   }
 
   // Tokens are still expired, try to acquire lock and refresh
-  const claudeDir = getBlinkConfigHomeDir()
+  const claudeDir = getTovyrConfigHomeDir()
   await mkdir(claudeDir, { recursive: true })
 
   let release
@@ -1524,9 +1536,9 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
   }
   try {
     // Check one more time after acquiring lock
-    getBlinkWebOAuthTokens.cache?.clear?.()
+    getTovyrWebOAuthTokens.cache?.clear?.()
     clearKeychainCache()
-    const lockedTokens = await getBlinkWebOAuthTokensAsync()
+    const lockedTokens = await getTovyrWebOAuthTokensAsync()
     if (
       !lockedTokens?.refreshToken ||
       !isOAuthTokenExpired(lockedTokens.expiresAt)
@@ -1537,25 +1549,25 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
 
     logEvent('tengu_oauth_token_refresh_starting', {})
     const refreshedTokens = await refreshOAuthToken(lockedTokens.refreshToken, {
-      // For Blink.ai subscribers, omit scopes so the default
+      // For Claude.ai subscribers, omit scopes so the default
       // CLAUDE_AI_OAUTH_SCOPES applies — this allows scope expansion
       // (e.g. adding user:file_upload) on refresh without re-login.
-      scopes: shouldUseBlinkWebAuth(lockedTokens.scopes)
+      scopes: shouldUseTovyrWebAuth(lockedTokens.scopes)
         ? undefined
         : lockedTokens.scopes,
     })
     saveOAuthTokensIfNeeded(refreshedTokens)
 
     // Clear the cache after refreshing token
-    getBlinkWebOAuthTokens.cache?.clear?.()
+    getTovyrWebOAuthTokens.cache?.clear?.()
     clearKeychainCache()
     return true
   } catch (error) {
     logError(error)
 
-    getBlinkWebOAuthTokens.cache?.clear?.()
+    getTovyrWebOAuthTokens.cache?.clear?.()
     clearKeychainCache()
-    const currentTokens = await getBlinkWebOAuthTokensAsync()
+    const currentTokens = await getTovyrWebOAuthTokensAsync()
     if (currentTokens && !isOAuthTokenExpired(currentTokens.expiresAt)) {
       logEvent('tengu_oauth_token_refresh_race_recovered', {})
       return true
@@ -1569,12 +1581,12 @@ async function checkAndRefreshOAuthTokenIfNeededImpl(
   }
 }
 
-export function isBlinkWebSubscriber(): boolean {
+export function isTovyrWebSubscriber(): boolean {
   if (!isAnthropicAuthEnabled()) {
     return false
   }
 
-  return shouldUseBlinkWebAuth(getBlinkWebOAuthTokens()?.scopes)
+  return shouldUseTovyrWebAuth(getTovyrWebOAuthTokens()?.scopes)
 }
 
 /**
@@ -1587,28 +1599,28 @@ export function isBlinkWebSubscriber(): boolean {
  */
 export function hasProfileScope(): boolean {
   return (
-    getBlinkWebOAuthTokens()?.scopes?.includes(CLAUDE_AI_PROFILE_SCOPE) ?? false
+    getTovyrWebOAuthTokens()?.scopes?.includes(CLAUDE_AI_PROFILE_SCOPE) ?? false
   )
 }
 
 export function is1PApiCustomer(): boolean {
   // 1P API customers are users who are NOT:
-  // 1. Blink.ai subscribers (Max, Pro, Enterprise, Team)
+  // 1. Claude.ai subscribers (Max, Pro, Enterprise, Team)
   // 2. Vertex AI users
   // 3. AWS Bedrock users
   // 4. Foundry users
 
   // Exclude Vertex, Bedrock, and Foundry customers
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+    isEnvTruthy(process.env.TOVYR_CODE_USE_BEDROCK) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_VERTEX) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_FOUNDRY)
   ) {
     return false
   }
 
-  // Exclude Blink.ai subscribers
-  if (isBlinkWebSubscriber()) {
+  // Exclude Claude.ai subscribers
+  if (isTovyrWebSubscriber()) {
     return false
   }
 
@@ -1617,7 +1629,7 @@ export function is1PApiCustomer(): boolean {
 }
 
 /**
- * Gets OAuth account information when Blink auth is enabled.
+ * Gets OAuth account information when Anthropic auth is enabled.
  * Returns undefined when using external API keys or third-party services.
  */
 export function getOauthAccountInfo(): AccountInfo | undefined {
@@ -1626,14 +1638,14 @@ export function getOauthAccountInfo(): AccountInfo | undefined {
 
 /**
  * Checks if overage/extra usage provisioning is allowed for this organization.
- * This mirrors the logic in apps/blink-ai `useIsOverageProvisioningAllowed` hook as closely as possible.
+ * This mirrors the logic in apps/claude-ai `useIsOverageProvisioningAllowed` hook as closely as possible.
  */
 export function isOverageProvisioningAllowed(): boolean {
   const accountInfo = getOauthAccountInfo()
   const billingType = accountInfo?.billingType
 
-  // Must be a Blink subscriber with a supported subscription type
-  if (!isBlinkWebSubscriber() || !billingType) {
+  // Must be a Claude subscriber with a supported subscription type
+  if (!isTovyrWebSubscriber() || !billingType) {
     return false
   }
 
@@ -1676,7 +1688,7 @@ export function getSubscriptionType(): SubscriptionType | null {
   if (!isAnthropicAuthEnabled()) {
     return null
   }
-  const oauthTokens = getBlinkWebOAuthTokens()
+  const oauthTokens = getTovyrWebOAuthTokens()
   if (!oauthTokens) {
     return null
   }
@@ -1711,7 +1723,7 @@ export function getRateLimitTier(): string | null {
   if (!isAnthropicAuthEnabled()) {
     return null
   }
-  const oauthTokens = getBlinkWebOAuthTokens()
+  const oauthTokens = getTovyrWebOAuthTokens()
   if (!oauthTokens) {
     return null
   }
@@ -1724,24 +1736,24 @@ export function getSubscriptionName(): string {
 
   switch (subscriptionType) {
     case 'enterprise':
-      return 'Blink Enterprise'
+      return 'Claude Enterprise'
     case 'team':
-      return 'Blink Team'
+      return 'Claude Team'
     case 'max':
-      return 'Blink Max'
+      return 'Claude Max'
     case 'pro':
-      return 'Blink Pro'
+      return 'Claude Pro'
     default:
-      return 'Blink API'
+      return 'Claude API'
   }
 }
 
 /** Check if using third-party services (Bedrock or Vertex or Foundry) */
 export function isUsing3PServices(): boolean {
   return !!(
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+    isEnvTruthy(process.env.TOVYR_CODE_USE_BEDROCK) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_VERTEX) ||
+    isEnvTruthy(process.env.TOVYR_CODE_USE_FOUNDRY)
   )
 }
 
@@ -1784,7 +1796,7 @@ export function getOtelHeadersFromHelper(): Record<string, string> {
 
   // Return cached headers if still valid (debounce)
   const debounceMs = parseInt(
-    process.env.CLAUDE_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS ||
+    process.env.TOVYR_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS ||
       DEFAULT_OTEL_HEADERS_DEBOUNCE_MS.toString(),
   )
   if (
@@ -1854,7 +1866,7 @@ function isConsumerPlan(plan: SubscriptionType): plan is 'max' | 'pro' {
 export function isConsumerSubscriber(): boolean {
   const subscriptionType = getSubscriptionType()
   return (
-    isBlinkWebSubscriber() &&
+    isTovyrWebSubscriber() &&
     subscriptionType !== null &&
     isConsumerPlan(subscriptionType)
   )
@@ -1870,18 +1882,18 @@ export type UserAccountInfo = {
 
 export function getAccountInformation() {
   const apiProvider = getAPIProvider()
-  // Only provide account info for first-party Blink API
+  // Only provide account info for first-party Anthropic API
   if (apiProvider !== 'firstParty') {
     return undefined
   }
   const { source: authTokenSource } = getAuthTokenSource()
   const accountInfo: UserAccountInfo = {}
   if (
-    authTokenSource === 'CLAUDE_CODE_OAUTH_TOKEN' ||
-    authTokenSource === 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
+    authTokenSource === 'TOVYR_CODE_OAUTH_TOKEN' ||
+    authTokenSource === 'TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
   ) {
     accountInfo.tokenSource = authTokenSource
-  } else if (isBlinkWebSubscriber()) {
+  } else if (isTovyrWebSubscriber()) {
     accountInfo.subscription = getSubscriptionName()
   } else {
     accountInfo.tokenSource = authTokenSource
@@ -1893,7 +1905,7 @@ export function getAccountInformation() {
 
   // We don't know the organization if we're relying on an external API key or auth token
   if (
-    authTokenSource === 'blink-web' ||
+    authTokenSource === 'claude.ai' ||
     apiKeySource === '/login managed key'
   ) {
     // Get organization name from OAuth account info
@@ -1904,7 +1916,7 @@ export function getAccountInformation() {
   }
   const email = getOauthAccountInfo()?.emailAddress
   if (
-    (authTokenSource === 'blink-web' ||
+    (authTokenSource === 'claude.ai' ||
       apiKeySource === '/login managed key') &&
     email
   ) {
@@ -1929,7 +1941,7 @@ export type OrgValidationResult =
  * token's org (network error, missing profile data), validation fails.
  */
 export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
-  // `blink ssh` remote: real auth lives on the local machine and is injected
+  // `claude ssh` remote: real auth lives on the local machine and is injected
   // by the proxy. The placeholder token can't be validated against the profile
   // endpoint. The local side already ran this check before establishing the session.
   if (process.env.ANTHROPIC_UNIX_SOCKET) {
@@ -1950,18 +1962,18 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
   // No-op for env-var tokens (refreshToken is null).
   await checkAndRefreshOAuthTokenIfNeeded()
 
-  const tokens = getBlinkWebOAuthTokens()
+  const tokens = getTovyrWebOAuthTokens()
   if (!tokens) {
     return { valid: true }
   }
 
   // Always fetch the authoritative org UUID from the profile endpoint.
   // Even keychain-sourced tokens verify server-side: the cached org UUID
-  // in ~/.blink.json is user-writable and cannot be trusted.
+  // in ~/.claude.json is user-writable and cannot be trusted.
   const { source } = getAuthTokenSource()
   const isEnvVarToken =
-    source === 'CLAUDE_CODE_OAUTH_TOKEN' ||
-    source === 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
+    source === 'TOVYR_CODE_OAUTH_TOKEN' ||
+    source === 'TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
 
   const profile = await getOauthProfileFromOauthToken(tokens.accessToken)
   if (!profile) {
@@ -1972,8 +1984,8 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
         `Unable to verify organization for the current authentication token.\n` +
         `This machine requires organization ${requiredOrgUuid} but the profile could not be fetched.\n` +
         `This may be a network error, or the token may lack the user:profile scope required for\n` +
-        `verification (tokens from '${blinkCmd('setup-token')}' do not include this scope).\n` +
-        `Try again, or obtain a full-scope token via '${blinkCmd('auth login')}'.`,
+        `verification (tokens from '${tovyrCmd('setup-token')}' do not include this scope).\n` +
+        `Try again, or obtain a full-scope token via '${tovyrCmd('auth login')}'.`,
     }
   }
 
@@ -1984,9 +1996,9 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
 
   if (isEnvVarToken) {
     const envVarName =
-      source === 'CLAUDE_CODE_OAUTH_TOKEN'
-        ? 'CLAUDE_CODE_OAUTH_TOKEN'
-        : 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
+      source === 'TOVYR_CODE_OAUTH_TOKEN'
+        ? 'TOVYR_CODE_OAUTH_TOKEN'
+        : 'TOVYR_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'
     return {
       valid: false,
       message:
@@ -2003,7 +2015,7 @@ export async function validateForceLoginOrg(): Promise<OrgValidationResult> {
     message:
       `Your authentication token belongs to organization ${tokenOrgUuid},\n` +
       `but this machine requires organization ${requiredOrgUuid}.\n\n` +
-      `Please log in with the correct organization: ${blinkCmd('auth login')}`,
+      `Please log in with the correct organization: ${tovyrCmd('auth login')}`,
   }
 }
 

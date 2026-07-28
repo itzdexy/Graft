@@ -1,0 +1,55 @@
+﻿error: Cannot find module '../../components/tovyr/TovyrWorkspaceDashboard.js' from 
+'C:\Users\uwuuy\Downloads\src\services\tovyr\dashboardConnection.test.ts'
+-------------------------------
+
+
+
+=====
+error: expect(received).toContain(expected)
+
+Expected to contain: "TOVYR_INVOKE_CWD=%CD%"
+Received: "@echo off\ncall \"%~dp0tovyr.cmd\" %*\n"
+
+      at <anonymous> (C:\Users\uwuuy\Downloads\src\services\tovyr\invocationCwdContract.test.ts:16:20)
+(fail) Tovyr invocation-directory contract > repo command shims capture and lock the caller directory [0.30ms]
+18 |     }
+19 |   })
+20 | 
+21 |   test('PowerShell launcher preserves a directory locked by an outer shim', () => {
+22 |     const text = source('bin/tovyr.ps1')
+23 |     expect(text).toContain("$env:TOVYR_INVOKE_CWD_LOCKED -ne '1'
+
+=====
+error: Cannot find module '../../../scripts/tovyr-install-checks.js' from 
+'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\installChecks.test.ts'
+-------------------------------
+
+
+
+=====
+error: Cannot find module '../../../components/tovyr/TovyrErrorTurn.js' from 
+'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrErrorDisplay.test.ts'
+-------------------------------
+
+
+
+=====
+error: Cannot find module './tovyrExamplePrompts.js' from 'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrExamplePrompts.test.ts'
+-------------------------------
+
+
+
+=====
+error: Cannot find module './tovyrSilentTurn.js' from 'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrSilentTurn.test.ts'
+-------------------------------
+
+
+
+=====
+error: Cannot find module './tovyrTranscriptCollapse.js' from 
+'C:\Users\uwuuy\Downloads\src\services\tovyr\dx\tovyrTranscriptCollapse.test.ts'
+-------------------------------
+
+
+
+=====

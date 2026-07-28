@@ -1,7 +1,7 @@
 /**
  * Download functionality for native installer
  *
- * Handles downloading Blink binaries from various sources:
+ * Handles downloading Tovyr binaries from various sources:
  * - Artifactory NPM packages
  * - GCS bucket
  */
@@ -25,7 +25,7 @@ import { getBinaryName, getPlatform } from './installer.js'
 const GCS_BUCKET_URL =
   'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases'
 export const ARTIFACTORY_REGISTRY_URL =
-  process.env.BLINK_ARTIFACTORY_REGISTRY_URL ?? 'https://registry.npmjs.org/'
+  process.env.TOVYR_ARTIFACTORY_REGISTRY_URL ?? 'https://registry.npmjs.org/'
 
 export async function getLatestVersionFromArtifactory(
   tag: string = 'latest',
@@ -274,7 +274,7 @@ const MAX_DOWNLOAD_RETRIES = 3
 
 function getStallTimeoutMs(): number {
   return (
-    Number(process.env.CLAUDE_CODE_STALL_TIMEOUT_MS_FOR_TESTING) ||
+    Number(process.env.TOVYR_CODE_STALL_TIMEOUT_MS_FOR_TESTING) ||
     DEFAULT_STALL_TIMEOUT_MS
   )
 }
@@ -489,7 +489,7 @@ export async function downloadVersion(
   stagingPath: string,
 ): Promise<'npm' | 'binary'> {
   // Test-fixture versions route to the private sentinel bucket. DCE'd in all
-  // shipped builds — the string 'blink-ci-sentinel' and the gcloud call
+  // shipped builds — the string 'tovyr-ci-sentinel' and the gcloud call
   // never exist in compiled binaries. Same gcloud-token pattern as
   // remoteSkillLoader.ts:175-195.
   if (feature('ALLOW_TEST_VERSIONS') && /^99\.99\./.test(version)) {

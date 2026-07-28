@@ -194,8 +194,8 @@ export async function applySkillImprovement(
   const { join } = await import('path')
   const fs = await import('fs/promises')
 
-  // Skills live at .blink/skills/<name>/SKILL.md relative to CWD
-  const filePath = join(getCwd(), '.blink', 'skills', skillName, 'SKILL.md')
+  // Skills live at .tovyr/skills/<name>/SKILL.md relative to CWD
+  const filePath = join(getCwd(), '.tovyr', 'skills', skillName, 'SKILL.md')
 
   let currentContent: string
   try {

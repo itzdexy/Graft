@@ -46,10 +46,10 @@ function parseThoughtInput(args: Record<string, unknown>): SequentialThoughtInpu
 }
 
 /** In-process MCP server matching @modelcontextprotocol/server-sequential-thinking. */
-export function createBlinkSequentialThinkingMcpServer(): Server {
+export function createTovyrSequentialThinkingMcpServer(): Server {
   const server = new Server(
     {
-      name: 'blink-sequential-thinking',
+      name: 'tovyr-sequential-thinking',
       version: '1.0.0',
     },
     {

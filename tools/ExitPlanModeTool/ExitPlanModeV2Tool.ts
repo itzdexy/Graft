@@ -59,7 +59,7 @@ const permissionSetupModule = feature('TRANSCRIPT_CLASSIFIER')
 
 /**
  * Schema for prompt-based permission requests.
- * Used by Blink to request semantic permissions when exiting plan mode.
+ * Used by Tovyr to request semantic permissions when exiting plan mode.
  */
 const allowedPromptSchema = lazySchema(() =>
   z.object({
@@ -169,7 +169,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     // watching the TUI. The plan-approval dialog would hang. Paired with the
     // same gate on EnterPlanMode so plan mode isn't a trap.
     if (
-      (feature('BLINKS') || feature('BLINKS_CHANNELS')) &&
+      (feature('TOVYRS') || feature('TOVYRS_CHANNELS')) &&
       getAllowedChannels().length > 0
     ) {
       return false

@@ -16,10 +16,10 @@ import type {
 import { getGlobalConfig, saveGlobalConfig } from './config.js'
 import {
   getIdeEnv,
-  BLINK_IDE_EXTENSION_IDS,
-} from '../constants/blink.js'
+  TOVYR_IDE_EXTENSION_IDS,
+} from '../constants/tovyr.js'
 import { env } from './env.js'
-import { getBlinkConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import { getTovyrConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import {
   execFileNoThrow,
   execFileNoThrowWithCwd,
@@ -296,7 +296,7 @@ export function getTerminalIdeType(): IdeType | null {
 }
 
 /**
- * Gets sorted IDE lockfiles from ~/.blink/ide directory
+ * Gets sorted IDE lockfiles from ~/.tovyr/ide directory
  * @returns Array of full lockfile paths sorted by modification time (newest first)
  */
 export async function getSortedIdeLockfiles(): Promise<string[]> {
@@ -466,8 +466,8 @@ const getWindowsUserProfile = memoize(async (): Promise<string | undefined> => {
 export async function getIdeLockfilesPaths(): Promise<string[]> {
   const paths: string[] = []
   const configHomes = new Set<string>([
-    getBlinkConfigHomeDir(),
-    (process.env.BLINK_CONFIG_DIR ?? join(os.homedir(), '.blink')).normalize(
+    getTovyrConfigHomeDir(),
+    (process.env.TOVYR_CONFIG_DIR ?? join(os.homedir(), '.tovyr')).normalize(
       'NFC',
     ),
   ])
@@ -488,7 +488,7 @@ export async function getIdeLockfilesPaths(): Promise<string[]> {
     const converter = new WindowsToWSLConverter(process.env.WSL_DISTRO_NAME)
     const wslPath = converter.toLocalPath(windowsHome)
     paths.push(resolve(wslPath, '.claude', 'ide'))
-    paths.push(resolve(wslPath, '.blink', 'ide'))
+    paths.push(resolve(wslPath, '.tovyr', 'ide'))
   }
 
   // Construct the path based on the standard Windows WSL locations
@@ -514,7 +514,7 @@ export async function getIdeLockfilesPaths(): Promise<string[]> {
         continue // Skip system directories
       }
       paths.push(join(usersDir, user.name, '.claude', 'ide'))
-      paths.push(join(usersDir, user.name, '.blink', 'ide'))
+      paths.push(join(usersDir, user.name, '.tovyr', 'ide'))
     }
   } catch (error: unknown) {
     if (isFsInaccessible(error)) {
@@ -682,7 +682,7 @@ export async function detectIDEs(
   const detectedIDEs: DetectedIDEInfo[] = []
 
   try {
-    // SSE port from IDE extension (Blink or legacy Blink env var names)
+    // SSE port from IDE extension (Tovyr or legacy Tovyr env var names)
     const ssePort = getIdeEnv('SSE_PORT')
     const envPort = ssePort ? parseInt(ssePort) : null
 
@@ -861,22 +861,22 @@ export function hasAccessToIDEExtensionDiffFeature(
 
 const EXTENSION_ID =
   process.env.USER_TYPE === 'ant'
-    ? 'anthropic.claude-code-internal'
-    : 'anthropic.claude-code'
+    ? 'itsdexy.tovyr-code-internal'
+    : 'itsdexy.tovyr-code'
 
 function isKnownIdeExtensionId(extensionId: string): boolean {
   return (
-    BLINK_IDE_EXTENSION_IDS.includes(
-      extensionId as (typeof BLINK_IDE_EXTENSION_IDS)[number],
+    TOVYR_IDE_EXTENSION_IDS.includes(
+      extensionId as (typeof TOVYR_IDE_EXTENSION_IDS)[number],
     ) ||
     extensionId.endsWith('.claude-code') ||
-    extensionId.endsWith('.blink')
+    extensionId.endsWith('.tovyr')
   )
 }
 
 function stdoutListsIdeExtension(stdout: string | undefined): boolean {
   if (!stdout) return false
-  return BLINK_IDE_EXTENSION_IDS.some(id => stdout.includes(id))
+  return TOVYR_IDE_EXTENSION_IDS.some(id => stdout.includes(id))
 }
 
 export async function isIDEExtensionInstalled(
@@ -916,12 +916,12 @@ async function installIDEExtension(ideType: IdeType): Promise<string | null> {
       }
       let version = await getInstalledVSCodeExtensionVersion(command)
       // If it's not installed or the version is older than the one we have bundled,
-      if (!version || lt(version, getBlinkCodeVersion())) {
+      if (!version || lt(version, getTovyrCodeVersion())) {
         // `code` may crash when invoked too quickly in succession
         await sleep(500)
         const result = await execFileNoThrowWithCwd(
           command,
-          ['--force', '--install-extension', 'anthropic.claude-code'],
+          ['--force', '--install-extension', 'itsdexy.tovyr-code'],
           {
             env: getInstallationEnv(),
           },
@@ -929,7 +929,7 @@ async function installIDEExtension(ideType: IdeType): Promise<string | null> {
         if (result.code !== 0) {
           throw new Error(`${result.code}: ${result.error} ${result.stderr}`)
         }
-        version = getBlinkCodeVersion()
+        version = getTovyrCodeVersion()
       }
       return version
     }
@@ -954,7 +954,7 @@ function getInstallationEnv(): NodeJS.ProcessEnv | undefined {
   return undefined
 }
 
-function getBlinkCodeVersion() {
+function getTovyrCodeVersion() {
   return MACRO.VERSION
 }
 
@@ -1063,7 +1063,7 @@ async function getVSCodeIDECommand(ideType: IdeType): Promise<string | null> {
   // then resolves to Code.exe via PATHEXT which opens a new editor window
   // instead of running the CLI. Asking for 'code.cmd' forces cross-spawn/which
   // to skip Code.exe. See microsoft/vscode#299416 (fixed in Insiders) and
-  // blinks/blink#30975.
+  // tovyrs/tovyr#30975.
   const ext = getPlatform() === 'windows' ? '.cmd' : ''
   switch (ideType) {
     case 'vscode':
@@ -1421,10 +1421,10 @@ const detectHostIP = memoize(
 )
 
 async function installFromArtifactory(command: string): Promise<string> {
-  const vsixReleaseBase = process.env.BLINK_VSIX_RELEASE_BASE?.replace(/\/$/, '')
+  const vsixReleaseBase = process.env.TOVYR_VSIX_RELEASE_BASE?.replace(/\/$/, '')
   if (!vsixReleaseBase) {
     throw new Error(
-      'Internal VSIX install is not configured (set BLINK_VSIX_RELEASE_BASE)',
+      'Internal VSIX install is not configured (set TOVYR_VSIX_RELEASE_BASE)',
     )
   }
 

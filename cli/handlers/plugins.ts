@@ -1,6 +1,6 @@
 /**
  * Plugin and marketplace subcommand handlers — extracted from main.tsx for lazy loading.
- * These are dynamically imported only when `blink plugin *` or `blink plugin marketplace *` runs.
+ * These are dynamically imported only when `tovyr plugin *` or `tovyr plugin marketplace *` runs.
  */
 /* eslint-disable custom-rules/no-process-exit -- CLI subcommand handlers intentionally exit */
 import figures from 'figures'
@@ -110,7 +110,7 @@ export async function pluginValidateHandler(
     console.log(`Validating ${result.fileType} manifest: ${result.filePath}\n`)
     printValidationResult(result)
 
-    // If this is a plugin manifest located inside a .blink-plugin directory,
+    // If this is a plugin manifest located inside a .tovyr-plugin directory,
     // also validate the plugin's content files (skills, agents, commands,
     // hooks). Works whether the user passed a directory or the plugin.json
     // path directly.
@@ -352,7 +352,7 @@ export async function pluginListHandler(options: {
     // through to the session section so the failure is visible.
     if (inlineLoadErrors.length === 0) {
       cliOk(
-        'No plugins installed. Use `blink plugin install` to install a plugin.',
+        'No plugins installed. Use `tovyr plugin install` to install a plugin.',
       )
     }
   }
