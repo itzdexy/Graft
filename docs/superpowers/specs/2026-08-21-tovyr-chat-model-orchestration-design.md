@@ -32,6 +32,7 @@ These problems share one root cause: provider reachability, model discoverabilit
 5. **One active surface.** A turn has one activity surface that may show thinking, search, tools, handoff, or verification.
 6. **Evidence over theater.** Completed activity collapses into useful proof: sources, files, commands, tests, and model handoffs.
 7. **Orchestration is proportional.** Multi-model execution is reserved for work that benefits from independent planning or verification.
+8. **Providers keep their identity.** Tovyr branding never renames a third-party model family or vendor.
 
 ## Information Architecture
 
@@ -68,6 +69,19 @@ The picker groups models by readiness rather than presenting a flat catalog:
 - **Unverified:** a curated fallback shown when discovery is unavailable.
 
 Copy uses “listed” or “discovered” for inventory results. The word “live” is reserved for a successful inference response.
+
+### Model naming
+
+Model identity and application identity are separate:
+
+- Anthropic models render as `Claude Opus 5`, `Claude Sonnet 5`, `Claude Haiku 4.5`, and so on.
+- OpenAI, Google, xAI, Meta, Mistral, and other provider models retain their provider-owned public names.
+- Tovyr appears as the application name and may appear in names of Tovyr-owned services such as TovyrRoute. It is never substituted for `Claude` or another provider name.
+- Provider wire IDs remain exact and are never rewritten for display branding.
+- One canonical model-display formatter is used by the model explorer, `/model`, `/provider`, footer, status line, orchestration rail, confirmations, and error messages.
+- The formatter derives a safe provider name from structured provider metadata or a recognized wire ID when catalog or registry labels are incomplete. For example, a registry entry with upstream ID `claude-opus-5` cannot render as either `Opus 5` or `Tovyr Opus 5`; it renders as `Claude Opus 5`.
+
+Catalog and registry data should store provider-correct display names. The formatter remains a defensive boundary for signed registries, cached data, custom gateways, and older configuration written by prior Tovyr releases.
 
 ## Turn Activity Design
 
@@ -279,6 +293,8 @@ Existing provider catalog, OpenAI compatibility conversion, query engine, permis
 - Inventory presence produces `listed`, not `ready`.
 - Timeout produces `slow` without quarantining the model as a hard failure.
 - Unsuitable and chat-only models are excluded from agent roles.
+- Claude-family labels retain the `Claude` name across catalog, registry, explorer, footer, orchestration, confirmation, and error surfaces.
+- Third-party model labels are never prefixed with or rewritten to `Tovyr`.
 - Transactional activation leaves all prior state unchanged after every failure stage.
 - Picker, slash command, provider dialog, and footer use the same activation result.
 - Activity events reduce to exactly one top-level live state.
@@ -311,6 +327,7 @@ Live provider checks are opt-in and never required for the default test suite. F
 - A failed candidate never replaces the working model.
 - All model-selection entry points behave consistently.
 - A coding role never auto-selects a known chat-only or unsuitable model.
+- `claude-opus-5` is displayed as `Claude Opus 5` everywhere and is never displayed as `Tovyr Opus 5`.
 - Normal chat shows one live activity surface and no orchestration chrome.
 - Web-search activity reflects real queries, results, and source reads.
 - Completed work collapses to a concise evidence trail.
