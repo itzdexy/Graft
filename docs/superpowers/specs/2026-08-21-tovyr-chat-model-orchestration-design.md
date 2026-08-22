@@ -10,6 +10,25 @@ Make Tovyr feel like a fast, deliberate terminal product while ensuring every se
 
 The approved visual direction is kinetic while work is active and quiet when work is complete. It uses strong typography, compact state-driven animation, and a single live activity surface. It does not use robot faces, sparkles, glowing orbs, fake glass, or generic AI-assistant iconography.
 
+The same release completes the product-identity migration from the legacy Blink name to Tovyr and makes `https://github.com/itzdexy/Tovyr` the canonical repository URL.
+
+## Product Identity Migration
+
+All maintained product-owned surfaces use `Tovyr` and `tovyr` consistently. The migration covers:
+
+- User-facing UI, help, errors, status text, prompts, and notifications.
+- Source identifiers, product-owned component and module names, filenames, directories, scripts, and generated artifacts where the old name still carries product meaning.
+- CLI commands, launcher names, package metadata, executable names, configuration documentation, examples, and install instructions.
+- Repository, issue, homepage, clone, update, release, security-reporting, and source-link URLs.
+- Tests, snapshots, fixtures, migration documents, comments, and developer documentation that would otherwise keep the legacy product name active.
+- The current local branch and Git remote metadata when they encode the legacy or incorrect product identity.
+
+The canonical repository owner and URL are exactly `itzdexy/Tovyr` and `https://github.com/itzdexy/Tovyr`. Package metadata uses the corresponding Git URL, issue URL, and README homepage.
+
+Compatibility aliases may retain an old machine-readable key only when removing it would break an existing installation or persisted user configuration. Such aliases must be isolated in a documented migration boundary, must not appear in normal UI or new documentation, and must have tests proving that new writes use Tovyr naming. Git history, third-party dependencies, external protocol field names, and unrelated uses of the English word “blink” are not rewritten.
+
+A repository-wide brand check fails when a legacy Blink product reference or a stale Tovyr repository URL appears outside the explicit compatibility allowlist.
+
 ## Evidence and Current Problems
 
 The focused Tovyr test suite currently passes, but the live provider path exposes gaps that unit tests do not cover:
@@ -295,6 +314,8 @@ Existing provider catalog, OpenAI compatibility conversion, query engine, permis
 - Unsuitable and chat-only models are excluded from agent roles.
 - Claude-family labels retain the `Claude` name across catalog, registry, explorer, footer, orchestration, confirmation, and error surfaces.
 - Third-party model labels are never prefixed with or rewritten to `Tovyr`.
+- Brand scanning rejects legacy Blink product references outside the compatibility allowlist.
+- Repository-link tests require `itzdexy/Tovyr` for package metadata, docs, installers, updaters, and issue/security links.
 - Transactional activation leaves all prior state unchanged after every failure stage.
 - Picker, slash command, provider dialog, and footer use the same activation result.
 - Activity events reduce to exactly one top-level live state.
@@ -328,6 +349,8 @@ Live provider checks are opt-in and never required for the default test suite. F
 - All model-selection entry points behave consistently.
 - A coding role never auto-selects a known chat-only or unsuitable model.
 - `claude-opus-5` is displayed as `Claude Opus 5` everywhere and is never displayed as `Tovyr Opus 5`.
+- Maintained product code and documentation contain no legacy Blink product name outside documented compatibility shims.
+- All Tovyr-owned repository links and local Git remote metadata use `https://github.com/itzdexy/Tovyr`.
 - Normal chat shows one live activity surface and no orchestration chrome.
 - Web-search activity reflects real queries, results, and source reads.
 - Completed work collapses to a concise evidence trail.
