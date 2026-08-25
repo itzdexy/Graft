@@ -237,3 +237,21 @@ is also run after the final commit. The baseline remains literally empty.
 `93304eb`, `f2ae8ce`, `50ea2fc`, `f87ea0d`, `83491bd`, `6b5a230`, and
 `07e4e09` form the clean-tree repair series. This report records its final
 verification in the following documentation commit.
+
+## Review fix round 2 (partial, clean-tree repairs)
+
+- `80f925a` commits the previously missing live `silentTurn` helper and its
+  behavioral tests. `replImportContract.test.ts` resolves the exact REPL
+  import through TypeScript's module resolver, so an omitted transitive source
+  file fails in a clean checkout rather than being hidden by the shared overlay.
+- The dead-UI gate now uses the repository's TypeScript parser rather than
+  regex stripping. It follows runtime named/dynamic imports and aliases into
+  JSX, component calls, and warmer calls; type-only imports, comments, strings,
+  regex literals, unused aliases, and literal-false branches do not count.
+- `a4ecc59` makes a routed `/files` focus render `TovyrFileSidebar` itself,
+  passing the actual project root from REPL. The rendering contract starts from
+  the focus state and asserts the mounted `Project map` rather than a dummy
+  focus child.
+
+Clean detached worktree at `a4ecc59`: 28 pass, 0 fail; AST dead-UI gate and
+`tsc -p tsconfig.tovyr.json` pass. Shared overlay work was not staged.
