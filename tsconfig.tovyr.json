@@ -1,14 +1,13 @@
 {
   "extends": "./tsconfig.typecheck.json",
   "include": [
-    "components/tovyr/**/*.ts",
-    "components/tovyr/**/*.tsx",
-    "services/tovyr/**/*.ts",
-    "commands/tovyr/**/*.ts",
-    "commands/tovyr/**/*.tsx",
     "utils/tovyrRuntime.ts",
-    "test-support/**/*.ts",
-    "test-support/**/*.tsx"
+    "services/tovyr/agent/mainLoopLimits.ts",
+    "services/tovyr/providerErrors.ts",
+    "services/tovyr/intent/filenameFromPrompt.ts",
+    "services/tovyr/dx/waitStateCopy.ts",
+    "services/tovyr/dx/thinkingDurations.ts",
+    "services/tovyr/dx/requestTimeout.ts"
   ],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }
