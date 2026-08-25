@@ -1,35 +1,35 @@
-import { memo, useCallback, useMemo, type ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import type { Command } from '../../commands.js'
-import { Box, Text, useInput } from '../../ink.js'
+import { Box, Text } from '../../ink.js'
 import {
-  buildCommandIndex,
   shortcutGroups,
-  type BuildCommandIndexOptions,
+  useTovyrCommandIndex,
 } from '../../services/tovyr/dx/commandIndex.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
+import { useRegisterKeybindingContext } from '../../keybindings/KeybindingContext.js'
+import { useKeybindings } from '../../keybindings/useKeybinding.js'
 
 type Props = {
   onClose: () => void
   /** Runtime commands are accepted so this overlay shares the same index as the palette. */
   commands?: readonly Command[]
-  keybindings?: BuildCommandIndexOptions['keybindings']
 }
 
 /** Keyboard shortcut help overlay, projected from the command index. */
 export const TovyrHelpOverlay = memo(function TovyrHelpOverlay({
   onClose,
   commands = [],
-  keybindings,
 }: Props): ReactNode {
   const { columns } = useTerminalSize()
-  const groups = useMemo(
-    () => shortcutGroups(buildCommandIndex(commands, { keybindings })),
-    [commands, keybindings],
+  const groups = shortcutGroups(useTovyrCommandIndex(commands))
+  useRegisterKeybindingContext('Help')
+  useKeybindings(
+    {
+      'help:dismiss': onClose,
+      'help:toggle': onClose,
+    },
+    { context: 'Help' },
   )
-
-  useInput(useCallback((_input: string, key: any) => {
-    if (key.escape || key.name === '?' || key.return) onClose()
-  }, [onClose]))
 
   const colWidth = Math.min(Math.floor((columns - 8) / 2), 36)
   const modalWidth = Math.min(columns - 4, 78)

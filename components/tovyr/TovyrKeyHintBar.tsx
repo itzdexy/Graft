@@ -1,6 +1,9 @@
 import { memo, type ReactNode } from 'react'
 import { Box, Text } from '../../ink.js'
-import { buildCommandIndex } from '../../services/tovyr/dx/commandIndex.js'
+import {
+  IMPLEMENTED_KEYBINDINGS,
+  useTovyrCommandIndex,
+} from '../../services/tovyr/dx/commandIndex.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 
 export type KeyHint = { keys: string; action: string }
@@ -9,14 +12,10 @@ export type KeyHint = { keys: string; action: string }
  * Ordered by the shared command index. Narrow terminals drop from the end, so
  * its ordering is also the order users see in the footer.
  */
-const INDEXED_HINTS: KeyHint[] = buildCommandIndex([])
-  .filter(entry => entry.kind === 'shortcut')
-  .map(entry => ({ keys: entry.keys ?? '', action: entry.description }))
-
 const GAP = 2
-/** Longest left-side label, so the right side never collides with it. */
-const INTERRUPT_HINT = INDEXED_HINTS.find(hint => hint.keys === 'esc')!
-const HINTS = INDEXED_HINTS.filter(hint => hint.keys !== INTERRUPT_HINT.keys)
+const FALLBACK_HINTS: KeyHint[] = IMPLEMENTED_KEYBINDINGS
+  .filter(binding => binding.description !== 'interrupt')
+  .map(binding => ({ keys: binding.keys, action: binding.description }))
 
 function hintWidth(hint: KeyHint): number {
   return hint.keys.length + 1 + hint.action.length
@@ -28,7 +27,7 @@ function hintWidth(hint: KeyHint): number {
  */
 export function fitKeyHints(
   available: number,
-  hints: KeyHint[] = HINTS,
+  hints: KeyHint[] = FALLBACK_HINTS,
 ): KeyHint[] {
   const fitted: KeyHint[] = []
   let used = 0
@@ -57,14 +56,20 @@ export const TovyrKeyHintBar = memo(function TovyrKeyHintBar({
   contextUsage?: string | null
 }): ReactNode {
   const { columns } = useTerminalSize()
-  const leftWidth = isLoading ? hintWidth(INTERRUPT_HINT) : 0
+  const indexedHints = useTovyrCommandIndex([])
+    .filter(entry => entry.kind === 'shortcut')
+    .map(entry => ({ keys: entry.keys ?? '', action: entry.description }))
+  const interruptHint = indexedHints.find(hint => hint.action === 'interrupt')
+  const hints = indexedHints.filter(hint => hint !== interruptHint)
+  const loadingHint = interruptHint!
+  const leftWidth = isLoading ? hintWidth(loadingHint) : 0
   const usage = contextUsage?.trim() || ''
   // Two columns of padding, a gap between clusters, and the usage readout.
   const available =
     columns - leftWidth - 4 - GAP - (usage ? usage.length + GAP : 0)
-  const hints = fitKeyHints(Math.max(0, available))
+  const fittedHints = fitKeyHints(Math.max(0, available), hints)
 
-  if (!isLoading && hints.length === 0 && !usage) return null
+  if (!isLoading && fittedHints.length === 0 && !usage) return null
 
   // One flat Text per side. Nested Boxes with `gap` inside a space-between row
   // mis-measured here and ran the clusters together ("commandsshift+tab"), so
@@ -84,8 +89,8 @@ export const TovyrKeyHintBar = memo(function TovyrKeyHintBar({
       <Text wrap="truncate-end">
         {isLoading ? (
           <>
-            <Text color="warning">{INTERRUPT_HINT.keys}</Text>
-            <Text color="subtle" dimColor>{` ${INTERRUPT_HINT.action}`}</Text>
+            <Text color="warning">{loadingHint.keys}</Text>
+            <Text color="subtle" dimColor>{` ${loadingHint.action}`}</Text>
           </>
         ) : (
           ' '
@@ -95,7 +100,7 @@ export const TovyrKeyHintBar = memo(function TovyrKeyHintBar({
         {usage ? (
           <Text color="subtle" dimColor>{usage}</Text>
         ) : null}
-        {hints.map((hint, index) => (
+        {fittedHints.map((hint, index) => (
           <Text key={hint.keys}>
             {index > 0 || usage ? separator : ''}
             <Text color="inactive">{hint.keys}</Text>

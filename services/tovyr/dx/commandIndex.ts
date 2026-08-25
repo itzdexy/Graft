@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useShortcutDisplay } from '../../../keybindings/useShortcutDisplay.js'
 import type { Command } from '../../../types/command.js'
 import { getCommandName, isCommandEnabled } from '../../../types/command.js'
 
@@ -30,6 +32,13 @@ export type ImplementedKeybinding = {
   category: CommandIndexCategory
 }
 
+export type CommandDiscoveryShortcutValues = {
+  palette: string
+  mode: string
+  help: string
+  dismiss: string
+}
+
 const CATEGORY_ORDER: readonly CommandIndexCategory[] = [
   'Coding',
   'Context',
@@ -41,19 +50,57 @@ const CATEGORY_ORDER: readonly CommandIndexCategory[] = [
 ]
 
 /**
- * Bindings that are actually handled by the source Tovyr chat surface.
- *
- * This is deliberately smaller than the global keybinding configuration: that
- * configuration includes bindings for transient pickers and dialogs. Showing
- * those in the always-available help rail would advertise controls that do
- * nothing while the composer owns focus.
+ * Turns the active keybinding resolver's display values into the few shortcuts
+ * that make sense while the composer owns focus. The fallback object is used
+ * only outside a KeybindingProvider (for pure/index tests); renderers call the
+ * hook below and therefore reflect platform fallbacks and user overrides.
  */
-export const IMPLEMENTED_KEYBINDINGS: readonly ImplementedKeybinding[] = [
-  { keys: 'ctrl+p', description: 'commands', category: 'Tools' },
-  { keys: 'shift+tab', description: 'mode', category: 'Coding' },
-  { keys: '?', description: 'help', category: 'Help' },
-  { keys: 'esc', description: 'interrupt', category: 'Help' },
-]
+export function resolveCommandDiscoveryShortcuts(
+  values: CommandDiscoveryShortcutValues,
+): readonly ImplementedKeybinding[] {
+  return [
+    { keys: values.palette, description: 'commands', category: 'Tools' },
+    { keys: values.mode, description: 'mode', category: 'Coding' },
+    { keys: values.help, description: 'help', category: 'Help' },
+    { keys: values.dismiss, description: 'interrupt', category: 'Help' },
+  ]
+}
+
+/** Default only for non-rendering callers; the UI uses the active resolver. */
+export const IMPLEMENTED_KEYBINDINGS = resolveCommandDiscoveryShortcuts({
+  palette: 'ctrl+p',
+  mode: 'shift+tab',
+  help: '?',
+  dismiss: 'esc',
+})
+
+/**
+ * Uses the established keybinding provider rather than duplicating key lookup.
+ * In particular, Windows terminals that cannot deliver Shift+Tab resolve to
+ * the runtime's `meta+m` fallback, and a user keybindings.json override wins.
+ */
+export function useResolvedCommandDiscoveryShortcuts(): readonly ImplementedKeybinding[] {
+  const palette = useShortcutDisplay('app:commandPalette', 'Global', 'ctrl+p')
+  const mode = useShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')
+  const help = useShortcutDisplay('app:toggleHelp', 'Global', '?')
+  const dismiss = useShortcutDisplay('help:dismiss', 'Help', 'esc')
+
+  return useMemo(
+    () => resolveCommandDiscoveryShortcuts({ palette, mode, help, dismiss }),
+    [palette, mode, help, dismiss],
+  )
+}
+
+/** Builds the full command and shortcut index from the active runtime state. */
+export function useTovyrCommandIndex(
+  commands: readonly Command[],
+): CommandIndexEntry[] {
+  const keybindings = useResolvedCommandDiscoveryShortcuts()
+  return useMemo(
+    () => buildCommandIndex(commands, { keybindings }),
+    [commands, keybindings],
+  )
+}
 
 export type BuildCommandIndexOptions = {
   /**

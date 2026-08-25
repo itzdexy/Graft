@@ -73,6 +73,7 @@ export const KEYBINDING_ACTIONS = [
   'app:redraw',
   'app:globalSearch',
   'app:quickOpen',
+  'app:toggleHelp',
   // History navigation
   'history:search',
   'history:previous',
@@ -126,6 +127,7 @@ export const KEYBINDING_ACTIONS = [
   'theme:toggleSyntaxHighlighting',
   // Help menu actions
   'help:dismiss',
+  'help:toggle',
   // Attachment navigation (select dialog image attachments)
   'attachments:next',
   'attachments:previous',

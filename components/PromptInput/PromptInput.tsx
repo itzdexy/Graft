@@ -366,8 +366,9 @@ function PromptInput({
   // shouldHidePromptInput: false. Those dialogs don't register in the overlay
   // system, so treat them as a modal overlay here to stop navigation keys from
   // leaking into TextInput/footer handlers and stacking a second dialog.
+  const isTovyrHelpOpen = isTovyrRuntime() && helpOpen
   const isModalOverlayActive =
-    useIsModalOverlayActive() || isLocalJSXCommandActive
+    useIsModalOverlayActive() || isLocalJSXCommandActive || isTovyrHelpOpen
   const [isAutoUpdating, setIsAutoUpdating] = useState(false)
   const [exitMessage, setExitMessage] = useState<{
     show: boolean
@@ -1160,11 +1161,6 @@ function PromptInput({
 
   const onChange = useCallback(
     (value: string) => {
-      if (value === '?') {
-        logEvent('tengu_help_toggled', {})
-        setHelpOpen(v => !v)
-        return
-      }
       setHelpOpen(false)
 
       // Dismiss stash hint when user makes any input change
@@ -2198,15 +2194,14 @@ function PromptInput({
       !isModalOverlayActive && isFastModeEnabled() && isFastModeAvailable(),
   })
 
-  // Handle help:dismiss keybinding (ESC closes help menu)
-  // This is registered separately from Chat context so it has priority over
-  // CancelRequestHandler when help menu is open
   useKeybinding(
-    'help:dismiss',
+    'app:toggleHelp',
     () => {
-      setHelpOpen(false)
+      if (!isTovyrRuntime()) return
+      logEvent('tengu_help_toggled', {})
+      setHelpOpen(true)
     },
-    { context: 'Help', isActive: helpOpen },
+    { context: 'Global', isActive: !isModalOverlayActive },
   )
 
   // Quick Open / Global Search. Hook calls are unconditional (Rules of Hooks);
@@ -2259,7 +2254,8 @@ function PromptInput({
     },
     {
       context: 'Global',
-      isActive: !isLoading && speculation.status === 'active',
+      isActive:
+        !isModalOverlayActive && !isLoading && speculation.status === 'active',
     },
   )
 
@@ -2419,7 +2415,8 @@ function PromptInput({
       showTeamsDialog ||
       showQuickOpen ||
       showGlobalSearch ||
-      showHistoryPicker
+      showHistoryPicker ||
+      isTovyrHelpOpen
     ) {
       return
     }
@@ -2914,7 +2911,7 @@ function PromptInput({
     onIsPastingChange: setIsPasting,
     focus: !isSearchingHistory && !isModalOverlayActive && !footerItemSelected,
     showCursor:
-      !footerItemSelected && !isSearchingHistory && !cursorAtImageChip,
+      !footerItemSelected && !isSearchingHistory && !cursorAtImageChip && !isTovyrHelpOpen,
     argumentHint: commandArgumentHint,
     onUndo: canUndo
       ? () => {

@@ -11,6 +11,7 @@
  * the tree paint, and hands back what a terminal would have shown.
  */
 import * as React from 'react'
+import { PassThrough } from 'node:stream'
 import type { ReactNode } from 'react'
 import { render } from '../ink.js'
 import instances from '../ink/instances.js'
@@ -39,6 +40,12 @@ export function stripAnsi(value: string): string {
 }
 
 type FakeStdout = NodeJS.WriteStream & { frames: string[] }
+type FakeStdin = PassThrough & {
+  isTTY: boolean
+  setRawMode: (enabled: boolean) => FakeStdin
+  ref: () => FakeStdin
+  unref: () => FakeStdin
+}
 
 function fakeStdout(columns: number, rows: number): FakeStdout {
   const frames: string[] = []
@@ -58,6 +65,15 @@ function fakeStdout(columns: number, rows: number): FakeStdout {
     emit: () => false,
     end: () => stream,
   } as unknown as FakeStdout
+  return stream
+}
+
+function fakeStdin(): FakeStdin {
+  const stream = new PassThrough() as FakeStdin
+  stream.isTTY = true
+  stream.setRawMode = () => stream
+  stream.ref = () => stream
+  stream.unref = () => stream
   return stream
 }
 
@@ -106,6 +122,8 @@ export async function renderToText(
     withAppState?: boolean
     env?: Record<string, string | undefined>
     renderImpl?: typeof render
+    /** Send input after the first paint, before the final frame is captured. */
+    interact?: (stdin: FakeStdin) => void | Promise<void>
   } = {},
 ): Promise<RenderResult> {
   const previous = new Map<string, string | undefined>()
@@ -118,6 +136,7 @@ export async function renderToText(
   const columns = normalizeDimension(options.columns, 100)
   const rows = normalizeDimension(options.rows, 40)
   const stdout = fakeStdout(columns, rows)
+  const stdin = fakeStdin()
   const tree = options.withAppState
     ? React.createElement(AppStateProvider, null, node)
     : node
@@ -125,11 +144,15 @@ export async function renderToText(
   try {
     instance = await (options.renderImpl ?? render)(tree as never, {
       stdout,
+      stdin,
       patchConsole: false,
       exitOnCtrlC: false,
     } as never)
 
     // Let mount effects and the first paint flush.
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, options.settleMs ?? 60)))
+    await options.interact?.(stdin)
+    // Let input handlers commit state and repaint before reading the screen.
     await new Promise(resolve => setTimeout(resolve, Math.max(0, options.settleMs ?? 60)))
 
     const raw = stdout.frames.join('')
@@ -146,6 +169,7 @@ export async function renderToText(
         // Unmount failures must not mask the assertion being made.
       } finally {
         instance?.cleanup?.()
+        stdin.end()
       }
     } finally {
       for (const [key, value] of previous) {

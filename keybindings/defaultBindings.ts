@@ -49,6 +49,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+r': 'history:search',
       'ctrl+k': 'app:commandPalette',
       'ctrl+p': 'app:commandPalette',
+      '?': 'app:toggleHelp',
       // File navigation. cmd+ bindings only fire on kitty-protocol terminals;
       // ctrl+shift is the portable fallback.
       ...(feature('QUICK_SEARCH')
@@ -221,6 +222,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
     context: 'Help',
     bindings: {
       escape: 'help:dismiss',
+      '?': 'help:toggle',
     },
   },
   // Attachment navigation (select dialog image attachments)

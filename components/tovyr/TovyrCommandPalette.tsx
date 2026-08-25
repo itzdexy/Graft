@@ -6,6 +6,7 @@ import {
   paletteGroups,
   searchCommandIndex,
   type CommandIndexEntry,
+  useTovyrCommandIndex,
 } from '../../services/tovyr/dx/commandIndex.js'
 import { getCommandName } from '../../types/command.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
@@ -68,10 +69,7 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
   const [query, setQuery] = useState('/')
   const [selectedIndex, setSelectedIndex] = useState(1) // 0 is the search row
 
-  const entries = useMemo(
-    () => buildCommandIndex(commands, { keybindings: [] }),
-    [commands],
-  )
+  const entries = useTovyrCommandIndex(commands)
   const filtered = useMemo(
     () => searchCommandIndex(entries, query).filter(entry => entry.kind === 'command'),
     [entries, query],

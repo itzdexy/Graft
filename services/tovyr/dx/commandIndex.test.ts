@@ -3,6 +3,7 @@ import type { Command } from '../../../types/command.js'
 import {
   buildCommandIndex,
   paletteGroups,
+  resolveCommandDiscoveryShortcuts,
   searchCommandIndex,
   shortcutGroups,
 } from './commandIndex.js'
@@ -50,5 +51,24 @@ describe('commandIndex', () => {
     expect(searchCommandIndex(entries, '/model')).toEqual([
       expect.objectContaining({ name: '/model' }),
     ])
+  })
+
+  test('projects the active resolver output, including Windows fallback and user overrides', () => {
+    const windowsFallback = resolveCommandDiscoveryShortcuts({
+      palette: 'ctrl+p',
+      mode: 'meta+m',
+      help: '?',
+      dismiss: 'esc',
+    })
+    const override = resolveCommandDiscoveryShortcuts({
+      palette: 'ctrl+space',
+      mode: 'ctrl+shift+m',
+      help: '?',
+      dismiss: 'esc',
+    })
+
+    expect(windowsFallback.map(entry => entry.keys)).toContain('meta+m')
+    expect(override.map(entry => entry.keys)).toContain('ctrl+space')
+    expect(override.map(entry => entry.keys)).toContain('ctrl+shift+m')
   })
 })
