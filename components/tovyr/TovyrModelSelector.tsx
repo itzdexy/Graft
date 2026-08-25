@@ -11,7 +11,7 @@ import { SPACING } from '../design-system/spacing.js'
 import { useRegisterOverlay } from '../../context/overlayContext.js'
 
 type Props = {
-  onSelect: (modelId: string) => void
+  onSelect: (modelId: string) => Promise<string | null>
   onClose: () => void
 }
 
@@ -64,6 +64,8 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
   const currentModel = useMainLoopModel()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(1)
+  const [checkingModel, setCheckingModel] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const providerId = getActiveProviderId()
   const activeProvider = getProvider(providerId)
@@ -94,7 +96,26 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
     setSelectedIndex(1)
   }, [query])
 
+  const selectModel = useCallback(async (modelId: string) => {
+    if (checkingModel) return
+    setError(null)
+    setCheckingModel(modelId)
+    try {
+      const selectionError = await onSelect(modelId)
+      if (selectionError) {
+        setError(selectionError)
+        return
+      }
+      onClose()
+    } catch {
+      setError('Could not verify this model.')
+    } finally {
+      setCheckingModel(null)
+    }
+  }, [checkingModel, onClose, onSelect])
+
   useInput(useCallback((_input: string, key: any) => {
+    if (checkingModel) return
     if (key.escape || (key.ctrl && key.name === 'c')) {
       onClose()
       return
@@ -102,7 +123,7 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
     if (key.return) {
       const selected = flatItems[selectedIndex]
       if (selected && selected.type === 'model') {
-        onSelect(selected.modelId)
+        void selectModel(selected.modelId)
       }
       return
     }
@@ -133,7 +154,7 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
     if (key.name === 'backspace') {
       setQuery((prev: string) => prev.slice(0, -1))
     }
-  }, [flatItems, selectedIndex, onSelect, onClose]))
+  }, [checkingModel, flatItems, selectedIndex, selectModel, onClose]))
 
   const width = Math.min(columns - SPACING.md, 70)
 
