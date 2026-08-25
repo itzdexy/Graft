@@ -12,20 +12,20 @@ function makeCommand(name: string, description: string, category?: string): Comm
 
 describe('TovyrCommandPalette categorization', () => {
   test('categorizes modes by name', () => {
-    expect(getCommandCategory(makeCommand('plan', 'Plan mode'))).toBe('Modes')
-    expect(getCommandCategory(makeCommand('code', 'Code mode'))).toBe('Modes')
-    expect(getCommandCategory(makeCommand('ask', 'Ask mode'))).toBe('Modes')
-    expect(getCommandCategory(makeCommand('fast', 'Fast mode'))).toBe('Modes')
-    expect(getCommandCategory(makeCommand('btw', 'BTW mode'))).toBe('Modes')
+    expect(getCommandCategory(makeCommand('plan', 'Plan mode'))).toBe('Coding')
+    expect(getCommandCategory(makeCommand('code', 'Code mode'))).toBe('Coding')
+    expect(getCommandCategory(makeCommand('ask', 'Ask mode'))).toBe('Coding')
+    expect(getCommandCategory(makeCommand('fast', 'Fast mode'))).toBe('Coding')
+    expect(getCommandCategory(makeCommand('btw', 'BTW mode'))).toBe('Coding')
   })
 
   test('categorizes model and git commands', () => {
     expect(getCommandCategory(makeCommand('model', 'Switch model'))).toBe('Models')
-    expect(getCommandCategory(makeCommand('git-status', 'Show git status'))).toBe('Git')
+    expect(getCommandCategory(makeCommand('git-status', 'Show git status'))).toBe('Tools')
   })
 
-  test('respects explicit category', () => {
-    expect(getCommandCategory(makeCommand('custom', 'Custom', 'Custom Category'))).toBe('Custom Category')
+  test('normalizes legacy categories to the shared discovery vocabulary', () => {
+    expect(getCommandCategory(makeCommand('custom', 'Custom', 'Custom Category'))).toBe('Coding')
   })
 
   test('groups commands in specified order', () => {
@@ -36,7 +36,7 @@ describe('TovyrCommandPalette categorization', () => {
       makeCommand('unknown', 'Unknown'),
     ]
     const grouped = groupCommands(cmds)
-    expect(grouped.map(g => g.name)).toEqual(['Modes', 'Models', 'Git', 'Commands'])
-    expect(grouped[0].commands[0].name).toBe('plan')
+    expect(grouped.map(g => g.name)).toEqual(['Coding', 'Models', 'Tools'])
+    expect(grouped[0].commands.map(command => command.name)).toEqual(['plan', 'unknown'])
   })
 })

@@ -1,7 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Box, Text, useInput } from '../../ink.js'
 import type { Command } from '../../commands.js'
-import { getCommandName, isCommandEnabled } from '../../types/command.js'
+import { Box, Text, useInput } from '../../ink.js'
+import {
+  buildCommandIndex,
+  paletteGroups,
+  searchCommandIndex,
+  type CommandIndexEntry,
+} from '../../services/tovyr/dx/commandIndex.js'
+import { getCommandName } from '../../types/command.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import { truncateToWidth } from '../../utils/format.js'
 import { Centered } from '../design-system/Centered.js'
@@ -22,46 +28,37 @@ type CommandGroup = {
 
 type FlatItem =
   | { type: 'header'; name: string }
-  | { type: 'command'; command: Command }
+  | { type: 'command'; entry: CommandIndexEntry & { command: Command } }
 
+/** Compatibility helpers for callers that previously consumed palette grouping. */
 export function getCommandCategory(cmd: Command): string {
-  const name = getCommandName(cmd).toLowerCase()
-  if (cmd.category) return cmd.category
-  if (name === 'ask' || name === 'plan' || name === 'code' || name === 'fast' || name === 'btw') return 'Modes'
-  if (name.includes('model')) return 'Models'
-  if (name.includes('git')) return 'Git'
-  if (name.includes('session') || name.includes('history')) return 'Session'
-  if (name.includes('settings') || name.includes('config')) return 'Settings'
-  if (name.includes('help') || name.includes('guide')) return 'Help'
-  if (name.includes('explain') || name.includes('scan') || name.includes('project')) return 'Project'
-  return 'Commands'
+  return paletteGroups(buildCommandIndex([cmd], { keybindings: [] }))[0]?.name ?? 'Coding'
 }
 
 export function groupCommands(cmds: Command[]): CommandGroup[] {
-  const byCategory = new Map<string, Command[]>()
-  for (const cmd of cmds) {
-    const cat = getCommandCategory(cmd)
-    if (!byCategory.has(cat)) byCategory.set(cat, [])
-    byCategory.get(cat)!.push(cmd)
-  }
-  const order = ['Modes', 'Project', 'Models', 'Session', 'Git', 'Settings', 'Help', 'Commands']
-  return order
-    .map(name => ({ name, commands: byCategory.get(name) ?? [] }))
-    .filter(g => g.commands.length > 0)
+  return paletteGroups(buildCommandIndex(cmds, { keybindings: [] })).map(group => ({
+    name: group.name,
+    commands: group.entries.flatMap(entry => (entry.command ? [entry.command] : [])),
+  }))
 }
 
-function buildFlatItems(grouped: CommandGroup[]): FlatItem[] {
+function buildFlatItems(entries: CommandIndexEntry[]): FlatItem[] {
   const items: FlatItem[] = []
-  for (const g of grouped) {
-    items.push({ type: 'header', name: g.name })
-    for (const c of g.commands) {
-      items.push({ type: 'command', command: c })
+  for (const group of paletteGroups(entries)) {
+    items.push({ type: 'header', name: group.name })
+    for (const entry of group.entries) {
+      if (entry.command) {
+        items.push({
+          type: 'command',
+          entry: entry as CommandIndexEntry & { command: Command },
+        })
+      }
     }
   }
   return items
 }
 
-/** Searchable slash-command palette overlay with grouped categories. */
+/** Searchable slash-command palette overlay with index-derived groups. */
 export const TovyrCommandPalette = memo(function TovyrCommandPalette({
   commands,
   onSelect,
@@ -71,19 +68,18 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
   const [query, setQuery] = useState('/')
   const [selectedIndex, setSelectedIndex] = useState(1) // 0 is the search row
 
-  const filtered = useMemo(() => {
-    const q = query.replace(/^\//, '').toLowerCase().trim()
-    const enabled = commands.filter(c => isCommandEnabled(c) && !c.isHidden)
-    if (!q) return enabled
-    return enabled.filter(c => {
-      const name = getCommandName(c).toLowerCase()
-      const desc = c.description.toLowerCase()
-      return name.includes(q) || desc.includes(q)
-    })
-  }, [commands, query])
-
-  const grouped = useMemo(() => groupCommands(filtered.slice(0, MAX_VISIBLE)), [filtered])
-  const flatItems = useMemo(() => buildFlatItems(grouped), [grouped])
+  const entries = useMemo(
+    () => buildCommandIndex(commands, { keybindings: [] }),
+    [commands],
+  )
+  const filtered = useMemo(
+    () => searchCommandIndex(entries, query).filter(entry => entry.kind === 'command'),
+    [entries, query],
+  )
+  const flatItems = useMemo(
+    () => buildFlatItems(filtered.slice(0, MAX_VISIBLE)),
+    [filtered],
+  )
 
   useEffect(() => {
     setSelectedIndex(1) // skip the first header if any
@@ -96,14 +92,12 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
     }
     if (key.return) {
       const selected = flatItems[selectedIndex]
-      if (selected && selected.type === 'command') {
-        onSelect(selected.command)
-      }
+      if (selected?.type === 'command') onSelect(selected.entry.command)
       return
     }
     if (key.upArrow) {
-      setSelectedIndex((i: number) => {
-        let next = Math.max(0, i - 1)
+      setSelectedIndex((index: number) => {
+        let next = Math.max(0, index - 1)
         while (next > 0 && flatItems[next]?.type === 'header') {
           next = Math.max(0, next - 1)
         }
@@ -112,8 +106,8 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
       return
     }
     if (key.downArrow) {
-      setSelectedIndex((i: number) => {
-        let next = Math.min(flatItems.length - 1, i + 1)
+      setSelectedIndex((index: number) => {
+        let next = Math.min(flatItems.length - 1, index + 1)
         while (next < flatItems.length - 1 && flatItems[next]?.type === 'header') {
           next = Math.min(flatItems.length - 1, next + 1)
         }
@@ -125,13 +119,12 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
       onClose()
       return
     }
-    // Type to filter
     if (key.name && key.name.length === 1 && !key.ctrl && !key.meta) {
-      setQuery((prev: string) => prev + key.name)
+      setQuery((previous: string) => previous + key.name)
       return
     }
     if (key.name === 'backspace') {
-      setQuery((prev: string) => prev.length > 1 ? prev.slice(0, -1) : prev)
+      setQuery((previous: string) => previous.length > 1 ? previous.slice(0, -1) : previous)
     }
   }, [flatItems, selectedIndex, onSelect, onClose]))
 
@@ -148,40 +141,25 @@ export const TovyrCommandPalette = memo(function TovyrCommandPalette({
         <Box flexDirection="column">
           {filtered.length === 0 ? (
             <Text color="subtle" dimColor>No commands found</Text>
-          ) : (
-            flatItems.map((item, i) => {
-              const isSelected = i === selectedIndex
-              if (item.type === 'header') {
-                return (
-                  <Box key={item.name} marginTop={1} marginBottom={0}>
-                    <Text color="subtle" dimColor bold>{item.name}</Text>
-                  </Box>
-                )
-              }
-              const cmd = item.command
-              const name = getCommandName(cmd)
-              const desc = truncateToWidth(cmd.description, width - name.length - 10)
-              return (
-                <Box key={name} flexDirection="row">
-                  <Text color={isSelected ? 'tovyrPrimary' : 'subtle'} bold={isSelected}>
-                    {isSelected ? '› ' : '  '}
-                  </Text>
-                  <Text color={isSelected ? 'tovyrPrimary' : 'text'} bold={isSelected}>
-                    /{name}
-                  </Text>
-                  <Box flexGrow={1} />
-                  <Text color="subtle" dimColor>{desc}</Text>
-                </Box>
-              )
-            })
-          )}
+          ) : flatItems.map((item, index) => {
+            const isSelected = index === selectedIndex
+            if (item.type === 'header') {
+              return <Box key={item.name} marginTop={1} marginBottom={0}><Text color="subtle" dimColor bold>{item.name}</Text></Box>
+            }
+            const name = getCommandName(item.entry.command)
+            const description = truncateToWidth(item.entry.description, width - name.length - 10)
+            return (
+              <Box key={item.entry.name} flexDirection="row">
+                <Text color={isSelected ? 'tovyrPrimary' : 'subtle'} bold={isSelected}>{isSelected ? '› ' : '  '}</Text>
+                <Text color={isSelected ? 'tovyrPrimary' : 'text'} bold={isSelected}>/{name}</Text>
+                <Box flexGrow={1} />
+                <Text color="subtle" dimColor>{description}</Text>
+              </Box>
+            )
+          })}
         </Box>
         <Box marginTop={1}>
-          <Text color="subtle" dimColor>
-            <Text color="tovyrPrimary" bold>↑↓</Text> navigate{' · '}
-            <Text color="tovyrPrimary" bold>Enter</Text> select{' · '}
-            <Text color="tovyrPrimary" bold>Esc</Text> close
-          </Text>
+          <Text color="subtle" dimColor><Text color="tovyrPrimary" bold>↑↓</Text> navigate{' · '}<Text color="tovyrPrimary" bold>Enter</Text> select{' · '}<Text color="tovyrPrimary" bold>Esc</Text> close</Text>
         </Box>
       </Box>
     </Centered>

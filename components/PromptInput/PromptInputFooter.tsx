@@ -33,6 +33,7 @@ import {
   type SuggestionItem,
 } from './PromptInputFooterSuggestions.js'
 import { PromptInputHelpMenu } from './PromptInputHelpMenu.js'
+import { TovyrHelpOverlay } from '../tovyr/TovyrHelpOverlay.js'
 import { TovyrModeBadge } from '../tovyr/TovyrModeBadge.js'
 import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
 
@@ -55,6 +56,7 @@ type Props = {
   maxColumnWidth?: number
   toolPermissionContext: ToolPermissionContext
   helpOpen: boolean
+  onCloseHelp?: () => void
   suppressHint: boolean
   isLoading: boolean
   tasksSelected: boolean
@@ -90,6 +92,7 @@ function PromptInputFooter({
   maxColumnWidth,
   toolPermissionContext,
   helpOpen,
+  onCloseHelp,
   suppressHint: suppressHintFromProps,
   isLoading,
   tasksSelected,
@@ -159,6 +162,9 @@ function PromptInputFooter({
   }
 
   if (helpOpen) {
+    if (isTovyrRuntime() && onCloseHelp) {
+      return <TovyrHelpOverlay onClose={onCloseHelp} />
+    }
     return (
       <PromptInputHelpMenu dimColor={true} fixedWidth={true} paddingX={2} />
     )

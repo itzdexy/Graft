@@ -3072,6 +3072,7 @@ function PromptInput({
         maxColumnWidth={maxColumnWidth}
         toolPermissionContext={effectiveToolPermissionContext}
         helpOpen={helpOpen}
+        onCloseHelp={() => setHelpOpen(false)}
         suppressHint={input.length > 0}
         isLoading={isLoading}
         tasksSelected={tasksSelected}
