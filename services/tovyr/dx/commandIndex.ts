@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useShortcutDisplay } from '../../../keybindings/useShortcutDisplay.js'
+import { useOptionalKeybindingContext } from '../../../keybindings/KeybindingContext.js'
 import type { Command } from '../../../types/command.js'
 import { getCommandName, isCommandEnabled } from '../../../types/command.js'
 
@@ -33,10 +33,10 @@ export type ImplementedKeybinding = {
 }
 
 export type CommandDiscoveryShortcutValues = {
-  palette: string
-  mode: string
-  help: string
-  dismiss: string
+  palette?: string
+  mode?: string
+  help?: string
+  dismiss?: string
 }
 
 const CATEGORY_ORDER: readonly CommandIndexCategory[] = [
@@ -59,11 +59,13 @@ export function resolveCommandDiscoveryShortcuts(
   values: CommandDiscoveryShortcutValues,
 ): readonly ImplementedKeybinding[] {
   return [
-    { keys: values.palette, description: 'commands', category: 'Tools' },
-    { keys: values.mode, description: 'mode', category: 'Coding' },
-    { keys: values.help, description: 'help', category: 'Help' },
-    { keys: values.dismiss, description: 'interrupt', category: 'Help' },
-  ]
+    [values.palette, 'commands', 'Tools'],
+    [values.mode, 'mode', 'Coding'],
+    [values.help, 'help', 'Help'],
+    [values.dismiss, 'interrupt', 'Help'],
+  ].flatMap(([keys, description, category]) =>
+    keys ? [{ keys, description, category: category as CommandIndexCategory }] : [],
+  )
 }
 
 /** Default only for non-rendering callers; the UI uses the active resolver. */
@@ -77,13 +79,23 @@ export const IMPLEMENTED_KEYBINDINGS = resolveCommandDiscoveryShortcuts({
 /**
  * Uses the established keybinding provider rather than duplicating key lookup.
  * In particular, Windows terminals that cannot deliver Shift+Tab resolve to
- * the runtime's `meta+m` fallback, and a user keybindings.json override wins.
+ * the runtime's `meta+m` fallback, a user keybindings.json override wins, and
+ * an explicit null-unbind is omitted from discovery.
  */
 export function useResolvedCommandDiscoveryShortcuts(): readonly ImplementedKeybinding[] {
-  const palette = useShortcutDisplay('app:commandPalette', 'Global', 'ctrl+p')
-  const mode = useShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab')
-  const help = useShortcutDisplay('app:toggleHelp', 'Global', '?')
-  const dismiss = useShortcutDisplay('help:dismiss', 'Help', 'esc')
+  const keybindings = useOptionalKeybindingContext()
+  const palette = keybindings
+    ? keybindings.getDisplayText('app:commandPalette', 'Global')
+    : 'ctrl+p'
+  const mode = keybindings
+    ? keybindings.getDisplayText('chat:cycleMode', 'Chat')
+    : 'shift+tab'
+  const help = keybindings
+    ? keybindings.getDisplayText('app:toggleHelp', 'Global')
+    : '?'
+  const dismiss = keybindings
+    ? keybindings.getDisplayText('help:dismiss', 'Help')
+    : 'esc'
 
   return useMemo(
     () => resolveCommandDiscoveryShortcuts({ palette, mode, help, dismiss }),

@@ -223,6 +223,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
     bindings: {
       escape: 'help:dismiss',
       '?': 'help:toggle',
+      enter: 'help:toggle',
     },
   },
   // Attachment navigation (select dialog image attachments)

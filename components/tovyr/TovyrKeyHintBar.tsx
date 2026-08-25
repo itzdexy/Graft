@@ -61,8 +61,7 @@ export const TovyrKeyHintBar = memo(function TovyrKeyHintBar({
     .map(entry => ({ keys: entry.keys ?? '', action: entry.description }))
   const interruptHint = indexedHints.find(hint => hint.action === 'interrupt')
   const hints = indexedHints.filter(hint => hint !== interruptHint)
-  const loadingHint = interruptHint!
-  const leftWidth = isLoading ? hintWidth(loadingHint) : 0
+  const leftWidth = isLoading && interruptHint ? hintWidth(interruptHint) : 0
   const usage = contextUsage?.trim() || ''
   // Two columns of padding, a gap between clusters, and the usage readout.
   const available =
@@ -87,10 +86,10 @@ export const TovyrKeyHintBar = memo(function TovyrKeyHintBar({
       justifyContent="space-between"
     >
       <Text wrap="truncate-end">
-        {isLoading ? (
+        {isLoading && interruptHint ? (
           <>
-            <Text color="warning">{loadingHint.keys}</Text>
-            <Text color="subtle" dimColor>{` ${loadingHint.action}`}</Text>
+            <Text color="warning">{interruptHint.keys}</Text>
+            <Text color="subtle" dimColor>{` ${interruptHint.action}`}</Text>
           </>
         ) : (
           ' '

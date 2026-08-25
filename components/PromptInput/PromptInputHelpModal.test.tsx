@@ -75,4 +75,21 @@ describe('PromptInput help modal', () => {
     expect(result.lastFrame).toContain('submit:0')
     expect(result.lastFrame).toContain('palette:0')
   })
+
+  test('Enter closes help without leaking into the prompt or submitting', async () => {
+    const result = await renderToText(
+      <TestKeybindingProvider>
+        <HelpModalHarness />
+      </TestKeybindingProvider>,
+      {
+        settleMs: 180,
+        interact: stdin => stdin.write('\r'),
+      },
+    )
+
+    expect(result.lastFrame).toContain('closed:true')
+    expect(result.lastFrame).toContain('prompt:draft')
+    expect(result.lastFrame).toContain('submit:0')
+    expect(result.lastFrame).toContain('palette:0')
+  })
 })

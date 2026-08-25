@@ -69,11 +69,21 @@ export function getBindingDisplayText(
   context: KeybindingContextName,
   bindings: ParsedBinding[],
 ): string | undefined {
-  // Find the last binding for this action in this context
-  const binding = bindings.findLast(
-    b => b.action === action && b.context === context,
-  )
-  return binding ? chordToString(binding.chord) : undefined
+  // Search from the newest binding so user configuration wins. A newer
+  // binding for the same chord (including an explicit null-unbind) shadows
+  // its prior action and must not remain visible in shortcut discovery.
+  const shadowedChords = new Set<string>()
+  for (let index = bindings.length - 1; index >= 0; index--) {
+    const binding = bindings[index]
+    if (!binding || binding.context !== context) continue
+
+    const chord = chordToString(binding.chord)
+    if (shadowedChords.has(chord)) continue
+    shadowedChords.add(chord)
+
+    if (binding.action === action) return chord
+  }
+  return undefined
 }
 
 /**

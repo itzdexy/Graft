@@ -21,7 +21,11 @@ export const TovyrHelpOverlay = memo(function TovyrHelpOverlay({
   commands = [],
 }: Props): ReactNode {
   const { columns } = useTerminalSize()
-  const groups = shortcutGroups(useTovyrCommandIndex(commands))
+  const entries = useTovyrCommandIndex(commands)
+  const groups = shortcutGroups(entries)
+  const dismissShortcut = entries.find(
+    entry => entry.kind === 'shortcut' && entry.description === 'interrupt',
+  )?.keys
   useRegisterKeybindingContext('Help')
   useKeybindings(
     {
@@ -39,7 +43,9 @@ export const TovyrHelpOverlay = memo(function TovyrHelpOverlay({
       <Box flexDirection="column" width={modalWidth} paddingX={1} paddingY={1} borderStyle="round" borderColor="tovyrPrimary">
         <Box flexDirection="row" justifyContent="space-between" marginBottom={1}>
           <Text color="tovyrPrimary" bold>Keyboard Shortcuts</Text>
-          <Text color="subtle" dimColor>Esc to close</Text>
+          {dismissShortcut ? (
+            <Text color="subtle" dimColor>{`${dismissShortcut} to close`}</Text>
+          ) : null}
         </Box>
         <Box flexDirection="row" flexWrap="wrap">
           {groups.map(group => (

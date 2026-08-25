@@ -111,4 +111,47 @@ describe('Tovyr command discovery renders', () => {
     expect(windowsFallback.lastFrame).toContain('meta+m')
     expect(windowsFallback.lastFrame).not.toContain('shift+tab')
   })
+
+  test('renders the configured help-dismiss shortcut in the close affordance', async () => {
+    const help = await renderToText(
+      <TestKeybindingProvider
+        overrides={[
+          { context: 'Help', bindings: { 'ctrl+q': 'help:dismiss' } },
+        ]}
+      >
+        <TovyrHelpOverlay onClose={() => {}} />
+      </TestKeybindingProvider>,
+      { columns: 100 },
+    )
+
+    expect(help.lastFrame).toContain('ctrl+q to close')
+    expect(help.lastFrame).not.toContain('Esc to close')
+  })
+
+  test('does not advertise Escape when the active binding explicitly unbinds it', async () => {
+    const help = await renderToText(
+      <TestKeybindingProvider
+        overrides={[{ context: 'Help', bindings: { escape: null } }]}
+      >
+        <TovyrHelpOverlay onClose={() => {}} />
+      </TestKeybindingProvider>,
+      { columns: 100 },
+    )
+
+    expect(help.lastFrame).not.toContain('Esc')
+  })
+
+  test('does not render a nonexistent interrupt hint when Escape is unbound', async () => {
+    const hintBar = await renderToText(
+      <TestKeybindingProvider
+        overrides={[{ context: 'Help', bindings: { escape: null } }]}
+      >
+        <TovyrKeyHintBar isLoading />
+      </TestKeybindingProvider>,
+      { columns: 100 },
+    )
+
+    expect(hintBar.lastFrame).not.toContain('Esc')
+    expect(hintBar.lastFrame).not.toContain('interrupt')
+  })
 })
