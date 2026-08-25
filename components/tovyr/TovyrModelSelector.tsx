@@ -8,6 +8,7 @@ import { renderModelName } from '../../utils/model/model.js'
 import { truncateToWidth } from '../../utils/format.js'
 import { Centered } from '../design-system/Centered.js'
 import { SPACING } from '../design-system/spacing.js'
+import { useRegisterOverlay } from '../../context/overlayContext.js'
 
 type Props = {
   onSelect: (modelId: string) => void
@@ -58,6 +59,7 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
   onSelect,
   onClose,
 }: Props): ReactNode {
+  useRegisterOverlay('tovyr-model-selector')
   const { columns } = useTerminalSize()
   const currentModel = useMainLoopModel()
   const [query, setQuery] = useState('')
