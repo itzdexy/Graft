@@ -1,17 +1,12 @@
 /**
  * Practical CLI integration tests — launcher, scripts, safety, and agent limits.
  */
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { TOVYR_VERSION } from '../constants/tovyr.js'
 import { EXIT } from './tovyr-cli-ux.js'
-import {
-  getActiveProviderId,
-  setActiveProvider,
-} from './tovyr-providers.js'
-import { persistActiveProvider } from './tovyr-prep-auth.js'
 import {
   combinedOutput,
   emptyHomeEnv,
@@ -19,6 +14,7 @@ import {
   runLauncher,
   runScript,
 } from './tovyr-cli-test-helpers.js'
+import { createTovyrTestHome } from './tovyr-test-home.js'
 import {
   AGENT_DEFAULT_MAX_TURNS,
   AGENT_DEFAULT_MAX_TOOL_CALLS,
@@ -160,17 +156,6 @@ describe('CLI launcher — missing API key', () => {
 })
 
 describe('CLI launcher — provider selection', () => {
-  let savedProvider: string
-
-  beforeEach(() => {
-    savedProvider = getActiveProviderId()
-  })
-
-  afterEach(() => {
-    setActiveProvider(savedProvider)
-    persistActiveProvider()
-  })
-
   test('provider list includes freemodel', () => {
     const result = runLauncher(['provider', 'list'])
     expect(result.status).toBe(EXIT.OK)
@@ -186,17 +171,34 @@ describe('CLI launcher — provider selection', () => {
   })
 
   test('provider use ollama works without API key (local provider)', () => {
-    const result = runLauncher(['provider', 'use', 'ollama'])
-    expect(result.status).toBe(EXIT.OK)
-    expect(combinedOutput(result)).toContain('Ollama')
-    expect(getActiveProviderId()).toBe('ollama')
+    const testHome = createTovyrTestHome()
+    try {
+      const result = runLauncher(['provider', 'use', 'ollama'], {
+        env: testHome.env,
+      })
+      expect(result.status).toBe(EXIT.OK)
+      expect(combinedOutput(result)).toContain('Ollama')
+
+      const listed = runLauncher(['provider', 'list', '--json'], {
+        env: testHome.env,
+      })
+      expect(JSON.parse(listed.stdout).data.active).toBe('ollama')
+    } finally {
+      testHome.cleanup()
+    }
   })
 
   test('provider use without saved key fails with guidance', () => {
-    const result = runLauncher(['provider', 'use', 'cerebras'])
-    if (result.status === EXIT.OK) return // key present in env — skip strict assertion
-    expect(result.status).toBe(EXIT.ERROR)
-    expect(combinedOutput(result)).toContain('API key')
+    const testHome = createTovyrTestHome()
+    try {
+      const result = runLauncher(['provider', 'use', 'cerebras'], {
+        env: testHome.env,
+      })
+      expect(result.status).toBe(EXIT.ERROR)
+      expect(combinedOutput(result)).toContain('API key')
+    } finally {
+      testHome.cleanup()
+    }
   })
 })
 

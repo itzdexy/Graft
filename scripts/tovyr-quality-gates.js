@@ -5,7 +5,9 @@ import { pathToFileURL } from 'node:url'
 // Tovyr's typecheck covers the import-clean runtime and domain core listed in
 // tsconfig.tovyr.json; broader application typing remains an upstream concern.
 export const qualityGateCommands = [
-  ['bun', ['test']],
+  // Run the declared package suite. `bun test` discovers a different, much
+  // broader set of files and can accidentally let the Tovyr contract drift.
+  ['bun', ['run', 'test']],
   ['bun', ['run', 'typecheck:tovyr']],
   ['bun', ['run', 'check:dead-ui']],
   ['bun', ['run', 'check:brand']],

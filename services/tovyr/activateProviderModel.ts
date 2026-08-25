@@ -1,10 +1,10 @@
 import type { AppState } from '../../state/AppStateStore.js'
 import { isCatalogModel } from '../../scripts/tovyr-provider-catalog.js'
 import {
-  getActiveModelId,
   getActiveProviderId,
   getProvider,
   loadState,
+  saveState,
   setActiveModel,
   setActiveProvider,
 } from '../../scripts/tovyr-providers.js'
@@ -38,6 +38,11 @@ export type ActivateProviderModelDependencies = {
   ) => Promise<ModelValidationResult>
   probe?: (input: ActivateProviderModelInput) => Promise<ProbeResult>
   commit?: (input: ActivateProviderModelInput & { modelId: string }) => Promise<void>
+  /** Injectable session application keeps activation rollback testable. */
+  apply?: (options: {
+    setAppState?: (f: (prev: AppState) => AppState) => void
+    awaitModelVerification?: boolean
+  }) => Promise<unknown>
 }
 
 export type ActivateProviderModelResult =
@@ -74,18 +79,23 @@ async function defaultValidate(
 
 async function defaultCommit(
   input: ActivateProviderModelInput & { modelId: string },
+  apply = applyActiveProviderSession,
 ): Promise<void> {
-  const before = loadState()
-  const previousProviderId = getActiveProviderId(before)
-  const previousModelId = getActiveModelId(previousProviderId, before)
+  // The provider file has several coupled maps (active, models, keys, auth,
+  // endpoints and custom metadata). Keep an immutable whole-state snapshot:
+  // rolling back just the visible provider/model loses a candidate's saved
+  // model or turns an absent entry into a persisted default.
+  const before = JSON.parse(JSON.stringify(loadState()))
   try {
     setActiveProvider(input.providerId)
     setActiveModel(input.modelId, input.providerId)
-    await applyActiveProviderSession({ setAppState: input.setAppState })
+    await apply({ setAppState: input.setAppState })
   } catch (error) {
-    setActiveProvider(previousProviderId)
-    if (previousModelId) setActiveModel(previousModelId, previousProviderId)
-    await applyActiveProviderSession({
+    // Restore the exact persisted state before reapplying process/session
+    // settings. This also restores candidate model absence, custom endpoint
+    // metadata, and the previous active provider/model as one transaction.
+    saveState(before)
+    await apply({
       setAppState: input.setAppState,
       awaitModelVerification: false,
     }).catch(() => {})
@@ -111,7 +121,9 @@ export async function activateProviderModel(
         providerId: candidate.providerId,
         modelId: candidate.modelId,
       }))
-  const commit = dependencies.commit ?? defaultCommit
+  const commit =
+    dependencies.commit ??
+    (candidate => defaultCommit(candidate, dependencies.apply ?? applyActiveProviderSession))
 
   const validation = await validate(input)
   if (!validation.ok) {

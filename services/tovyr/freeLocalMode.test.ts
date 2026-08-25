@@ -33,7 +33,9 @@ describe('Tovyr free local mode', () => {
       join(root, 'components', 'PromptInput', 'Notifications.tsx'),
       'utf8',
     )
-    expect(notifications).toContain(
+    // Formatting is not behavior. Normalize line endings so Windows checkout
+    // style cannot hide a regression in the runtime guard.
+    expect(notifications.replace(/\r\n/g, '\n')).toContain(
       "!isTovyrRuntime() &&\n        (apiKeyStatus === 'invalid'",
     )
   })

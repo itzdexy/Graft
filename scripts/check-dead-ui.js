@@ -197,6 +197,22 @@ function hasRuntimeUse(file, aliases, isComponent) {
       for (const statement of node.statements) visit(statement, local)
       return
     }
+    // Declarations introduce their name into the containing block. Treat a
+    // same-spelled local declaration as a shadow before visiting its body so
+    // `<Ghost />` cannot accidentally keep an imported Ghost alive.
+    if (ts.isFunctionDeclaration(node)) {
+      if (node.name) scope.set(node.name.text, false)
+      const local = new Map(scope)
+      for (const parameter of node.parameters) bindPattern(parameter.name, local)
+      if (node.body) visit(node.body, local)
+      return
+    }
+    if (ts.isClassDeclaration(node)) {
+      if (node.name) scope.set(node.name.text, false)
+      const local = new Map(scope)
+      ts.forEachChild(node, child => visit(child, local))
+      return
+    }
     if (ts.isFunctionLike(node)) {
       const local = new Map(scope)
       for (const parameter of node.parameters) bindPattern(parameter.name, local)
@@ -228,6 +244,18 @@ function hasRuntimeUse(file, aliases, isComponent) {
       const tag = node.tagName
       if (ts.isIdentifier(tag) && scope.get(tag.text) === true) used = true
       if (ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && scope.get(tag.expression.text) === true) used = true
+    }
+    // Routers and composition shells commonly receive a component value via
+    // JSX (for example `<Route component={Ghost} />`). That is a runtime
+    // owner, not a textual mention, so retain the imported binding.
+    if (
+      isComponent &&
+      ts.isJsxExpression(node) &&
+      ts.isJsxAttribute(node.parent) &&
+      node.expression &&
+      expressionCarriesAlias(node.expression, scope)
+    ) {
+      used = true
     }
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && scope.get(node.expression.text) === true) {
       used = true

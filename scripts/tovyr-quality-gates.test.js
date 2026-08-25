@@ -45,7 +45,7 @@ test('quality runner launches every phase without a shell', () => {
 
   expect(status).toBe(0)
   expect(calls.map(([file, args]) => [file, args])).toEqual([
-    ['bun', ['test']],
+    ['bun', ['run', 'test']],
     ['bun', ['run', 'typecheck:tovyr']],
     ['bun', ['run', 'check:dead-ui']],
     ['bun', ['run', 'check:brand']],

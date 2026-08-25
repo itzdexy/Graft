@@ -110,6 +110,8 @@ test('rejects unreachable, shadowed, and wrapper-only runtime mentions', () => {
         'const Wrapped = memo(Ghost)',
         'function hidden(Ghost: unknown) { return <Ghost /> }',
         'const scoped = () => { const Ghost = () => null; return <Ghost /> }',
+        '{ function Ghost() { return null }; <Ghost /> }',
+        '{ class Ghost {}; <Ghost /> }',
       ].join('\n'),
     )
 
@@ -142,6 +144,36 @@ test('accepts a wrapped imported component when it is actually mounted', () => {
         "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
         'const Wrapped = memo(Ghost)',
         'export const Live = () => <Wrapped />',
+      ].join('\n'),
+    )
+
+    const result = Bun.spawnSync({
+      cmd: [NODE, join(process.cwd(), 'scripts/check-dead-ui.js')],
+      cwd: fixture,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(result.exitCode).toBe(0)
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})
+
+test('accepts a component passed to a JSX component-owner prop', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-jsx-owner-'))
+  try {
+    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      'export function TovyrGhost() { return null }\n',
+    )
+    mkdirSync(join(fixture, 'services'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'services', 'route.tsx'),
+      [
+        "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
+        'export const Route = () => <Router component={Ghost} />',
       ].join('\n'),
     )
 
