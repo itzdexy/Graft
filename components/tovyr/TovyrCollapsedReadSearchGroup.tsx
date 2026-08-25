@@ -51,6 +51,7 @@ type Props = {
   message: CollapsedReadSearchGroup
   inProgressToolUseIDs: Set<string>
   lookups: ReturnType<typeof buildMessageLookups>
+  expanded?: boolean
 }
 
 /** OpenCode-style rows for collapsed read/search/list tool groups (Tovyr). */
@@ -58,13 +59,14 @@ export function TovyrCollapsedReadSearchGroup({
   message,
   inProgressToolUseIDs,
   lookups,
+  expanded = false,
 }: Props): ReactNode {
   const toolUses = collectToolUses(message)
   if (toolUses.length === 0) return null
 
   const isCollapsed = toolUses.length > 2
   const failed = toolUses.filter(tu => lookups.erroredToolUseIDs.has(tu.id))
-  const visible = isCollapsed
+  const visible = isCollapsed && !expanded
     ? [...toolUses.slice(0, 2), ...failed].filter(
         (tool, index, all) => all.findIndex(item => item.id === tool.id) === index,
       )
@@ -94,7 +96,7 @@ export function TovyrCollapsedReadSearchGroup({
             {failed.length > 0 ? (
               <Text color="error" bold>{` · ${failed.length} failed`}</Text>
             ) : null}
-            <Text color="subtle">{' · Enter details'}</Text>
+            <Text color="subtle">{expanded ? ' · all details' : ' · Enter details'}</Text>
           </Text>
         </Box>
       ) : null}
@@ -131,7 +133,7 @@ export function TovyrCollapsedReadSearchGroup({
               />
             )
           })}
-      {isCollapsed && toolUses.length > 2 ? (
+      {isCollapsed && !expanded && toolUses.length > 2 ? (
         <Box paddingLeft={1}>
           <Text color="subtle" dimColor>
             {'  + '}{toolUses.length - 2} more
