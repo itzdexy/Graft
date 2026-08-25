@@ -128,3 +128,81 @@ pass
 
 The final clean committed-tree verification and commit identifier are recorded
 after this report is committed.
+
+## Review fix round 1 completion
+
+### Final disposition ledger
+
+The second clean-tree scan was intentionally not narrowed: it found real UI
+exports that were only reachable through unrelated, uncommitted checkout
+changes. Each retained export below is now mounted through its actual owner;
+no test, comment, import-only reference, or dummy toggle is used as evidence.
+
+| Export | Final disposition | Production route / owner |
+| --- | --- | --- |
+| `TovyrSpinnerStatusRow` | Deleted | Replaced everywhere by `TovyrLiveActivity` → `TovyrActivitySurface`; there is one activity row. |
+| `TovyrWelcomePanel` | Deleted | `TovyrWorkspaceDashboard` remains the sole mounted welcome owner. |
+| `warmUpCache` | Deleted | No justified runtime caller; `SmartCacheSystem.warmUp` remains the instance API. |
+| `TovyrAssistantTextMessage` | Integrated | `components/Message.tsx` uses it for Tovyr assistant content. |
+| `TovyrCollapsedReadSearchGroup` | Integrated | `components/Message.tsx` renders collapsed Tovyr read/search groups. |
+| `TovyrTranscriptContext` | Integrated | `components/Messages.tsx` supplies transcript context in the live message projection. |
+| `TovyrCommandPalette` | Integrated | `PromptInput` owns the palette; existing `Ctrl+P` / `Ctrl+K` command-palette bindings open it. |
+| `TovyrKeyHintBar` | Integrated | `PromptInputFooter` renders the live input hints. |
+| `TovyrModelSelector` | Integrated | `PromptInputFooter` opens it through the live Tovyr model badge, using the existing provider/model activation path. |
+| `TovyrGitHubUpdateNotice` | Integrated | REPL places it below the existing AWS auth notice. |
+| `TovyrSilentTurnNotice` | Integrated | REPL renders it only for a non-agent Tovyr silent turn with no pending user placeholder or active tool. |
+| `TovyrBootScreen` | Retained and verified | `main.tsx` mounts it during the real pre-REPL boot transition; it was restored after the clean-tree source contract caught the incorrect deletion. |
+
+The original twelve baselined exports retain the dispositions in the first
+ledger above. In particular, `TovyrFileSidebar` is reachable via the enabled
+`/files` command through the real command index and REPL focus resolver, and
+`TovyrEmptyState` is guarded by an actually idle transcript: no messages, no
+pending user placeholder, no load/processing state, and no active tool.
+
+### Repair RED / GREEN sequence
+
+- RED: the clean `7c81765` tree imported the deleted spinner from
+  `TovyrLiveActivity`.
+- GREEN: `93304eb` migrated that caller to `TovyrActivitySurface` and added
+  turn-activity reducer/adaptor coverage.
+- RED: a production-only scan of the clean `93304eb` tree found the eight
+  unmounted UI exports listed above.
+- GREEN: `f2ae8ce` mounted each in its established UI owner and preserved the
+  single HUD owner by suppressing the context status HUD in agents focus.
+- RED: a clean launcher contract then showed that `TovyrBootScreen` is mounted
+  by `main.tsx`, so deleting it was not justified.
+- GREEN: `f87ea0d` restored the truthful boot transition, and `83491bd` made
+  the checker scan root entry points including `main.tsx`.
+- RED: the clean source contract still expected the unfiltered streaming
+  variable after the live Tovyr transcript filter was integrated.
+- GREEN: this final test adjustment asserts `displayStreamingText` and the
+  live dock's `streamingTextPreview` / `suppressIdleStatus` contract.
+
+### Clean committed-tree verification
+
+The final verification uses a fresh detached worktree at the final commit,
+with only a `node_modules` junction to the existing workspace dependency tree;
+no source, credentials, or ignored configuration is copied from the dirty
+checkout.
+
+```text
+bun test scripts/check-dead-ui.test.js components/tovyr/TovyrCommandDiscovery.render.test.tsx components/tovyr/TovyrWorkbenchShell.test.tsx components/tovyr/TovyrContextRail.test.ts components/tovyr/TovyrLiveActivity.test.tsx components/tovyr/TovyrActivitySurface.test.ts services/tovyr/dx/workbenchFocus.test.ts services/tovyr/dx/activityAdapter.test.ts services/tovyr/dx/turnActivity.test.ts services/tovyr/launcherStartupContract.test.ts
+68 pass, 0 fail
+
+node scripts/check-dead-ui.js
+check-dead-ui: no NEW unreferenced components (0 baselined).
+
+.\\node_modules\\.bin\\tsc.cmd -p tsconfig.tovyr.json
+pass
+```
+
+The final clean-worktree run is repeated after the report/test commit so the
+command count and commit tree are the final state rather than the dirty overlay.
+
+### Remaining risk
+
+`check:tovyr` is present only in the user's uncommitted `package.json` overlay,
+so a detached committed tree cannot invoke that npm script by name. Its direct
+equivalents above (focused Tovyr tests, dead-UI gate, and Tovyr TypeScript
+slice) are run in the clean tree. The shared checkout's `bun run check:tovyr`
+is also run after the final commit. The baseline remains literally empty.

@@ -192,12 +192,10 @@ describe('Tovyr Windows startup contract', () => {
       'isTovyrRuntime() || !hasCursorUpViewportYankBug()',
     )
     expect(repl).toContain('? isTovyrRuntime()')
-    expect(messages).toContain('<StreamingMarkdown>{streamingText}</StreamingMarkdown>')
-    expect(dock).toContain(
-      'const hasAssistantStream = !!streamingTextPreview?.trim()',
-    )
-    expect(dock).toContain('(busy && !hasAssistantStream)')
-    expect(dock).toContain('streamingTextPreview={null}')
+    expect(messages).toContain('<StreamingMarkdown>{displayStreamingText}</StreamingMarkdown>')
+    expect(dock).toContain('streamingTextPreview={streamingTextPreview}')
+    expect(dock).toContain('suppressIdleStatus={suppressIdleStatus}')
+    expect(dock).not.toContain('streamingTextPreview={null}')
     expect(prompt).toContain('briefOwnsGap || isTovyrRuntime()')
     expect(footer).toContain('<TovyrModeBadge')
   })
