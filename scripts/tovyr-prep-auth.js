@@ -22,6 +22,7 @@ import {
   getProvider,
   getActiveProviderId,
 } from './tovyr-providers.js'
+import { LOCAL_PROVIDER_PLACEHOLDER_KEY } from './tovyr-provider-local.js'
 
 import { getTovyrHome } from './tovyr-home.js'
 import { readJsonSafe, writeJsonAtomic } from './tovyr-safe-json.js'
@@ -70,7 +71,7 @@ function ensureApiKeyApproved(config, active) {
   if (!config.customApiKeyResponses.approved.includes(normalized)) {
     config.customApiKeyResponses.approved.push(normalized)
   }
-  config.primaryApiKey = active.apiKey
+  // The actual API key lives in ~/.tovyr/api-key; do not store it in ~/.tovyr.json.
   config.hasCompletedOnboarding = true
   config.tovyrProvider = {
     id: active.providerId,
@@ -223,6 +224,10 @@ const isMain =
     process.argv[1].endsWith('tovyr-prep-auth.mjs'))
 
 if (isMain) {
-  prepareTovyrAuth()
+  const key = prepareTovyrAuth()
+  if (key === LOCAL_PROVIDER_PLACEHOLDER_KEY) {
+    console.error(noKeyMessage())
+    process.exit(1)
+  }
   process.stdout.write('ready\n')
 }

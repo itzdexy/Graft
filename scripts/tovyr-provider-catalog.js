@@ -645,6 +645,7 @@ export const PROVIDER_CATALOG = {
     custom: true,
     anyModel: true,
     notes:
+    apiFormat: 'openai',
       'GPT via OpenRouter, Portkey, or LiteLLM. Native api.openai.com is OpenAI-format only.',
     defaultModel: 'openai/gpt-5.6-sol',
     models: [

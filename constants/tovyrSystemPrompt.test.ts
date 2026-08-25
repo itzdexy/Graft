@@ -9,7 +9,7 @@ import {
   getTovyrOperatingPrinciplesSection,
   getTovyrQualityAndCapabilitiesSection,
   getTovyrSimpleSystemPrompt,
-} from './kairoSystemPrompt.js'
+} from './tovyrSystemPrompt.js'
 
 describe('kairoSystemPrompt', () => {
   test('quality section mentions Tovyr and core tools', () => {
