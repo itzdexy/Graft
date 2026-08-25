@@ -51,8 +51,8 @@ export function TovyrWorkbenchShell({
       <Box flexDirection="row" width="100%" flexShrink={0}>
         <Box
           flexDirection="column"
-          flexShrink={0}
-          width={focusSurface ? undefined : '100%'}
+          flexGrow={1}
+          flexShrink={1}
           minWidth={0}
         >
           <Box flexDirection="column" flexShrink={0}>

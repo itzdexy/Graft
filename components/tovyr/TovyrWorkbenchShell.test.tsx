@@ -89,6 +89,25 @@ describe('TovyrWorkbenchShell', () => {
     expect(output).toContain('│ plan')
   })
 
+  test('keeps a wide plan rail inside a 140-column frame with long transcript content', async () => {
+    const { lastFrame } = await renderToText(
+      <TovyrWorkbenchShell
+        input={widePlanInput}
+        transcript={<Text>{'T'.repeat(320)}</Text>}
+        composer={<Text>prompt</Text>}
+        focus={<Text>plan steps</Text>}
+      />,
+      { columns: 140, rows: 8 },
+    )
+    const focusLine = lastFrame.split('\n').find(line => line.includes('│ plan'))
+
+    expect(focusLine).toBeDefined()
+    expect(focusLine!.indexOf('│ plan')).toBeGreaterThan(80)
+    expect(focusLine!.indexOf('│ plan')).toBeLessThan(120)
+    expect(focusLine!.length).toBeLessThanOrEqual(140)
+    expect(lastFrame).toContain('plan steps')
+  })
+
   test('does not cap a long transcript inside a constrained ScrollBox', async () => {
     const scrollRef = React.createRef<ScrollBoxHandle>()
     let scrollHeight = 0
