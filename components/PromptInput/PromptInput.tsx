@@ -127,6 +127,8 @@ import {
 } from '../../utils/directMemberMessage.js'
 import type { EffortLevel } from '../../utils/effort.js'
 import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
+import { TovyrCommandPalette } from '../tovyr/TovyrCommandPalette.js'
+import { getCommandName } from '../../types/command.js'
 import { env } from '../../utils/env.js'
 import { errorMessage } from '../../utils/errors.js'
 import { isBilledAsExtraUsage } from '../../utils/extraUsage.js'
@@ -447,12 +449,12 @@ function PromptInput({
   const viewingAgentTaskId = useAppState(s => s.viewingAgentTaskId)
   const viewSelectionMode = useAppState(s => s.viewSelectionMode)
   const showSpinnerTree = useAppState(s => s.expandedView) === 'teammates'
-  let buddyEnabled = true
+  // Tovyr owns its mascot in the dashboard. The legacy companion adds a
+  // second sprite and steals footer/input width, so keep it upstream-only.
+  let buddyEnabled = false
   if (!isTovyrRuntime()) {
     if (feature('BUDDY')) {
       buddyEnabled = true
-    } else {
-      buddyEnabled = false
     }
   }
   const { companion: _companion, companionMuted } = buddyEnabled
@@ -583,6 +585,9 @@ function PromptInput({
   const [isExternalEditorActive, setIsExternalEditorActive] = useState(false)
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [showQuickOpen, setShowQuickOpen] = useState(false)
+  // Ctrl+P / Ctrl+K. The palette component and its keybinding both already
+  // existed; nothing ever rendered it, so the shortcut silently did nothing.
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [showGlobalSearch, setShowGlobalSearch] = useState(false)
   const [showHistoryPicker, setShowHistoryPicker] = useState(false)
   const [showFastModePicker, setShowFastModePicker] = useState(false)
@@ -2232,6 +2237,16 @@ function PromptInput({
   )
 
   useKeybinding(
+    'app:commandPalette',
+    () => {
+      if (!isTovyrRuntime()) return
+      setShowCommandPalette(true)
+      setHelpOpen(false)
+    },
+    { context: 'Global', isActive: !isModalOverlayActive },
+  )
+
+  useKeybinding(
     'history:search',
     () => {
       if (feature('HISTORY_PICKER')) {
@@ -2415,6 +2430,7 @@ function PromptInput({
       showTeamsDialog ||
       showQuickOpen ||
       showGlobalSearch ||
+      showCommandPalette ||
       showHistoryPicker ||
       isTovyrHelpOpen
     ) {
@@ -2836,6 +2852,22 @@ function PromptInput({
     }
   }
 
+  if (showCommandPalette) {
+    return (
+      <TovyrCommandPalette
+        commands={commands}
+        onClose={() => setShowCommandPalette(false)}
+        onSelect={cmd => {
+          setShowCommandPalette(false)
+          // Insert rather than execute: many commands take arguments, and
+          // silently running a destructive one on a single keypress is worse
+          // than one extra Enter.
+          onInputChange(`/${getCommandName(cmd)} `)
+        }}
+      />
+    )
+  }
+
   if (feature('HISTORY_PICKER') && showHistoryPicker) {
     return (
       <HistorySearchDialog
@@ -3025,6 +3057,31 @@ function PromptInput({
           </Box>
           <Text color={swarmBanner.bgColor}>{'─'.repeat(columns)}</Text>
         </>
+      ) : isTovyrRuntime() ? (
+        <Box
+          flexDirection="row"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          borderStyle="single"
+          borderTop
+          borderLeft={false}
+          borderRight={false}
+          borderBottom={false}
+          borderColor="subtle"
+          borderDimColor
+          width="100%"
+          paddingX={1}
+        >
+          <PromptInputModeIndicator
+            mode={mode}
+            isLoading={isLoading}
+            viewingAgentName={viewingAgentName}
+            viewingAgentColor={viewingAgentColor}
+          />
+          <Box flexGrow={1} flexShrink={1} onClick={handleInputClick}>
+            {textInputElement}
+          </Box>
+        </Box>
       ) : (
         <Box
           flexDirection="row"
@@ -3032,15 +3089,24 @@ function PromptInput({
           justifyContent="flex-start"
           borderColor={getBorderColor()}
           borderStyle="round"
-          borderLeft={false}
+          // Tovyr composes as a block with an accent rule down its left edge,
+          // the same shape as a user turn in the transcript, so the thing you
+          // are about to send looks like the thing you just sent. The stock
+          // full-width top/bottom rules cut the window into bands instead.
+          borderLeft={isTovyrRuntime()}
           borderRight={false}
-          borderBottom
+          borderTop={!isTovyrRuntime()}
+          borderBottom={!isTovyrRuntime()}
           width="100%"
-          borderText={buildBorderText(
-            showFastIcon ?? false,
-            showFastIconHint,
-            fastModeCooldown,
-          )}
+          borderText={
+            isTovyrRuntime()
+              ? undefined
+              : buildBorderText(
+                  showFastIcon ?? false,
+                  showFastIconHint,
+                  fastModeCooldown,
+                )
+          }
         >
           <PromptInputModeIndicator
             mode={mode}

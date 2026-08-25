@@ -27,12 +27,15 @@ import type {
 } from '../types/message.js'
 import { type AdvisorBlock, isAdvisorBlock } from '../utils/advisor.js'
 import { isFullscreenEnvEnabled } from '../utils/fullscreen.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 import { logError } from '../utils/log.js'
 import type { buildMessageLookups } from '../utils/messages.js'
 import { CompactSummary } from './CompactSummary.js'
 import { AdvisorMessage } from './messages/AdvisorMessage.js'
 import { AssistantRedactedThinkingMessage } from './messages/AssistantRedactedThinkingMessage.js'
 import { AssistantTextMessage } from './messages/AssistantTextMessage.js'
+import { TovyrAssistantTextMessage } from './tovyr/TovyrAssistantTextMessage.js'
+import { TovyrCollapsedReadSearchGroup } from './tovyr/TovyrCollapsedReadSearchGroup.js'
 import { AssistantThinkingMessage } from './messages/AssistantThinkingMessage.js'
 import { AssistantToolUseMessage } from './messages/AssistantToolUseMessage.js'
 import { AttachmentMessage } from './messages/AttachmentMessage.js'
@@ -62,6 +65,8 @@ export type Props = {
   tools: Tools
   commands: Command[]
   verbose: boolean
+  /** Row-level progressive disclosure. Separate from global verbose mode. */
+  expanded?: boolean
   inProgressToolUseIDs: Set<string>
   progressMessagesForMessage: ProgressMessage[]
   shouldAnimate: boolean
@@ -87,6 +92,7 @@ function MessageImpl({
   tools,
   commands,
   verbose,
+  expanded = false,
   inProgressToolUseIDs,
   progressMessagesForMessage,
   shouldAnimate,
@@ -121,6 +127,7 @@ function MessageImpl({
               tools={tools}
               commands={commands}
               verbose={verbose}
+              expanded={expanded}
               inProgressToolUseIDs={inProgressToolUseIDs}
               progressMessagesForMessage={progressMessagesForMessage}
               shouldAnimate={shouldAnimate}
@@ -133,6 +140,7 @@ function MessageImpl({
               thinkingBlockId={`${message.uuid}:${index}`}
               lastThinkingBlockId={lastThinkingBlockId}
               advisorModel={message.advisorModel}
+              messageUuid={message.uuid}
             />
           ))}
         </Box>
@@ -177,6 +185,7 @@ function MessageImpl({
               param={param}
               style={style}
               verbose={verbose}
+              expanded={expanded}
               imageIndex={imageIndices[index]!}
               isUserContinuation={isUserContinuation}
               lookups={lookups}
@@ -260,7 +269,16 @@ function MessageImpl({
       // in prompt mode (shouldRenderStatically returns false to allow live
       // updates between API turns), so the memo can't help. Freeze when
       // offscreen — scrollback shows whatever state was visible when it left.
-      return (
+      return isTovyrRuntime() ? (
+        <OffscreenFreeze>
+          <TovyrCollapsedReadSearchGroup
+            message={message}
+            inProgressToolUseIDs={inProgressToolUseIDs}
+            lookups={lookups}
+            expanded={expanded || verbose || isTranscriptMode}
+          />
+        </OffscreenFreeze>
+      ) : (
         <OffscreenFreeze>
           <CollapsedReadSearchContent
             message={message}
@@ -271,7 +289,7 @@ function MessageImpl({
             // AttachmentMessage.tsx's standalone relevant_memories branch
             // already checks (verbose || isTranscriptMode); this aligns the
             // collapsed-group path to match.
-            verbose={verbose || isTranscriptMode}
+            verbose={verbose || expanded || isTranscriptMode}
             tools={tools}
             lookups={lookups}
             isActiveGroup={isActiveCollapsedGroup}
@@ -289,6 +307,7 @@ function UserMessage({
   param,
   style,
   verbose,
+  expanded,
   imageIndex,
   isUserContinuation,
   lookups,
@@ -305,6 +324,7 @@ function UserMessage({
     | ToolResultBlockParam
   style?: 'condensed'
   verbose: boolean
+  expanded: boolean
   imageIndex?: number
   isUserContinuation: boolean
   lookups: ReturnType<typeof buildMessageLookups>
@@ -317,7 +337,7 @@ function UserMessage({
         <UserTextMessage
           addMargin={addMargin}
           param={param}
-          verbose={verbose}
+          verbose={verbose || expanded}
           planContent={message.planContent}
           isTranscriptMode={isTranscriptMode}
           timestamp={message.timestamp}
@@ -341,7 +361,7 @@ function UserMessage({
           progressMessagesForMessage={progressMessagesForMessage}
           style={style}
           tools={tools}
-          verbose={verbose}
+          verbose={verbose || expanded}
           width={columns - 5}
           isTranscriptMode={isTranscriptMode}
         />
@@ -357,6 +377,7 @@ function AssistantMessageBlock({
   tools,
   commands,
   verbose,
+  expanded,
   inProgressToolUseIDs,
   progressMessagesForMessage,
   shouldAnimate,
@@ -369,6 +390,7 @@ function AssistantMessageBlock({
   thinkingBlockId,
   lastThinkingBlockId,
   advisorModel,
+  messageUuid,
 }: {
   param:
     | BetaContentBlock
@@ -383,6 +405,7 @@ function AssistantMessageBlock({
   tools: Tools
   commands: Command[]
   verbose: boolean
+  expanded: boolean
   inProgressToolUseIDs: Set<string>
   progressMessagesForMessage: ProgressMessage[]
   shouldAnimate: boolean
@@ -397,17 +420,21 @@ function AssistantMessageBlock({
   /** ID of the last thinking block to show, null means show all */
   lastThinkingBlockId?: string | null
   advisorModel?: string
+  messageUuid?: string
 }): React.ReactNode {
+  const TextMessage =
+    isTovyrRuntime() ? TovyrAssistantTextMessage : AssistantTextMessage
   if (feature('CONNECTOR_TEXT')) {
     if (isConnectorTextBlock(param)) {
       return (
-        <AssistantTextMessage
+        <TextMessage
           param={{ type: 'text', text: param.connector_text }}
           addMargin={addMargin}
           shouldShowDot={shouldShowDot}
           verbose={verbose}
           width={width}
           onOpenRateLimitOptions={onOpenRateLimitOptions}
+          messageUuid={messageUuid}
         />
       )
     }
@@ -421,6 +448,7 @@ function AssistantMessageBlock({
           tools={tools}
           commands={commands}
           verbose={verbose}
+          expanded={expanded}
           inProgressToolUseIDs={inProgressToolUseIDs}
           progressMessagesForMessage={progressMessagesForMessage}
           shouldAnimate={shouldAnimate}
@@ -432,13 +460,14 @@ function AssistantMessageBlock({
       )
     case 'text':
       return (
-        <AssistantTextMessage
+        <TextMessage
           param={param}
           addMargin={addMargin}
           shouldShowDot={shouldShowDot}
           verbose={verbose}
           width={width}
           onOpenRateLimitOptions={onOpenRateLimitOptions}
+          messageUuid={messageUuid}
         />
       )
     case 'redacted_thinking':
@@ -447,9 +476,13 @@ function AssistantMessageBlock({
       }
       return <AssistantRedactedThinkingMessage addMargin={addMargin} />
     case 'thinking': {
-      if (!isTranscriptMode && !verbose) {
-        return null
-      }
+      // Thinking used to be dropped entirely outside transcript/verbose mode,
+      // so a reasoning model's work vanished from the chat and only survived
+      // as a one-line preview above the composer. AssistantThinkingMessage
+      // renders a single collapsed `+ Thought: 16.3s` row in normal mode and
+      // the full prose in transcript/verbose, so it is safe to mount always:
+      // the transcript gains one dim line per turn, and the reasoning is
+      // actually reachable.
       // In transcript mode with hidePastThinking, only show the last thinking block
       const isLastThinking =
         !lastThinkingBlockId || thinkingBlockId === lastThinkingBlockId
@@ -510,6 +543,7 @@ export function areMessagePropsEqual(prev: Props, next: Props): boolean {
   }
   // Verbose toggle changes thinking block visibility/expansion
   if (prev.verbose !== next.verbose) return false
+  if (prev.expanded !== next.expanded) return false
   // Only re-render if this message's "is latest bash output" status changed,
   // not when the global latestBashOutputUUID changes to a different message
   const prevIsLatest = prev.latestBashOutputUUID === prev.message.uuid

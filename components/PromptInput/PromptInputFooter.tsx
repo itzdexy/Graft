@@ -1,6 +1,14 @@
 import { feature } from 'bun:bundle'
 import * as React from 'react'
-import { memo, type ReactNode, useMemo, useRef } from 'react'
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { isBridgeEnabled } from '../../bridge/bridgeEnabled.js'
 import { getBridgeStatus } from '../../bridge/bridgeStatusUtil.js'
 import { useSetPromptOverlay } from '../../context/promptOverlayContext.js'
@@ -9,8 +17,9 @@ import type { IDESelection } from '../../hooks/useIdeSelection.js'
 import { useSettings } from '../../hooks/useSettings.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import { Box, Text } from '../../ink.js'
+import { BREAKPOINTS } from '../design-system/spacing.js'
 import type { MCPServerConnection } from '../../services/mcp/types.js'
-import { useAppState } from '../../state/AppState.js'
+import { useAppState, useSetAppState } from '../../state/AppState.js'
 import type { ToolPermissionContext } from '../../Tool.js'
 import type { Message } from '../../types/message.js'
 import type { PromptInputMode, VimMode } from '../../types/textInputTypes.js'
@@ -35,7 +44,19 @@ import {
 import { PromptInputHelpMenu } from './PromptInputHelpMenu.js'
 import { TovyrHelpOverlay } from '../tovyr/TovyrHelpOverlay.js'
 import { TovyrModeBadge } from '../tovyr/TovyrModeBadge.js'
+import { TovyrKeyHintBar } from '../tovyr/TovyrKeyHintBar.js'
+import {
+  formatContextUsage,
+  getTovyrContextTokenCount,
+} from '../../services/tovyr/dx/tokenDisplay.js'
+import { getEffectiveContextWindowSize } from '../../services/compact/autoCompact.js'
+import { TovyrModelSelector } from '../tovyr/TovyrModelSelector.js'
 import { isTovyrRuntime } from '../../utils/tovyrRuntime.js'
+import {
+  getActiveModelId,
+  getActiveProviderId,
+} from '../../scripts/tovyr-providers.js'
+import { activateProviderModel } from '../../services/tovyr/activateProviderModel.js'
 
 type Props = {
   apiKeyStatus: VerificationStatus
@@ -119,7 +140,41 @@ function PromptInputFooter({
     () => getLastAssistantMessageId(messages),
     [messages],
   )
-  const isNarrow = columns < 80
+  const isNarrow = columns < BREAKPOINTS.medium
+  const tovyrRuntime = isTovyrRuntime()
+  const setAppState = useSetAppState()
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
+
+  // Context readout for the bottom rail. Recomputed only when the transcript
+  // changes, not on every keystroke in the composer.
+  const contextUsage = useMemo(
+    () =>
+      formatContextUsage({
+        tokens: getTovyrContextTokenCount(messages),
+        contextWindow: getEffectiveContextWindowSize(
+          getActiveModelId(getActiveProviderId()) || '',
+        ),
+      }),
+    [messages],
+  )
+  useEffect(() => {
+    if (isLoading) setModelSelectorOpen(false)
+  }, [isLoading])
+  const handleModelSelect = useCallback(
+    async (modelId: string): Promise<string | null> => {
+      const result = await activateProviderModel({
+        providerId: getActiveProviderId(),
+        modelId,
+        setAppState,
+      })
+      if (result.ok) {
+        setModelSelectorOpen(false)
+        return null
+      }
+      return result.message
+    },
+    [setAppState],
+  )
   // In fullscreen the bottom slot is flexShrink:0, so every row here is a row
   // stolen from the ScrollBox. Drop the optional StatusLine first. Non-fullscreen
   // has terminal scrollback to absorb overflow, so we never hide StatusLine there.
@@ -175,10 +230,13 @@ function PromptInputFooter({
       <Box
         flexDirection={isNarrow ? 'column' : 'row'}
         justifyContent={isNarrow ? 'flex-start' : 'space-between'}
-        paddingX={2}
+        paddingX={tovyrRuntime ? 1 : 2}
         gap={isNarrow ? 0 : 1}
       >
-        <Box flexDirection="column" flexShrink={isNarrow ? 0 : 1}>
+        <Box
+          flexDirection="column"
+          flexShrink={isNarrow ? 0 : 1}
+        >
           {mode === 'prompt' &&
             !isShort &&
             !exitMessage.show &&
@@ -209,7 +267,7 @@ function PromptInputFooter({
             onOpenTasksDialog={onOpenTasksDialog}
           />
         </Box>
-        <Box flexShrink={1} gap={1}>
+        <Box flexShrink={1} gap={1} justifyContent="flex-end">
           {isFullscreen ? null : (
             <Notifications
               apiKeyStatus={apiKeyStatus}
@@ -230,14 +288,33 @@ function PromptInputFooter({
             <Text dimColor>undercover</Text>
           )}
           <BridgeStatusIndicator bridgeSelected={bridgeSelected} />
-          {isTovyrRuntime() ? (
+          {tovyrRuntime ? (
             <TovyrModeBadge
               toolPermissionContext={toolPermissionContext}
               mode={mode}
+              onToggleModelSelector={
+                isLoading
+                  ? undefined
+                  : () => setModelSelectorOpen(open => !open)
+              }
             />
           ) : null}
         </Box>
       </Box>
+      {tovyrRuntime && modelSelectorOpen && !isLoading ? (
+        <Box width="100%" flexDirection="column">
+          <TovyrModelSelector
+            onSelect={handleModelSelect}
+            onClose={() => setModelSelectorOpen(false)}
+          />
+        </Box>
+      ) : null}
+      {/* Keyboard rail sits below the composer so it reads as chrome for the
+          whole window, not as part of the input. Suppressed while the model
+          selector owns the keyboard. */}
+      {tovyrRuntime && !modelSelectorOpen && !helpOpen ? (
+        <TovyrKeyHintBar isLoading={isLoading} contextUsage={contextUsage} />
+      ) : null}
       {"external" === 'ant' && <CoordinatorTaskPanel />}
     </>
   )

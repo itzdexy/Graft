@@ -66,6 +66,11 @@ import { OffscreenFreeze } from './OffscreenFreeze.js'
 import type { ToolUseConfirm } from './permissions/PermissionRequest.js'
 import { StatusNotices } from './StatusNotices.js'
 import type { JumpHandle } from './VirtualMessageList.js'
+import { VirtualMessageList } from './VirtualMessageList.js'
+import { TovyrTranscriptContext } from './tovyr/TovyrTranscriptContext.js'
+import { buildTovyrTranscriptContext } from '../services/tovyr/dx/tovyrTranscriptCollapse.js'
+import { filterTovyrStreamingPreview } from '../services/tovyr/dx/chatTextFilter.js'
+import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 
 // Memoed logo header: this box is the FIRST sibling before all MessageRows
 // in main-screen mode. If it becomes dirty on every Messages re-render,
@@ -77,8 +82,10 @@ import type { JumpHandle } from './VirtualMessageList.js'
 // subscribe to useAppState/useSettings for their own updates.
 const LogoHeader = React.memo(function LogoHeader({
   agentDefinitions,
+  compact,
 }: {
   agentDefinitions: AgentDefinitionsResult | undefined
+  compact: boolean
 }): React.ReactNode {
   // LogoV2 has its own internal OffscreenFreeze (catches its useAppState
   // re-renders). This outer freeze catches agentDefinitions changes and any
@@ -86,7 +93,7 @@ const LogoHeader = React.memo(function LogoHeader({
   return (
     <OffscreenFreeze>
       <Box flexDirection="column" gap={1}>
-        <LogoV2 />
+        <LogoV2 compact={compact} />
         <React.Suspense fallback={null}>
           <StatusNotices agentDefinitions={agentDefinitions} />
         </React.Suspense>
@@ -114,7 +121,6 @@ const SEND_USER_FILE_TOOL_NAME: string | null = feature('KAIROS')
   : null
 
 /* eslint-enable @typescript-eslint/no-require-imports */
-import { VirtualMessageList } from './VirtualMessageList.js'
 
 /**
  * In brief-only mode, filter messages to show ONLY Brief tool_use blocks,
@@ -437,16 +443,32 @@ const MessagesImpl = ({
     () => normalizeMessages(messages).filter(isNotEmptyMessage),
     [messages],
   )
+  const hasStartedConversation = useMemo(
+    () =>
+      normalizedMessages.some(
+        message =>
+          message.type === 'assistant' ||
+          (message.type === 'user' && !message.isMeta),
+      ),
+    [normalizedMessages],
+  )
 
-  // Check if streaming thinking should be visible (streaming or within 30s timeout)
-  const isStreamingThinkingVisible = useMemo(() => {
-    if (!streamingThinking) return false
-    if (streamingThinking.isStreaming) return true
-    if (streamingThinking.streamingEndedAt) {
-      return Date.now() - streamingThinking.streamingEndedAt < 30000
-    }
-    return false
-  }, [streamingThinking])
+  // The live block covers the streaming window only. It used to linger for 30s
+  // after the thought closed, from when this never mounted in the main
+  // transcript and the delay was harmless; now that it does, that window would
+  // show the same reasoning twice — once here and once from the finished
+  // message, which Message.tsx renders as its own `+ Thought` row. The handoff
+  // is atomic: the assistant message flips isStreaming to false and lands in
+  // the message list in the same batch, so nothing flickers between them.
+  const isStreamingThinkingVisible = Boolean(streamingThinking?.isStreaming)
+
+  // Match TovyrAssistantTextMessage filters so leaked tool/narration prose
+  // does not flash in the live stream then vanish on commit.
+  const displayStreamingText = useMemo(() => {
+    if (!streamingText) return null
+    if (!isTovyrRuntime()) return streamingText
+    return filterTovyrStreamingPreview(streamingText)
+  }, [streamingText])
 
   // Find the last thinking block (message UUID + content index) for hiding past thinking in transcript mode
   // When streaming thinking is visible, use a special ID that won't match any completed thinking block
@@ -667,6 +689,13 @@ const MessagesImpl = ({
       isBriefOnly,
     ])
 
+  const tovyrTranscriptContext = useMemo(() => {
+    if (!isTovyrRuntime()) {
+      return null
+    }
+    return buildTovyrTranscriptContext(messages, lookups)
+  }, [messages, lookups])
+
   // Cheap slice — only runs when scroll range or slice config changes.
   const renderableMessages = useMemo(() => {
     // Safety cap for the non-virtualized render path. Applied here (not at
@@ -706,7 +735,7 @@ const MessagesImpl = ({
     return renderableMessages.findIndex(m => m.uuid === cursor.uuid)
   }, [cursor, renderableMessages])
 
-  // Fullscreen: click a message to toggle verbose rendering for it. Keyed by
+  // Fullscreen: click a message to reveal its details. Keyed by
   // tool_use_id where available so a tool_use and its tool_result (separate
   // rows) expand together; falls back to uuid for groups/thinking. Stale keys
   // are harmless — they never match anything in renderableMessages.
@@ -740,7 +769,9 @@ const MessagesImpl = ({
     (msg: RenderableMessage): boolean => {
       if (msg.type === 'collapsed_read_search') return true
       if (msg.type === 'assistant') {
-        const b = msg.message.content[0] as unknown as AdvisorBlock | undefined
+        const block = msg.message.content[0]
+        if (isTovyrRuntime() && block?.type === 'tool_use') return true
+        const b = block as unknown as AdvisorBlock | undefined
         return (
           b != null &&
           isAdvisorBlock(b) &&
@@ -750,8 +781,9 @@ const MessagesImpl = ({
       }
       if (msg.type !== 'user') return false
       const b = msg.message.content[0]
-      if (b?.type !== 'tool_result' || b.is_error || !msg.toolUseResult)
-        return false
+       if (b?.type !== 'tool_result' || b.is_error || !msg.toolUseResult)
+         return false
+       if (isTovyrRuntime()) return true
       const name = lookupsRef.current.toolUseByToolUseID.get(
         b.tool_use_id,
       )?.name
@@ -804,7 +836,7 @@ const MessagesImpl = ({
     // streaming instead of waiting for the block to finalize.
     const hasContentAfter =
       msg.type === 'collapsed_read_search' &&
-      (!!streamingText ||
+      (!!displayStreamingText ||
         hasContentAfterIndex(
           renderableMessages,
           index,
@@ -821,8 +853,8 @@ const MessagesImpl = ({
         hasContentAfter={hasContentAfter}
         tools={tools}
         commands={commands}
-        verbose={
-          verbose ||
+        verbose={verbose}
+        expanded={
           isItemExpanded(msg) ||
           (cursor?.expanded === true && index === selectedIdx)
         }
@@ -913,11 +945,14 @@ const MessagesImpl = ({
     [tools, lookups],
   )
 
-  return (
+  const transcriptBody = (
     <>
       {/* Logo */}
       {!hideLogo && !(renderRange && renderRange[0] > 0) && (
-        <LogoHeader agentDefinitions={agentDefinitions} />
+        <LogoHeader
+          agentDefinitions={agentDefinitions}
+          compact={hasStartedConversation}
+        />
       )}
 
       {/* Truncation indicator */}
@@ -976,7 +1011,7 @@ const MessagesImpl = ({
         renderableMessages.flatMap(renderMessageRow)
       )}
 
-      {streamingText && !isBriefOnly && (
+      {displayStreamingText && !isBriefOnly && (
         <Box
           alignItems="flex-start"
           flexDirection="row"
@@ -988,12 +1023,15 @@ const MessagesImpl = ({
               <Text color="text">{BLACK_CIRCLE}</Text>
             </Box>
             <Box flexDirection="column">
-              <StreamingMarkdown>{streamingText}</StreamingMarkdown>
+              <StreamingMarkdown>{displayStreamingText}</StreamingMarkdown>
             </Box>
           </Box>
         </Box>
       )}
 
+      {/* Tovyr used to exclude itself here (!isTovyrRuntime()) and show
+          reasoning only as a one-line preview above the composer, so a
+          reasoning model's work never appeared in the conversation at all. */}
       {isStreamingThinkingVisible && streamingThinking && !isBriefOnly && (
         <Box marginTop={1}>
           <AssistantThinkingMessage
@@ -1005,10 +1043,22 @@ const MessagesImpl = ({
             isTranscriptMode={true}
             verbose={verbose}
             hideInTranscript={false}
+            isStreaming={streamingThinking.isStreaming}
+            thinkingStartedAt={streamingThinking.startedAt}
           />
         </Box>
       )}
     </>
+  )
+
+  if (!tovyrTranscriptContext) {
+    return transcriptBody
+  }
+
+  return (
+    <TovyrTranscriptContext.Provider value={tovyrTranscriptContext}>
+      {transcriptBody}
+    </TovyrTranscriptContext.Provider>
   )
 }
 

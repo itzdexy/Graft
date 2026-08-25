@@ -528,6 +528,9 @@ import { usePluginAutoupdateNotification } from 'src/hooks/notifs/usePluginAutou
 import { performStartupChecks } from 'src/utils/plugins/performStartupChecks.js'
 import { UserTextMessage } from 'src/components/messages/UserTextMessage.js'
 import { AwsAuthStatusBox } from '../components/AwsAuthStatusBox.js'
+import { TovyrGitHubUpdateNotice } from '../components/tovyr/TovyrGitHubUpdateNotice.js'
+import { TovyrSilentTurnNotice } from '../components/tovyr/TovyrSilentTurnNotice.js'
+import { isSilentTurn } from '../services/tovyr/dx/silentTurn.js'
 import { useRateLimitWarningNotification } from 'src/hooks/notifs/useRateLimitWarningNotification.js'
 import { useDeprecationWarningNotification } from 'src/hooks/notifs/useDeprecationWarningNotification.js'
 import { useNpmDeprecationNotification } from 'src/hooks/notifs/useNpmDeprecationNotification.js'
@@ -6327,6 +6330,7 @@ export function REPL({
                 cursorNavRef={cursorNavRef}
               />
               <AwsAuthStatusBox />
+              <TovyrGitHubUpdateNotice />
               {/* Hide the processing placeholder while a modal is showing —
                   it would sit at the last visible transcript row right above
                   the ▔ divider, showing "❯ /config" as redundant clutter
@@ -6371,6 +6375,17 @@ export function REPL({
                   leaderIsIdle={!isLoading}
                 />
               )}
+              {/* A turn can stop after a tool result with no reply at all.
+                  Without this the screen just stops updating and the user
+                  cannot tell finished-badly from still-working. */}
+              {isTovyrRuntime() &&
+                !viewedAgentTask &&
+                !userInputOnProcessing &&
+                isSilentTurn({
+                  messages,
+                  isLoading,
+                  inProgressToolCount: inProgressToolUseIDs.size,
+                }) && <TovyrSilentTurnNotice />}
               {!showSpinner &&
                 !isLoading &&
                 !userInputOnProcessing &&
