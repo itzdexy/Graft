@@ -225,7 +225,7 @@ export function TovyrChatDock({
         inProgressToolUseIDs={inProgressToolUseIDs}
         isLoading={isLoading}
         isProcessing={isProcessing}
-        suppressIdleStatus={suppressIdleStatus || hasAssistantStream}
+        suppressIdleStatus={suppressIdleStatus}
         loadingStartTimeRef={loadingStartTimeRef}
         showThought={showThought}
         thoughtDurationMs={liveThoughtMs}
@@ -233,7 +233,7 @@ export function TovyrChatDock({
         streamingToolUses={streamingToolUses}
         responseLengthRef={responseLengthRef}
         thinkingPreview={thinkingPreview}
-        streamingTextPreview={null}
+        streamingTextPreview={streamingTextPreview}
         statusOverride={spinnerMessage}
         activeToolCount={inProgressToolUseIDs.size}
         showSpinner={showSpinner}

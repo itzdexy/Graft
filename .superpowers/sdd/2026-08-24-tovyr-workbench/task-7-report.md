@@ -199,6 +199,12 @@ pass
 The final clean-worktree run is repeated after the report/test commit so the
 command count and commit tree are the final state rather than the dirty overlay.
 
+That repeat initially caught one last dirty-overlay leak: the assertion had
+been committed but `TovyrChatDock` still passed `null` for
+`streamingTextPreview` and folded its stream state into `suppressIdleStatus`.
+The follow-up commit stages only those two live props (not the unrelated dirty
+orchestration work in that component), then repeats this clean-tree command.
+
 ### Remaining risk
 
 `check:tovyr` is present only in the user's uncommitted `package.json` overlay,
