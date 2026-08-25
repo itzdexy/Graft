@@ -202,11 +202,15 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
           )}
         </Box>
         <Box marginTop={1}>
-          <Text color="subtle" dimColor>
-            <Text color="tovyrPrimary" bold>↑↓</Text> navigate{' · '}
-            <Text color="tovyrPrimary" bold>Enter</Text> select{' · '}
-            <Text color="tovyrPrimary" bold>Esc</Text> close
-          </Text>
+          {checkingModel ? <Text color="tovyrPrimary">Checking {checkingModel}...</Text> : error ? (
+            <Text color="error">{error}</Text>
+          ) : (
+            <Text color="subtle" dimColor>
+              <Text color="tovyrPrimary" bold>↑↓</Text> navigate{' · '}
+              <Text color="tovyrPrimary" bold>Enter</Text> select{' · '}
+              <Text color="tovyrPrimary" bold>Esc</Text> close
+            </Text>
+          )}
         </Box>
       </Box>
     </Centered>
