@@ -3,6 +3,8 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+const NODE = Bun.which('node') ?? process.execPath
+
 test('dead UI baseline is empty', () => {
   const source = readFileSync('scripts/check-dead-ui.js', 'utf8')
 
@@ -11,7 +13,7 @@ test('dead UI baseline is empty', () => {
 
 test('accepts the repository with no grandfathered dead UI', () => {
   const result = Bun.spawnSync({
-    cmd: [process.execPath, 'scripts/check-dead-ui.js'],
+    cmd: [NODE, 'scripts/check-dead-ui.js'],
     cwd: process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -42,7 +44,7 @@ test('does not treat test-only comments or strings as production reachability', 
     )
 
     const result = Bun.spawnSync({
-      cmd: [process.execPath, join(process.cwd(), 'scripts/check-dead-ui.js')],
+      cmd: [NODE, join(process.cwd(), 'scripts/check-dead-ui.js')],
       cwd: fixture,
       stdout: 'pipe',
       stderr: 'pipe',
