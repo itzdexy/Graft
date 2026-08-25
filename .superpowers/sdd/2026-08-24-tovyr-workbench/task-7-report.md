@@ -205,6 +205,25 @@ been committed but `TovyrChatDock` still passed `null` for
 The follow-up commit stages only those two live props (not the unrelated dirty
 orchestration work in that component), then repeats this clean-tree command.
 
+Final repeat at `07e4e09`:
+
+```text
+68 pass, 0 fail, 334 expects
+node scripts/check-dead-ui.js: pass (0 baselined)
+tsc -p tsconfig.tovyr.json: pass
+```
+
+The shared checkout's requested broader run also passed without staging its
+unrelated work:
+
+```text
+bun test scripts/check-dead-ui.test.js components/tovyr services/tovyr/launcherStartupContract.test.ts
+75 pass, 0 fail, 378 expects
+
+bun run check:dead-ui: pass
+bun run check:tovyr: pass
+```
+
 ### Remaining risk
 
 `check:tovyr` is present only in the user's uncommitted `package.json` overlay,
@@ -212,3 +231,9 @@ so a detached committed tree cannot invoke that npm script by name. Its direct
 equivalents above (focused Tovyr tests, dead-UI gate, and Tovyr TypeScript
 slice) are run in the clean tree. The shared checkout's `bun run check:tovyr`
 is also run after the final commit. The baseline remains literally empty.
+
+### Commit series
+
+`93304eb`, `f2ae8ce`, `50ea2fc`, `f87ea0d`, `83491bd`, `6b5a230`, and
+`07e4e09` form the clean-tree repair series. This report records its final
+verification in the following documentation commit.
