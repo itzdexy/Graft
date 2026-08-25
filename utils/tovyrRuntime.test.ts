@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { isTovyrRuntime } from './tovyrRuntime.js'
+import {
+  isTovyrRuntime,
+  isTovyrRuntimeFromSignals,
+} from './tovyrRuntime.js'
 
 const previousPackageRoot = process.env.TOVYR_PACKAGE_ROOT
 const previousSourceRoot = process.env.TOVYR_SRC
@@ -20,11 +23,26 @@ afterEach(() => {
 })
 
 describe('Tovyr runtime detection', () => {
-  test('recognizes the tovyrcode source package without launcher environment', () => {
+  test('recognizes either source package name without launcher environment', () => {
     delete process.env.TOVYR_PACKAGE_ROOT
     delete process.env.TOVYR_SRC
     delete process.env.TOVYR_FORCE_INTERACTIVE
 
     expect(isTovyrRuntime()).toBe(true)
+  })
+
+  test('recognizes an explicit source root when package lookup is unavailable', () => {
+    delete process.env.TOVYR_PACKAGE_ROOT
+    process.env.TOVYR_SRC = import.meta.dir
+    delete process.env.TOVYR_FORCE_INTERACTIVE
+
+    expect(
+      isTovyrRuntimeFromSignals({
+        packageRoot: process.env.TOVYR_PACKAGE_ROOT,
+        sourceRoot: process.env.TOVYR_SRC,
+        forceInteractive: process.env.TOVYR_FORCE_INTERACTIVE,
+        isTovyrPackage: false,
+      }),
+    ).toBe(true)
   })
 })
