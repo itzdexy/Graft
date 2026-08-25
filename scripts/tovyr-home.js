@@ -2,7 +2,7 @@ import os from 'node:os'
 
 /** Cross-platform user home (~/.kairo, ~/.claude). */
 export function getTovyrHome() {
-  return process.env.HOME || process.env.USERPROFILE || os.homedir() || ''
+  return process.env.TOVYR_HOME || process.env.HOME || process.env.USERPROFILE || os.homedir() || ''
 }
 
 export function platformLabel() {
