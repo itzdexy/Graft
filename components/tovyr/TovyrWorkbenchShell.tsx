@@ -32,23 +32,36 @@ export function TovyrWorkbenchShell({
   focus,
 }: Props): ReactNode {
   const view = deriveWorkbenchView(input)
+  const approvalPending = view.focus === 'permission'
   const focusSurface =
     view.panel !== 'none' && focus && view.focus !== 'none' ? (
-      <TovyrFocusSurface focus={view.focus} placement={view.panel}>
+      <TovyrFocusSurface
+        focus={view.focus}
+        placement={approvalPending ? 'overlay' : view.panel}
+      >
         {focus}
       </TovyrFocusSurface>
     ) : null
+  // Approvals contain the command/diff and decision controls. They must never
+  // inherit the deliberately narrow evidence rail used by plans and diffs.
 
   return (
-    <Box flexDirection="column" width="100%" height="100%">
+    <Box flexDirection="column" width="100%" flexShrink={0}>
       {view.showHeader && context ? <TovyrContextRail {...context} /> : null}
-      <Box flexDirection="row" flexGrow={1} width="100%" overflow="hidden">
-        <Box flexDirection="column" flexGrow={1} minWidth={0}>
-          {transcript}
+      <Box flexDirection="row" width="100%" flexShrink={0}>
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={focusSurface ? undefined : '100%'}
+          minWidth={0}
+        >
+          <Box flexDirection="column" flexShrink={0}>
+            {transcript}
+          </Box>
         </Box>
-        {view.panel === 'side' ? focusSurface : null}
+        {view.panel === 'side' && !approvalPending ? focusSurface : null}
       </Box>
-      {view.panel === 'overlay' ? focusSurface : null}
+      {view.panel === 'overlay' || approvalPending ? focusSurface : null}
       {composer}
     </Box>
   )

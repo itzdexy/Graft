@@ -6120,8 +6120,8 @@ export function REPL({
         input={{
           columns: transcriptCols,
           rows: terminalRows,
-          requestedFocus: toolPermissionOverlay ? 'permission' : 'none',
-          approvalPending: toolPermissionOverlay != null,
+          requestedFocus: 'none',
+          approvalPending: false,
         }}
         context={{
           project: getOriginalCwd(),
@@ -6131,7 +6131,6 @@ export function REPL({
         }}
         transcript={transcript}
         composer={null}
-        focus={toolPermissionOverlay}
       />
     ) : (
       transcript
@@ -6233,7 +6232,7 @@ export function REPL({
       >
         <FullscreenLayout
           scrollRef={scrollRef}
-          overlay={isTovyrRuntime() ? undefined : toolPermissionOverlay}
+          overlay={toolPermissionOverlay}
           bottomFloat={
             buddyEnabled && companionVisible && !companionNarrow ? (
               <CompanionFloatingBubble />

@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import * as React from 'react'
-import { Text } from '../../ink.js'
+import { Box, Text } from '../../ink.js'
+import { FullscreenLayout } from '../FullscreenLayout.js'
+import type { ScrollBoxHandle } from '../../ink/components/ScrollBox.js'
 import { renderToText } from '../../test-support/renderInk.js'
 import { TovyrWorkbenchShell } from './TovyrWorkbenchShell.js'
 
@@ -32,6 +34,8 @@ describe('TovyrWorkbenchShell', () => {
 
     expect(repl).toContain("import { TovyrWorkbenchShell } from '../components/tovyr/TovyrWorkbenchShell.js'")
     expect(repl).toMatch(/isTovyrRuntime\(\) \? \(\s*<TovyrWorkbenchShell/)
+    expect(repl).toContain('overlay={toolPermissionOverlay}')
+    expect(repl).not.toContain('focus={toolPermissionOverlay}')
   })
 
   test('renders transcript and composer at 50 columns without a side rail', async () => {
@@ -83,6 +87,104 @@ describe('TovyrWorkbenchShell', () => {
     expect(output).toContain('plan steps')
     expect(output).toContain('prompt')
     expect(output).toContain('│ plan')
+  })
+
+  test('does not cap a long transcript inside a constrained ScrollBox', async () => {
+    const scrollRef = React.createRef<ScrollBoxHandle>()
+    let scrollHeight = 0
+    let viewportHeight = 0
+    const transcript = (
+      <Box flexDirection="column">
+        {Array.from({ length: 40 }, (_, index) => (
+          <Text key={index}>{`transcript row ${index}`}</Text>
+        ))}
+      </Box>
+    )
+
+    const result = await renderToText(
+      <Box height={5} width={80} flexDirection="column">
+        <FullscreenLayout
+          scrollRef={scrollRef}
+          scrollable={
+            <TovyrWorkbenchShell
+              input={{ ...normalInput, rows: 20, requestedFocus: 'none' }}
+              transcript={transcript}
+              composer={null}
+            />
+          }
+          bottom={<Text>prompt</Text>}
+        />
+      </Box>,
+      {
+        columns: 80,
+        rows: 5,
+        env: { TOVYR_CODE_NO_FLICKER: '1' },
+        interact: async () => {
+          const handle = scrollRef.current
+          expect(handle).not.toBeNull()
+          await new Promise(resolve => setTimeout(resolve, 30))
+          scrollHeight = handle!.getFreshScrollHeight()
+          viewportHeight = handle!.getViewportHeight()
+          handle!.scrollToBottom()
+        },
+      },
+    )
+
+    expect(result.lastFrame).toContain('transcript row 39')
+    expect(scrollHeight).toBeGreaterThan(viewportHeight)
+  })
+
+  test('keeps wide permission decisions full width instead of a side rail', async () => {
+    const { output } = await renderToText(
+      <TovyrWorkbenchShell
+        input={{ ...widePlanInput, approvalPending: true }}
+        transcript={<Text>chat</Text>}
+        composer={<Text>prompt</Text>}
+        focus={
+          <Box flexDirection="column">
+            <Text>Review command and diff before continuing</Text>
+            <Text>Allow once</Text>
+            <Text>Deny</Text>
+          </Box>
+        }
+      />,
+      { columns: 140 },
+    )
+
+    expect(output).toContain('Review command and diff before')
+    expect(output).toContain('continuing')
+    expect(output).toContain('Allow once')
+    expect(output).toContain('Deny')
+    expect(output).not.toContain('│ permission')
+  })
+
+  test('keeps wide approval controls reachable through the fullscreen overlay', async () => {
+    const { lastFrame } = await renderToText(
+      <Box height={12} width={140} flexDirection="column">
+        <FullscreenLayout
+          scrollable={
+            <TovyrWorkbenchShell
+              input={widePlanInput}
+              transcript={<Text>chat</Text>}
+              composer={null}
+            />
+          }
+          overlay={
+            <Box flexDirection="column">
+              <Text>Review command and diff before continuing</Text>
+              <Text>Allow once</Text>
+              <Text>Deny</Text>
+            </Box>
+          }
+          bottom={<Text>prompt</Text>}
+        />
+      </Box>,
+      { columns: 140, rows: 12, env: { TOVYR_CODE_NO_FLICKER: '1' } },
+    )
+
+    expect(lastFrame).toContain('Allow once')
+    expect(lastFrame).toContain('Deny')
+    expect(lastFrame).toContain('prompt')
   })
 
   test('hides optional context on short terminals while keeping the composer reachable', async () => {
