@@ -15,7 +15,8 @@
  * ignored, which is worse than not running it.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { join, relative, resolve, sep } from 'node:path'
+import ts from 'typescript'
 
 const ROOT = process.cwd()
 const SKIP_DIRS = new Set([
@@ -59,50 +60,122 @@ for (const f of files) {
   try { sources.set(f, readFileSync(f, 'utf8')) } catch { /* unreadable */ }
 }
 
-/** Replace comments and quoted literals so prose cannot masquerade as a call site. */
-function codeOnly(source) {
-  let output = ''
-  let index = 0
-  let state = 'code'
-  while (index < source.length) {
-    const char = source[index]
-    const next = source[index + 1]
-    if (state === 'code') {
-      if (char === '/' && next === '/') { state = 'line'; output += '  '; index += 2; continue }
-      if (char === '/' && next === '*') { state = 'block'; output += '  '; index += 2; continue }
-      if (char === "'" || char === '"' || char === '`') { state = char; output += ' '; index++; continue }
-      output += char
-      index++
-      continue
-    }
-    if (state === 'line') {
-      if (char === '\n') { state = 'code'; output += '\n' } else output += ' '
-      index++
-      continue
-    }
-    if (state === 'block') {
-      if (char === '*' && next === '/') { state = 'code'; output += '  '; index += 2 } else { output += char === '\n' ? '\n' : ' '; index++ }
-      continue
-    }
-    if (char === '\\') { output += '  '; index += 2; continue }
-    if (char === state) { state = 'code'; output += ' '; index++ } else { output += char === '\n' ? '\n' : ' '; index++ }
-  }
-  return output
-}
-
-function hasProductionReference(source, name) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`(?:<\\s*${escaped}(?=\\s|/|>)|\\b${escaped}\\b)`).test(source)
-}
-
-const productionCode = new Map(
-  [...sources].map(([file, source]) => {
-    const withoutImports = source
-      .replace(/^\s*import[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
-      .replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, '')
-    return [file, codeOnly(withoutImports)]
-  }),
+const sourceFiles = new Map(
+  [...sources].map(([file, source]) => [
+    file,
+    ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true,
+      file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS),
+  ]),
 )
+
+function isExported(node) {
+  return !!node.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)
+}
+
+function resolveImport(from, specifier) {
+  if (!specifier.startsWith('.')) return undefined
+  const base = resolve(from, '..', specifier).replace(/\.js$/, '')
+  for (const suffix of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
+    const candidate = base + suffix
+    if (sourceFiles.has(candidate)) return candidate
+  }
+  return undefined
+}
+
+function importedRuntimeNames(file, candidate) {
+  const aliases = new Set()
+  for (const statement of file.statements) {
+    if (!ts.isImportDeclaration(statement) || statement.importClause?.isTypeOnly) continue
+    const moduleName = statement.moduleSpecifier
+    if (!ts.isStringLiteral(moduleName)) continue
+    if (resolveImport(file.fileName, moduleName.text) !== candidate.file) continue
+    const bindings = statement.importClause?.namedBindings
+    if (!bindings || !ts.isNamedImports(bindings)) continue
+    for (const element of bindings.elements) {
+      if (element.isTypeOnly) continue
+      if ((element.propertyName?.text ?? element.name.text) === candidate.name) {
+        aliases.add(element.name.text)
+      }
+    }
+  }
+  const visitDynamicImport = node => {
+    if (!ts.isVariableDeclaration(node) || !node.initializer || !ts.isObjectBindingPattern(node.name)) {
+      return ts.forEachChild(node, visitDynamicImport)
+    }
+    const initializer = ts.isAwaitExpression(node.initializer)
+      ? node.initializer.expression
+      : node.initializer
+    if (!ts.isCallExpression(initializer) || initializer.expression.kind !== ts.SyntaxKind.ImportKeyword) return
+    const [moduleName] = initializer.arguments
+    if (!moduleName || !ts.isStringLiteral(moduleName)) return
+    if (resolveImport(file.fileName, moduleName.text) !== candidate.file) return
+    for (const element of node.name.elements) {
+      if ((element.propertyName?.text ?? element.name.text) === candidate.name && ts.isIdentifier(element.name)) {
+        aliases.add(element.name.text)
+      }
+    }
+  }
+  ts.forEachChild(file, visitDynamicImport)
+  return aliases
+}
+
+function isLiteralBoolean(node, value) {
+  return value
+    ? node.kind === ts.SyntaxKind.TrueKeyword
+    : node.kind === ts.SyntaxKind.FalseKeyword
+}
+
+/** A value import counts only when it produces JSX or calls a warmer at runtime. */
+function hasRuntimeUse(file, aliases, isComponent) {
+  if (aliases.size === 0) return false
+  const runtimeAliases = new Set(aliases)
+  let changed = true
+  while (changed) {
+    changed = false
+    const collectAliases = node => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const initializerNames = ts.isIdentifier(node.initializer)
+          ? [node.initializer.text]
+          : ts.isConditionalExpression(node.initializer)
+            ? [node.initializer.whenTrue, node.initializer.whenFalse]
+                .filter(ts.isIdentifier)
+                .map(expression => expression.text)
+            : []
+        if (initializerNames.some(name => runtimeAliases.has(name)) && !runtimeAliases.has(node.name.text)) {
+          runtimeAliases.add(node.name.text)
+          changed = true
+        }
+      }
+      ts.forEachChild(node, collectAliases)
+    }
+    ts.forEachChild(file, collectAliases)
+  }
+  let used = false
+  const visit = (node, unreachable = false) => {
+    if (used || unreachable) return
+    if (ts.isIfStatement(node)) {
+      visit(node.expression)
+      visit(node.thenStatement, isLiteralBoolean(node.expression, false))
+      if (node.elseStatement) visit(node.elseStatement, isLiteralBoolean(node.expression, true))
+      return
+    }
+    if (isComponent && (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))) {
+      const tag = node.tagName
+      if (ts.isIdentifier(tag) && runtimeAliases.has(tag.text)) used = true
+      if (ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && runtimeAliases.has(tag.expression.text)) used = true
+    }
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && runtimeAliases.has(node.expression.text)) {
+      used = true
+    }
+    if (isComponent && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'createElement') {
+      const [component] = node.arguments
+      if (component && ts.isIdentifier(component) && runtimeAliases.has(component.text)) used = true
+    }
+    ts.forEachChild(node, child => visit(child, unreachable))
+  }
+  for (const statement of file.statements) visit(statement)
+  return used
+}
 
 /** Exported names we care about, with the file that defines them. */
 const candidates = []
@@ -111,27 +184,36 @@ for (const [file, src] of sources) {
   if (/\.test\.tsx?$/.test(rel)) continue
 
   const isTovyrComponent = rel.startsWith('components/tovyr/')
-  for (const m of src.matchAll(
-    /export\s+(?:async\s+)?function\s+([A-Za-z0-9_]+)|export\s+const\s+([A-Za-z0-9_]+)\s*[:=]/g,
-  )) {
-    const name = m[1] ?? m[2]
-    if (!name) continue
-    const isComponent = isTovyrComponent && /^Tovyr[A-Z]/.test(name)
-    const isWarmer =
-      rel.startsWith('services/tovyr/') && /^(prefetch|warm)[A-Z]/.test(name)
-    if (isComponent || isWarmer) candidates.push({ name, rel })
+  const parsed = sourceFiles.get(file)
+  for (const statement of parsed.statements) {
+    const names = []
+    if (ts.isFunctionDeclaration(statement) && isExported(statement) && statement.name) names.push(statement.name.text)
+    if (ts.isVariableStatement(statement) && isExported(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name)) names.push(declaration.name.text)
+      }
+    }
+    for (const name of names) {
+      const isComponent = isTovyrComponent && /^Tovyr[A-Z]/.test(name)
+      const isWarmer = rel.startsWith('services/tovyr/') && /^(prefetch|warm)[A-Z]/.test(name)
+      if (isComponent || isWarmer) candidates.push({ name, rel, file, isComponent })
+    }
   }
 }
 
 const dead = []
-for (const { name, rel } of candidates) {
-  let uses = 0
-  for (const [file, src] of productionCode) {
+for (const candidate of candidates) {
+  let live = false
+  for (const [file, parsed] of sourceFiles) {
     const other = relative(ROOT, file).split(sep).join('/')
-    if (other === rel) continue
-    if (hasProductionReference(src, name)) uses++
+    if (other === candidate.rel) continue
+    const aliases = importedRuntimeNames(parsed, candidate)
+    if (hasRuntimeUse(parsed, aliases, candidate.isComponent)) {
+      live = true
+      break
+    }
   }
-  if (uses === 0) dead.push({ name, rel })
+  if (!live) dead.push(candidate)
 }
 
 /**
