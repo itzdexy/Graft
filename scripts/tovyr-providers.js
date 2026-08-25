@@ -250,6 +250,24 @@ export function resolveActive(state = loadState()) {
   }
 }
 
+/** Resolve a candidate without changing the saved provider or model. */
+export function resolveProviderSelection(providerId, modelId, state = loadState()) {
+  const provider = getProvider(providerId, state)
+  if (!provider) return null
+  const model = modelId || state.models?.[providerId] || getDefaultModelId(provider)
+  if (!model) return null
+  if (state.auth?.[providerId] === 'oauth') {
+    return { providerId, label: provider.label, baseUrl: provider.baseUrl, apiKey: '', model, authMode: 'oauth' }
+  }
+  const rawKey = providerId === 'freemodel' && process.env.TOVYR_API_KEY?.trim()
+    ? process.env.TOVYR_API_KEY.trim()
+    : state.keys?.[providerId] || ''
+  const apiKey = sanitizeKey(provider, rawKey)
+  const effectiveKey = isLocalProvider(provider) ? apiKey || LOCAL_PROVIDER_PLACEHOLDER_KEY : apiKey
+  if (!isValidKey(provider, effectiveKey)) return null
+  if ((provider.custom || provider.id === 'openai') && !provider.baseUrl) return null
+  return { providerId, label: provider.label, baseUrl: provider.baseUrl, apiKey: effectiveKey, model, authMode: provider.authMode || 'apiKey' }
+}
 export function setActiveProvider(id) {
   if (id === '') {
     const state = loadState()
