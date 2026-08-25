@@ -140,6 +140,7 @@ import type { PromptRequest, PromptResponse } from '../types/hooks.js'
 import PromptInput from '../components/PromptInput/PromptInput.js'
 import { PromptInputQueuedCommands } from '../components/PromptInput/PromptInputQueuedCommands.js'
 import { TovyrChatDock } from '../components/tovyr/TovyrChatDock.js'
+import { TovyrWorkbenchShell } from '../components/tovyr/TovyrWorkbenchShell.js'
 import { useRemoteSession } from '../hooks/useRemoteSession.js'
 import { useDirectConnect } from '../hooks/useDirectConnect.js'
 import type { DirectConnectConfig } from '../server/directConnectManager.js'
@@ -5702,7 +5703,7 @@ export function REPL({
   // wrapping). Clearing searchQuery triggers VML's setSearchQuery('')
   // which clears positionsCache + setPositions(null). Bar closes.
   // User hits / again → fresh everything.
-  const transcriptCols = useTerminalSize().columns
+  const { columns: transcriptCols, rows: terminalRows } = useTerminalSize()
   const prevColsRef = React.useRef(transcriptCols)
   React.useEffect(() => {
     if (prevColsRef.current !== transcriptCols) {
@@ -6110,6 +6111,32 @@ export function REPL({
       />
     ) : null
 
+  // Keep the inherited transcript composition intact. Only Tovyr routes the
+  // already-owned nodes through the adaptive shell, so terminal resize cannot
+  // reset the input, scroll box, or a pending approval.
+  const wrapTovyrWorkbench = (transcript: React.ReactNode): React.ReactNode =>
+    isTovyrRuntime() ? (
+      <TovyrWorkbenchShell
+        input={{
+          columns: transcriptCols,
+          rows: terminalRows,
+          requestedFocus: toolPermissionOverlay ? 'permission' : 'none',
+          approvalPending: toolPermissionOverlay != null,
+        }}
+        context={{
+          project: getOriginalCwd(),
+          model: mainLoopModel,
+          session: `session ${String(conversationId).slice(0, 8)}`,
+          connection: toolPermissionContext.mode,
+        }}
+        transcript={transcript}
+        composer={null}
+        focus={toolPermissionOverlay}
+      />
+    ) : (
+      transcript
+    )
+
   // Narrow terminals: companion collapses to a one-liner that REPL stacks
   // on its own row (above input in fullscreen, below in scrollback) instead
   // of row-beside. Wide terminals keep the row layout with sprite on the right.
@@ -6206,7 +6233,7 @@ export function REPL({
       >
         <FullscreenLayout
           scrollRef={scrollRef}
-          overlay={toolPermissionOverlay}
+          overlay={isTovyrRuntime() ? undefined : toolPermissionOverlay}
           bottomFloat={
             buddyEnabled && companionVisible && !companionNarrow ? (
               <CompanionFloatingBubble />
@@ -6222,7 +6249,7 @@ export function REPL({
             setCursor(null)
             jumpToNew(scrollRef.current)
           }}
-          scrollable={
+          scrollable={wrapTovyrWorkbench(
             <>
               <TeammateViewHeader />
               <Messages
@@ -6308,8 +6335,8 @@ export function REPL({
                 isBriefOnly &&
                 !viewedAgentTask && <BriefIdleStatus />}
               {isFullscreenEnvEnabled() && <PromptInputQueuedCommands />}
-            </>
-          }
+            </>,
+          )}
           bottom={
             <Box
               flexDirection={
