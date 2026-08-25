@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import * as React from 'react'
+import { Box, Text } from '../../ink.js'
 import { KeybindingProvider } from '../../keybindings/KeybindingContext.js'
 import { DEFAULT_BINDINGS } from '../../keybindings/defaultBindings.js'
 import { parseBindings } from '../../keybindings/parser.js'
+import { useKeybinding, useKeybindings } from '../../keybindings/useKeybinding.js'
 import { renderToText } from '../../test-support/renderInk.js'
 import type { Command } from '../../types/command.js'
 import { TovyrCommandPalette } from './TovyrCommandPalette.js'
@@ -52,6 +54,28 @@ function TestKeybindingProvider({
     >
       {children}
     </KeybindingProvider>
+  )
+}
+
+function CollisionHarness() {
+  const [modeCycles, setModeCycles] = React.useState(0)
+  const [paletteOpens, setPaletteOpens] = React.useState(0)
+
+  useKeybindings(
+    { 'chat:cycleMode': () => setModeCycles(count => count + 1) },
+    { context: 'Chat' },
+  )
+  useKeybinding(
+    'app:commandPalette',
+    () => setPaletteOpens(count => count + 1),
+    { context: 'Global' },
+  )
+
+  return (
+    <Box flexDirection="column">
+      <TovyrHelpOverlay onClose={() => {}} />
+      <Text>{`mode:${modeCycles} palette:${paletteOpens}`}</Text>
+    </Box>
   )
 }
 
@@ -153,5 +177,25 @@ describe('Tovyr command discovery renders', () => {
 
     expect(hintBar.lastFrame).not.toContain('Esc')
     expect(hintBar.lastFrame).not.toContain('interrupt')
+  })
+
+  test('labels Ctrl+P with the Chat action that actually runs after a collision', async () => {
+    const result = await renderToText(
+      <TestKeybindingProvider
+        overrides={[
+          { context: 'Chat', bindings: { 'ctrl+p': 'chat:cycleMode' } },
+        ]}
+      >
+        <CollisionHarness />
+      </TestKeybindingProvider>,
+      {
+        settleMs: 180,
+        interact: stdin => stdin.write('\u0010'),
+      },
+    )
+
+    expect(result.lastFrame).toContain('ctrl+p           mode')
+    expect(result.lastFrame).not.toContain('ctrl+p           commands')
+    expect(result.lastFrame).toContain('mode:1 palette:0')
   })
 })

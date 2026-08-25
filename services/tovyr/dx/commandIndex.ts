@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
 import { useOptionalKeybindingContext } from '../../../keybindings/KeybindingContext.js'
+import { parseChord } from '../../../keybindings/parser.js'
+import { resolveParsedChord } from '../../../keybindings/resolver.js'
+import type {
+  KeybindingContextName,
+  ParsedBinding,
+} from '../../../keybindings/types.js'
 import type { Command } from '../../../types/command.js'
 import { getCommandName, isCommandEnabled } from '../../../types/command.js'
 
@@ -32,6 +38,15 @@ export type ImplementedKeybinding = {
   category: CommandIndexCategory
 }
 
+type RuntimeDiscoveryBinding = ImplementedKeybinding & {
+  action: string
+  activeContexts: readonly KeybindingContextName[]
+}
+
+type RuntimeDiscoveryCandidate = Omit<RuntimeDiscoveryBinding, 'keys'> & {
+  keys?: string
+}
+
 export type CommandDiscoveryShortcutValues = {
   palette?: string
   mode?: string
@@ -49,6 +64,9 @@ const CATEGORY_ORDER: readonly CommandIndexCategory[] = [
   'Help',
 ]
 
+const COMPOSER_CONTEXTS: readonly KeybindingContextName[] = ['Chat', 'Global']
+const HELP_CONTEXTS: readonly KeybindingContextName[] = ['Help', 'Global']
+
 /**
  * Turns the active keybinding resolver's display values into the few shortcuts
  * that make sense while the composer owns focus. The fallback object is used
@@ -57,15 +75,60 @@ const CATEGORY_ORDER: readonly CommandIndexCategory[] = [
  */
 export function resolveCommandDiscoveryShortcuts(
   values: CommandDiscoveryShortcutValues,
-): readonly ImplementedKeybinding[] {
-  return [
-    [values.palette, 'commands', 'Tools'],
-    [values.mode, 'mode', 'Coding'],
-    [values.help, 'help', 'Help'],
-    [values.dismiss, 'interrupt', 'Help'],
-  ].flatMap(([keys, description, category]) =>
-    keys ? [{ keys, description, category: category as CommandIndexCategory }] : [],
+): readonly RuntimeDiscoveryBinding[] {
+  const candidates: readonly RuntimeDiscoveryCandidate[] = [
+    {
+      keys: values.palette,
+      description: 'commands',
+      category: 'Tools',
+      action: 'app:commandPalette',
+      activeContexts: COMPOSER_CONTEXTS,
+    },
+    {
+      keys: values.mode,
+      description: 'mode',
+      category: 'Coding',
+      action: 'chat:cycleMode',
+      activeContexts: COMPOSER_CONTEXTS,
+    },
+    {
+      keys: values.help,
+      description: 'help',
+      category: 'Help',
+      action: 'app:toggleHelp',
+      activeContexts: COMPOSER_CONTEXTS,
+    },
+    {
+      keys: values.dismiss,
+      description: 'interrupt',
+      category: 'Help',
+      action: 'help:dismiss',
+      activeContexts: HELP_CONTEXTS,
+    },
+  ]
+
+  return candidates.flatMap(({ keys, ...shortcut }) =>
+    keys ? [{ ...shortcut, keys }] : [],
   )
+}
+
+/**
+ * Keeps only discovery rows whose chord resolves to that row's action in the
+ * live resolver. This prevents a later Chat override from leaving an earlier
+ * Global row as the visible owner of the same chord.
+ */
+export function resolveCommandDiscoveryCollisions(
+  shortcuts: readonly RuntimeDiscoveryBinding[],
+  bindings: readonly ParsedBinding[],
+): readonly RuntimeDiscoveryBinding[] {
+  return shortcuts.filter(shortcut => {
+    const result = resolveParsedChord(
+      parseChord(shortcut.keys),
+      [...shortcut.activeContexts],
+      [...bindings],
+    )
+    return result.type === 'match' && result.action === shortcut.action
+  })
 }
 
 /** Default only for non-rendering callers; the UI uses the active resolver. */
@@ -98,8 +161,18 @@ export function useResolvedCommandDiscoveryShortcuts(): readonly ImplementedKeyb
     : 'esc'
 
   return useMemo(
-    () => resolveCommandDiscoveryShortcuts({ palette, mode, help, dismiss }),
-    [palette, mode, help, dismiss],
+    () => {
+      const shortcuts = resolveCommandDiscoveryShortcuts({
+        palette,
+        mode,
+        help,
+        dismiss,
+      })
+      return keybindings
+        ? resolveCommandDiscoveryCollisions(shortcuts, keybindings.bindings)
+        : shortcuts
+    },
+    [palette, mode, help, dismiss, keybindings],
   )
 }
 

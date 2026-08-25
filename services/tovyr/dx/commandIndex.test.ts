@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test'
+import { DEFAULT_BINDINGS } from '../../../keybindings/defaultBindings.js'
+import { parseBindings } from '../../../keybindings/parser.js'
 import type { Command } from '../../../types/command.js'
 import {
   buildCommandIndex,
   paletteGroups,
+  resolveCommandDiscoveryCollisions,
   resolveCommandDiscoveryShortcuts,
   searchCommandIndex,
   shortcutGroups,
@@ -70,5 +73,29 @@ describe('commandIndex', () => {
     expect(windowsFallback.map(entry => entry.keys)).toContain('meta+m')
     expect(override.map(entry => entry.keys)).toContain('ctrl+space')
     expect(override.map(entry => entry.keys)).toContain('ctrl+shift+m')
+  })
+
+  test('keeps the runtime owner when a Chat override collides with a global discovery chord', () => {
+    const candidates = resolveCommandDiscoveryShortcuts({
+      palette: 'ctrl+p',
+      mode: 'ctrl+p',
+      help: '?',
+      dismiss: 'esc',
+    })
+    const bindings = parseBindings([
+      ...DEFAULT_BINDINGS,
+      { context: 'Chat', bindings: { 'ctrl+p': 'chat:cycleMode' } },
+    ])
+
+    expect(resolveCommandDiscoveryCollisions(candidates, bindings)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ keys: 'ctrl+p', description: 'mode' }),
+      ]),
+    )
+    expect(resolveCommandDiscoveryCollisions(candidates, bindings)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ keys: 'ctrl+p', description: 'commands' }),
+      ]),
+    )
   })
 })

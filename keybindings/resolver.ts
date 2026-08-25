@@ -162,43 +162,16 @@ function chordExactlyMatches(
 }
 
 /**
- * Resolve a key with chord state support.
- *
- * This function handles multi-keystroke chord bindings like "ctrl+k ctrl+s".
- *
- * @param input - The character input from Ink
- * @param key - The Key object from Ink with modifier flags
- * @param activeContexts - Array of currently active contexts
- * @param bindings - All parsed bindings
- * @param pending - Current chord state (null if not in a chord)
- * @returns Resolution result with chord state
+ * Resolves a parsed chord through the same binding selection used for terminal
+ * input. Discovery callers use this to keep displayed chord ownership aligned
+ * with the action that the runtime would invoke.
  */
-export function resolveKeyWithChordState(
-  input: string,
-  key: Key,
+export function resolveParsedChord(
+  testChord: ParsedKeystroke[],
   activeContexts: KeybindingContextName[],
   bindings: ParsedBinding[],
-  pending: ParsedKeystroke[] | null,
+  hasPendingChord: boolean = false,
 ): ChordResolveResult {
-  // Cancel chord on escape
-  if (key.escape && pending !== null) {
-    return { type: 'chord_cancelled' }
-  }
-
-  // Build current keystroke
-  const currentKeystroke = buildKeystroke(input, key)
-  if (!currentKeystroke) {
-    if (pending !== null) {
-      return { type: 'chord_cancelled' }
-    }
-    return { type: 'none' }
-  }
-
-  // Build the full chord sequence to test
-  const testChord = pending
-    ? [...pending, currentKeystroke]
-    : [currentKeystroke]
-
   // Filter bindings by active contexts (Set lookup: O(n) instead of O(n·m))
   const ctxSet = new Set(activeContexts)
   const contextBindings = bindings.filter(b => ctxSet.has(b.context))
@@ -246,9 +219,45 @@ export function resolveKeyWithChordState(
   }
 
   // No match and no potential longer chords
-  if (pending !== null) {
+  return hasPendingChord ? { type: 'chord_cancelled' } : { type: 'none' }
+}
+
+/**
+ * Resolve a key with chord state support.
+ *
+ * This function handles multi-keystroke chord bindings like "ctrl+k ctrl+s".
+ *
+ * @param input - The character input from Ink
+ * @param key - The Key object from Ink with modifier flags
+ * @param activeContexts - Array of currently active contexts
+ * @param bindings - All parsed bindings
+ * @param pending - Current chord state (null if not in a chord)
+ * @returns Resolution result with chord state
+ */
+export function resolveKeyWithChordState(
+  input: string,
+  key: Key,
+  activeContexts: KeybindingContextName[],
+  bindings: ParsedBinding[],
+  pending: ParsedKeystroke[] | null,
+): ChordResolveResult {
+  // Cancel chord on escape
+  if (key.escape && pending !== null) {
     return { type: 'chord_cancelled' }
   }
 
-  return { type: 'none' }
+  // Build current keystroke
+  const currentKeystroke = buildKeystroke(input, key)
+  if (!currentKeystroke) {
+    if (pending !== null) {
+      return { type: 'chord_cancelled' }
+    }
+    return { type: 'none' }
+  }
+
+  // Build the full chord sequence to test
+  const testChord = pending
+    ? [...pending, currentKeystroke]
+    : [currentKeystroke]
+  return resolveParsedChord(testChord, activeContexts, bindings, pending !== null)
 }
