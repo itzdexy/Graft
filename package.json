@@ -57,7 +57,8 @@
     "publish:npm:dry-run": "node scripts/publish-npm.js --dry-run",
     "pack:npm": "node scripts/publish-npm.js --pack-artifact",
     "bench": "node scripts/tovyr-bench.js",
-    "check:brand": "node scripts/check-tovyr-brand.js"
+    "check:brand": "node scripts/check-tovyr-brand.js",
+    "check:dead-ui": "node scripts/check-dead-ui.js"
   },
   "dependencies": {
     "@ant/computer-use-input": "file:./vendor/ant-stubs/computer-use-input",

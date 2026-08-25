@@ -82,10 +82,8 @@ import { isTovyrRuntime } from '../utils/tovyrRuntime.js'
 // subscribe to useAppState/useSettings for their own updates.
 const LogoHeader = React.memo(function LogoHeader({
   agentDefinitions,
-  compact,
 }: {
   agentDefinitions: AgentDefinitionsResult | undefined
-  compact: boolean
 }): React.ReactNode {
   // LogoV2 has its own internal OffscreenFreeze (catches its useAppState
   // re-renders). This outer freeze catches agentDefinitions changes and any
@@ -93,7 +91,7 @@ const LogoHeader = React.memo(function LogoHeader({
   return (
     <OffscreenFreeze>
       <Box flexDirection="column" gap={1}>
-        <LogoV2 compact={compact} />
+        <LogoV2 />
         <React.Suspense fallback={null}>
           <StatusNotices agentDefinitions={agentDefinitions} />
         </React.Suspense>
@@ -443,24 +441,12 @@ const MessagesImpl = ({
     () => normalizeMessages(messages).filter(isNotEmptyMessage),
     [messages],
   )
-  const hasStartedConversation = useMemo(
-    () =>
-      normalizedMessages.some(
-        message =>
-          message.type === 'assistant' ||
-          (message.type === 'user' && !message.isMeta),
-      ),
-    [normalizedMessages],
-  )
-
-  // The live block covers the streaming window only. It used to linger for 30s
-  // after the thought closed, from when this never mounted in the main
-  // transcript and the delay was harmless; now that it does, that window would
-  // show the same reasoning twice — once here and once from the finished
-  // message, which Message.tsx renders as its own `+ Thought` row. The handoff
-  // is atomic: the assistant message flips isStreaming to false and lands in
-  // the message list in the same batch, so nothing flickers between them.
-  const isStreamingThinkingVisible = Boolean(streamingThinking?.isStreaming)
+  const isStreamingThinkingVisible = useMemo(() => {
+    if (!streamingThinking) return false
+    if (streamingThinking.isStreaming) return true
+    if (streamingThinking.streamingEndedAt) return Date.now() - streamingThinking.streamingEndedAt < 30000
+    return false
+  }, [streamingThinking])
 
   // Match TovyrAssistantTextMessage filters so leaked tool/narration prose
   // does not flash in the live stream then vanish on commit.
@@ -949,10 +935,7 @@ const MessagesImpl = ({
     <>
       {/* Logo */}
       {!hideLogo && !(renderRange && renderRange[0] > 0) && (
-        <LogoHeader
-          agentDefinitions={agentDefinitions}
-          compact={hasStartedConversation}
-        />
+        <LogoHeader agentDefinitions={agentDefinitions} />
       )}
 
       {/* Truncation indicator */}

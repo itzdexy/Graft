@@ -125,55 +125,122 @@ function isLiteralBoolean(node, value) {
     : node.kind === ts.SyntaxKind.FalseKeyword
 }
 
-/** A value import counts only when it produces JSX or calls a warmer at runtime. */
+/** A value import counts only when it produces JSX or calls a warmer at runtime.
+ *
+ * This deliberately follows bindings rather than globally guessing by identifier
+ * text. A local `Ghost` parameter must not make an imported `Ghost` live, and a
+ * JSX node below `false &&` is not a production route. It is intentionally a
+ * small, conservative flow analysis: it proves direct aliases and wrappers such
+ * as `const Wrapped = memo(Ghost)`; it never treats an arbitrary string or a
+ * same-spelled binding in another scope as a reference.
+ */
 function hasRuntimeUse(file, aliases, isComponent) {
   if (aliases.size === 0) return false
-  const runtimeAliases = new Set(aliases)
-  let changed = true
-  while (changed) {
-    changed = false
-    const collectAliases = node => {
-      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-        const initializerNames = ts.isIdentifier(node.initializer)
-          ? [node.initializer.text]
-          : ts.isConditionalExpression(node.initializer)
-            ? [node.initializer.whenTrue, node.initializer.whenFalse]
-                .filter(ts.isIdentifier)
-                .map(expression => expression.text)
-            : []
-        if (initializerNames.some(name => runtimeAliases.has(name)) && !runtimeAliases.has(node.name.text)) {
-          runtimeAliases.add(node.name.text)
-          changed = true
-        }
-      }
-      ts.forEachChild(node, collectAliases)
-    }
-    ts.forEachChild(file, collectAliases)
-  }
   let used = false
-  const visit = (node, unreachable = false) => {
+
+  const isLiveAlias = (node, scope) =>
+    ts.isIdentifier(node) && scope.get(node.text) === true
+
+  const expressionCarriesAlias = (node, scope) => {
+    while (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
+      node = node.expression
+    }
+    if (isLiveAlias(node, scope)) return true
+    if (ts.isConditionalExpression(node)) {
+      if (isLiteralBoolean(node.condition, true)) return expressionCarriesAlias(node.whenTrue, scope)
+      if (isLiteralBoolean(node.condition, false)) return expressionCarriesAlias(node.whenFalse, scope)
+      return expressionCarriesAlias(node.whenTrue, scope) || expressionCarriesAlias(node.whenFalse, scope)
+    }
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+      return !isLiteralBoolean(node.left, false) && expressionCarriesAlias(node.right, scope)
+    }
+    // React wrappers (memo, forwardRef, or a local HOC) keep a component live
+    // only when their result is subsequently rendered. The call itself is not a
+    // runtime use for a warmer, so this is alias propagation rather than usage.
+    return ts.isCallExpression(node) && node.arguments.some(argument => expressionCarriesAlias(argument, scope))
+  }
+
+  const bindPattern = (name, scope, value = false) => {
+    if (ts.isIdentifier(name)) scope.set(name.text, value)
+    else if (ts.isObjectBindingPattern(name) || ts.isArrayBindingPattern(name)) {
+      for (const element of name.elements) {
+        if (ts.isBindingElement(element)) bindPattern(element.name, scope, value)
+      }
+    }
+  }
+
+  const visit = (node, scope, unreachable = false) => {
     if (used || unreachable) return
     if (ts.isIfStatement(node)) {
-      visit(node.expression)
-      visit(node.thenStatement, isLiteralBoolean(node.expression, false))
-      if (node.elseStatement) visit(node.elseStatement, isLiteralBoolean(node.expression, true))
+      visit(node.expression, scope)
+      visit(node.thenStatement, new Map(scope), isLiteralBoolean(node.expression, false))
+      if (node.elseStatement) visit(node.elseStatement, new Map(scope), isLiteralBoolean(node.expression, true))
+      return
+    }
+    if (ts.isConditionalExpression(node)) {
+      visit(node.condition, scope)
+      visit(node.whenTrue, new Map(scope), isLiteralBoolean(node.condition, false))
+      visit(node.whenFalse, new Map(scope), isLiteralBoolean(node.condition, true))
+      return
+    }
+    if (ts.isBinaryExpression(node)) {
+      visit(node.left, scope)
+      const op = node.operatorToken.kind
+      const rightUnreachable =
+        (op === ts.SyntaxKind.AmpersandAmpersandToken && isLiteralBoolean(node.left, false)) ||
+        (op === ts.SyntaxKind.BarBarToken && isLiteralBoolean(node.left, true))
+      visit(node.right, scope, rightUnreachable)
+      return
+    }
+    if (ts.isBlock(node) || ts.isModuleBlock(node)) {
+      const local = new Map(scope)
+      for (const statement of node.statements) visit(statement, local)
+      return
+    }
+    if (ts.isFunctionLike(node)) {
+      const local = new Map(scope)
+      for (const parameter of node.parameters) bindPattern(parameter.name, local)
+      if (node.body) visit(node.body, local)
+      return
+    }
+    if (ts.isVariableDeclaration(node)) {
+      if (node.initializer) visit(node.initializer, scope)
+      const initializer = node.initializer && ts.isAwaitExpression(node.initializer)
+        ? node.initializer.expression
+        : node.initializer
+      const isDynamicImportBinding =
+        !!initializer &&
+        ts.isCallExpression(initializer) &&
+        initializer.expression.kind === ts.SyntaxKind.ImportKeyword
+      // `const { Ghost } = await import('./Ghost.js')` is both the import
+      // declaration and its local binding. importedRuntimeNames already proved
+      // the module/property match, so retain that binding here instead of
+      // treating the destructure as an unrelated shadow.
+      const bindingValue = isDynamicImportBinding && ts.isObjectBindingPattern(node.name)
+        ? [...node.name.elements].some(element =>
+            ts.isBindingElement(element) && ts.isIdentifier(element.name) && scope.get(element.name.text) === true,
+          )
+        : !!node.initializer && expressionCarriesAlias(node.initializer, scope)
+      bindPattern(node.name, scope, bindingValue)
       return
     }
     if (isComponent && (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))) {
       const tag = node.tagName
-      if (ts.isIdentifier(tag) && runtimeAliases.has(tag.text)) used = true
-      if (ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && runtimeAliases.has(tag.expression.text)) used = true
+      if (ts.isIdentifier(tag) && scope.get(tag.text) === true) used = true
+      if (ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && scope.get(tag.expression.text) === true) used = true
     }
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && runtimeAliases.has(node.expression.text)) {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && scope.get(node.expression.text) === true) {
       used = true
     }
     if (isComponent && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'createElement') {
       const [component] = node.arguments
-      if (component && ts.isIdentifier(component) && runtimeAliases.has(component.text)) used = true
+      if (component && isLiveAlias(component, scope)) used = true
     }
-    ts.forEachChild(node, child => visit(child, unreachable))
+    ts.forEachChild(node, child => visit(child, scope))
   }
-  for (const statement of file.statements) visit(statement)
+
+  const rootScope = new Map([...aliases].map(alias => [alias, true]))
+  for (const statement of file.statements) visit(statement, rootScope)
   return used
 }
 

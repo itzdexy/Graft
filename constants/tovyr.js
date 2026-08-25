@@ -7,7 +7,8 @@ export function tovyrCmd(args = '') {
   return trimmed ? `${TOVYR_CLI_NAME} ${trimmed}` : TOVYR_CLI_NAME
 }
 
-export const TOVYR_PRODUCT_NAME = 'TOVYR'
+export const TOVYR_PRODUCT_NAME = 'Tovyr'
+export const TOVYR_ICON = '◆'
 export const TOVYR_VERSION = '1.2.0'
 
 export const TOVYR_TAGLINE =

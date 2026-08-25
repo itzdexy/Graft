@@ -90,3 +90,70 @@ test('rejects type-only, regex, and unused-value mentions as runtime reachabilit
     rmSync(fixture, { recursive: true, force: true })
   }
 })
+
+test('rejects unreachable, shadowed, and wrapper-only runtime mentions', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-bindings-'))
+  try {
+    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      'export function TovyrGhost() { return null }\n',
+    )
+    mkdirSync(join(fixture, 'services'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'services', 'mentions.tsx'),
+      [
+        "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
+        'false && <Ghost />',
+        'false ? <Ghost /> : null',
+        'true ? null : <Ghost />',
+        'const Wrapped = memo(Ghost)',
+        'function hidden(Ghost: unknown) { return <Ghost /> }',
+        'const scoped = () => { const Ghost = () => null; return <Ghost /> }',
+      ].join('\n'),
+    )
+
+    const result = Bun.spawnSync({
+      cmd: [NODE, join(process.cwd(), 'scripts/check-dead-ui.js')],
+      cwd: fixture,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr.toString()).toContain('TovyrGhost')
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})
+
+test('accepts a wrapped imported component when it is actually mounted', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-wrapper-'))
+  try {
+    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      'export function TovyrGhost() { return null }\n',
+    )
+    mkdirSync(join(fixture, 'services'), { recursive: true })
+    writeFileSync(
+      join(fixture, 'services', 'live.tsx'),
+      [
+        "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
+        'const Wrapped = memo(Ghost)',
+        'export const Live = () => <Wrapped />',
+      ].join('\n'),
+    )
+
+    const result = Bun.spawnSync({
+      cmd: [NODE, join(process.cwd(), 'scripts/check-dead-ui.js')],
+      cwd: fixture,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+
+    expect(result.exitCode).toBe(0)
+  } finally {
+    rmSync(fixture, { recursive: true, force: true })
+  }
+})

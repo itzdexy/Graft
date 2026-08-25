@@ -476,13 +476,9 @@ function AssistantMessageBlock({
       }
       return <AssistantRedactedThinkingMessage addMargin={addMargin} />
     case 'thinking': {
-      // Thinking used to be dropped entirely outside transcript/verbose mode,
-      // so a reasoning model's work vanished from the chat and only survived
-      // as a one-line preview above the composer. AssistantThinkingMessage
-      // renders a single collapsed `+ Thought: 16.3s` row in normal mode and
-      // the full prose in transcript/verbose, so it is safe to mount always:
-      // the transcript gains one dim line per turn, and the reasoning is
-      // actually reachable.
+      if (!isTranscriptMode && !verbose) {
+        return null
+      }
       // In transcript mode with hidePastThinking, only show the last thinking block
       const isLastThinking =
         !lastThinkingBlockId || thinkingBlockId === lastThinkingBlockId

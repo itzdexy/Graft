@@ -2432,7 +2432,8 @@ function PromptInput({
       showGlobalSearch ||
       showCommandPalette ||
       showHistoryPicker ||
-      isTovyrHelpOpen
+      isTovyrHelpOpen ||
+      isModalOverlayActive
     ) {
       return
     }
