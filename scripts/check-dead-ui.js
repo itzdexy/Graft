@@ -38,14 +38,20 @@ const SOURCE_ROOTS = [
   'commands', 'components', 'entrypoints', 'hooks', 'performance', 'screens',
   'services', 'tools', 'utils',
 ]
-const files = SOURCE_ROOTS.flatMap(dir => {
+const SOURCE_FILES = ['commands.ts', 'main.tsx', 'query.ts', 'tools.ts']
+const files = [
+  ...SOURCE_ROOTS.flatMap(dir => {
   const full = join(ROOT, dir)
   try {
     return statSync(full).isDirectory() ? walk(full) : []
   } catch {
     return []
   }
-})
+  }),
+  ...SOURCE_FILES.map(file => join(ROOT, file)).filter(file => {
+    try { return statSync(file).isFile() } catch { return false }
+  }),
+]
 const sources = new Map()
 for (const f of files) {
   const rel = relative(ROOT, f).split(sep).join('/')
