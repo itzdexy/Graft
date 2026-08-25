@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Box, Text, useInput } from '../../ink.js'
 import { useTerminalSize } from '../../hooks/useTerminalSize.js'
 import { useMainLoopModel } from '../../hooks/useMainLoopModel.js'
@@ -66,6 +66,7 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
   const [selectedIndex, setSelectedIndex] = useState(1)
   const [checkingModel, setCheckingModel] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const selectionInFlightRef = useRef(false)
 
   const providerId = getActiveProviderId()
   const activeProvider = getProvider(providerId)
@@ -97,7 +98,8 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
   }, [query])
 
   const selectModel = useCallback(async (modelId: string) => {
-    if (checkingModel) return
+    if (checkingModel || selectionInFlightRef.current) return
+    selectionInFlightRef.current = true
     setError(null)
     setCheckingModel(modelId)
     try {
@@ -110,6 +112,7 @@ export const TovyrModelSelector = memo(function TovyrModelSelector({
     } catch {
       setError('Could not verify this model.')
     } finally {
+      selectionInFlightRef.current = false
       setCheckingModel(null)
     }
   }, [checkingModel, onClose, onSelect])
