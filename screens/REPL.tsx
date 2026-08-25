@@ -6160,6 +6160,8 @@ export function REPL({
         }}
         transcript={transcript}
         composer={null}
+        fileRoot={getOriginalCwd()}
+        fileTaskQuery={requestedWorkbenchFocus === 'file' ? placeholderText ?? undefined : undefined}
         isTranscriptEmpty={
           !viewedAgentTask &&
           shouldShowTovyrEmptyTranscript({

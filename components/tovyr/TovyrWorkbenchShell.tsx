@@ -20,6 +20,8 @@ type Props = {
   transcript: ReactNode
   composer: ReactNode
   focus?: ReactNode
+  fileRoot?: string
+  fileTaskQuery?: string
   isTranscriptEmpty?: boolean
 }
 
@@ -55,15 +57,19 @@ export function TovyrWorkbenchShell({
   transcript,
   composer,
   focus,
+  fileRoot,
+  fileTaskQuery,
   isTranscriptEmpty = false,
 }: Props): ReactNode {
   const view = deriveWorkbenchView(input)
   const approvalPending = view.focus === 'permission'
   const focusSurface =
-    view.panel !== 'none' && focus && view.focus !== 'none' ? (
+    view.panel !== 'none' && (focus || view.focus === 'file') && view.focus !== 'none' ? (
       <TovyrFocusSurface
         focus={view.focus}
         placement={approvalPending ? 'overlay' : view.panel}
+        fileRoot={fileRoot}
+        fileTaskQuery={fileTaskQuery}
       >
         {focus}
       </TovyrFocusSurface>

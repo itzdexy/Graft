@@ -31,6 +31,13 @@ const widePlanInput = {
   approvalPending: false,
 }
 
+const wideFileInput = {
+  columns: 140,
+  rows: 24,
+  requestedFocus: 'file' as const,
+  approvalPending: false,
+}
+
 describe('TovyrWorkbenchShell', () => {
   test('only shows the empty state for a genuinely idle transcript', () => {
     expect(
@@ -80,6 +87,20 @@ describe('TovyrWorkbenchShell', () => {
     expect(files).toContain('isTovyrRuntime()')
     expect(repl).toContain('resolveWorkbenchFocusFromCommand(input, commands, isCommandEnabled)')
     expect(repl).toContain("requestedFocus: viewedAgentTask ? 'agents' : requestedWorkbenchFocus")
+  })
+
+  test('renders the actual project map for the routed file focus without a placeholder node', async () => {
+    const { output } = await renderToText(
+      <TovyrWorkbenchShell
+        input={wideFileInput}
+        transcript={<Text>chat</Text>}
+        composer={<Text>prompt</Text>}
+        fileRoot={process.cwd()}
+      />,
+      { columns: 140 },
+    )
+
+    expect(output).toContain('Project map')
   })
 
   test('renders transcript and composer at 50 columns without a side rail', async () => {
