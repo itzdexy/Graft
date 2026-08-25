@@ -57,7 +57,11 @@ describe('Tovyr launcher Bun resolution', () => {
     process.env.TOVYR_SRC = process.env.TOVYR_PACKAGE_ROOT
 
     expect(getTovyrPackageRoot()).not.toBe(process.env.TOVYR_PACKAGE_ROOT)
-    expect(getTovyrPackageRoot()).toEndWith('src')
+    // A source checkout can be named anything (for example a clean CI
+    // worktree), so assert the discovered package rather than its directory.
+    expect(resolveTovyrCliEntry(getTovyrPackageRoot())).toEndWith(
+      'entrypoints\\cli.tsx',
+    )
   })
 
   test('uses the bundled Bun runtime when source is not in the npm package', () => {

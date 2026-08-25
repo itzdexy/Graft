@@ -61,6 +61,7 @@
     "check:dead-ui": "node scripts/check-dead-ui.js"
   },
   "dependencies": {
+    "@ant/claude-for-chrome-mcp": "file:./vendor/ant-stubs/claude-for-chrome-mcp",
     "@ant/computer-use-input": "file:./vendor/ant-stubs/computer-use-input",
     "@ant/computer-use-mcp": "file:./vendor/ant-stubs/computer-use-mcp",
     "@ant/computer-use-swift": "file:./vendor/ant-stubs/computer-use-swift",
@@ -82,6 +83,7 @@
     "supports-hyperlinks": "^4.5.0",
     "tree-kill": "^1.2.2",
     "turndown": "^7.2.4",
+    "typescript": "^5.9.3",
     "usehooks-ts": "^3.1.1",
     "vscode-jsonrpc": "^9.0.1",
     "xss": "^1.0.15"
