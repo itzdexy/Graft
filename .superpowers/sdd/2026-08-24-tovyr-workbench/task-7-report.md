@@ -255,3 +255,32 @@ verification in the following documentation commit.
 
 Clean detached worktree at `a4ecc59`: 28 pass, 0 fail; AST dead-UI gate and
 `tsc -p tsconfig.tovyr.json` pass. Shared overlay work was not staged.
+
+## Review fix round 2 completion
+
+- `046c3dd` registers `TovyrModelSelector` as a modal overlay. The existing
+  modal-active guard in `PromptInput` and global keybinding infrastructure now
+  suppress compositor/global input while the selector owns Esc/Enter/typing.
+  Its existing awaited `onSelect`, in-flight guard, and visible error state
+  remain the sole activation owner. Rendered Esc coverage proves no prompt
+  action leaks.
+- `12defdc` commits the `expanded` input to
+  `TovyrCollapsedReadSearchGroup`. The live message-action Enter handler flips
+  the selected row's expanded state; rendered interaction coverage proves a
+  three-entry group exposes its third path and changes to `all details`.
+- `7aa9f91` restores the pre-Task-7 boot screen and prompt presentation from
+  the index without overwriting the user's dirty worktree. The only retained
+  `PromptInput` hunks are the mounted command-palette import/state/keybinding,
+  modal guard, and insertion callback — each is required for the retained
+  `TovyrCommandPalette` production route. `Messages` transcript context,
+  filtered live stream, and per-row expansion remain because they are direct
+  callers/state providers for retained Task-7 components. The mode badge's
+  click callback remains the direct reachable owner for the model selector;
+  its width-safe one-row rendering avoids losing that trigger on narrow
+  terminals.
+
+Final detached tree at `7aa9f91`: 31 focused UI/dead-UI/REPL contracts pass,
+the empty-baseline checker passes, and `tsc -p tsconfig.tovyr.json` passes.
+The requested broader shared-checkout run (`components/tovyr`, launcher
+contract, `check:dead-ui`, and `check:tovyr`) also passes; unrelated overlay
+changes were not staged.
