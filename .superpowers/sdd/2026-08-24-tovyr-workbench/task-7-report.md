@@ -328,3 +328,54 @@ Risk: the existing launcher-resolution test assumes a conventional checkout
 directory named `src`; the final detached verification intentionally uses that
 normal layout. This does not mask a source dependency: the same clean checkout
 also passed the actual REPL import and full quality gate.
+
+## Review fix round 4 — final quality and isolation closure
+
+Commits `90d722e`, `09bf2be`, `7b653b6`, and `bee161f` close the final review
+findings. `check:tovyr` now invokes `bun run test`, so it runs the declared
+package Tovyr suite instead of silently substituting bare test discovery. The
+committed explicit suite is **689 pass, 0 fail**. `freeLocalMode.test.ts`
+normalizes line endings before asserting the real login guard, preserving the
+behavioral contract on Windows checkouts.
+
+Provider and CLI subprocesses now receive a guarded disposable home through
+`HOME`, `USERPROFILE`, and `TOVYR_HOME`. Cleanup refuses non-temp paths. The
+provider CLI test snapshots the real `~/.tovyr/providers.json` without
+printing it, runs fixture-only commands, and proves the snapshot is identical
+afterward. There are no credential-dependent early-return assertions.
+
+Provider/model activation snapshots and restores the full persisted provider
+state before reapplying session settings. The regression suite covers both a
+candidate provider with a prior saved model and one with no saved model, and
+asserts exact restoration of provider/model/auth/custom/endpoint metadata.
+
+The dead-UI AST checker now rejects block-scoped function/class shadows and
+accepts real JSX component ownership (`<Route component={Ghost} />`), while
+keeping comments, strings, type-only imports, false branches, and unused
+wrappers non-live. `BASELINE` remains empty.
+
+The clean source graph also exposed genuine release holes: Agent SDK/server
+sources, Chrome-MCP compatibility dependency, TypeScript/Bun/Node typings,
+and the Bun lock entries were missing. These are committed. The `/expansion`
+surface was narrowed to actually shipped SDK/server/runtime capabilities;
+unshipped experimental imports are no longer advertised or imported. The
+Chrome compatibility stub points to the committed Tovyr package, not a Kairo
+path. The launcher test now validates the discovered package entry rather
+than assuming a checkout directory name.
+
+Final detached clean worktree: `C:\Users\uwuuy\Downloads\tovyr-task7-final4`
+at a tree identical to `bee161f`.
+
+```text
+bun install --frozen-lockfile --ignore-scripts: pass
+bun run test: 689 pass, 0 fail
+bun run check:dead-ui: pass (0 baselined)
+bun run check:tovyr: pass (test, typecheck, dead-UI, brand)
+bun -e "await import('./screens/REPL.tsx')": REPL import OK
+focused provider/CLI/activation/dead-UI tests: 51 pass, 0 fail
+git diff --check: pass
+```
+
+Risk retained: `/expansion` intentionally exposes only source-shipped
+capabilities until the removed experimental modules are independently packaged
+and tested. This is preferable to a command that crashes during REPL import.
