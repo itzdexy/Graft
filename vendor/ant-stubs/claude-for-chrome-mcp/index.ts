@@ -6,4 +6,4 @@ export {
   type ClaudeForChromeContext,
   type Logger,
   type PermissionMode,
-} from '../../../packages/kairo-for-chrome-mcp/index.js'
+} from '../../../packages/tovyr-for-chrome-mcp/index.js'
