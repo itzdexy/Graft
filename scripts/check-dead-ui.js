@@ -10,7 +10,7 @@
  * reporting "it doesn't show anything".
  *
  * This is deliberately narrow: exported components under components/tovyr and
- * exported prefetch/warm helpers. A general dead-export scan over this repo
+ * exported Tovyr-runtime prefetch/warm helpers. A general dead-export scan over this repo
  * produces hundreds of hits (SDK surface, re-exports, ant-only paths) and gets
  * ignored, which is worse than not running it.
  */
@@ -34,11 +34,69 @@ function walk(dir, out = []) {
   return out
 }
 
-const files = walk(ROOT)
+const SOURCE_ROOTS = [
+  'commands', 'components', 'entrypoints', 'hooks', 'performance', 'screens',
+  'services', 'tools', 'utils',
+]
+const files = SOURCE_ROOTS.flatMap(dir => {
+  const full = join(ROOT, dir)
+  try {
+    return statSync(full).isDirectory() ? walk(full) : []
+  } catch {
+    return []
+  }
+})
 const sources = new Map()
 for (const f of files) {
+  const rel = relative(ROOT, f).split(sep).join('/')
+  if (/\.(?:test|spec)\.tsx?$/.test(rel)) continue
   try { sources.set(f, readFileSync(f, 'utf8')) } catch { /* unreadable */ }
 }
+
+/** Replace comments and quoted literals so prose cannot masquerade as a call site. */
+function codeOnly(source) {
+  let output = ''
+  let index = 0
+  let state = 'code'
+  while (index < source.length) {
+    const char = source[index]
+    const next = source[index + 1]
+    if (state === 'code') {
+      if (char === '/' && next === '/') { state = 'line'; output += '  '; index += 2; continue }
+      if (char === '/' && next === '*') { state = 'block'; output += '  '; index += 2; continue }
+      if (char === "'" || char === '"' || char === '`') { state = char; output += ' '; index++; continue }
+      output += char
+      index++
+      continue
+    }
+    if (state === 'line') {
+      if (char === '\n') { state = 'code'; output += '\n' } else output += ' '
+      index++
+      continue
+    }
+    if (state === 'block') {
+      if (char === '*' && next === '/') { state = 'code'; output += '  '; index += 2 } else { output += char === '\n' ? '\n' : ' '; index++ }
+      continue
+    }
+    if (char === '\\') { output += '  '; index += 2; continue }
+    if (char === state) { state = 'code'; output += ' '; index++ } else { output += char === '\n' ? '\n' : ' '; index++ }
+  }
+  return output
+}
+
+function hasProductionReference(source, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?:<\\s*${escaped}(?=\\s|/|>)|\\b${escaped}\\b)`).test(source)
+}
+
+const productionCode = new Map(
+  [...sources].map(([file, source]) => {
+    const withoutImports = source
+      .replace(/^\s*import[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
+      .replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, '')
+    return [file, codeOnly(withoutImports)]
+  }),
+)
 
 /** Exported names we care about, with the file that defines them. */
 const candidates = []
@@ -53,7 +111,8 @@ for (const [file, src] of sources) {
     const name = m[1] ?? m[2]
     if (!name) continue
     const isComponent = isTovyrComponent && /^Tovyr[A-Z]/.test(name)
-    const isWarmer = /^(prefetch|warm)[A-Z]/.test(name)
+    const isWarmer =
+      rel.startsWith('services/tovyr/') && /^(prefetch|warm)[A-Z]/.test(name)
     if (isComponent || isWarmer) candidates.push({ name, rel })
   }
 }
@@ -61,13 +120,10 @@ for (const [file, src] of sources) {
 const dead = []
 for (const { name, rel } of candidates) {
   let uses = 0
-  for (const [file, src] of sources) {
+  for (const [file, src] of productionCode) {
     const other = relative(ROOT, file).split(sep).join('/')
     if (other === rel) continue
-    // Substring match, not a word-boundary regex: these identifiers are
-    // distinctive (TovyrXxx / prefetchXxx) so a substring hit is a real
-    // reference, and it avoids escaping bugs in the pattern itself.
-    if (src.includes(name)) uses++
+    if (hasProductionReference(src, name)) uses++
   }
   if (uses === 0) dead.push({ name, rel })
 }

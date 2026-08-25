@@ -2,6 +2,7 @@ import * as React from 'react'
 import type { ReactNode } from 'react'
 import { Box, Text } from '../../ink.js'
 import type { Message } from '../../types/message.js'
+import type { WorkbenchFocus } from '../../services/tovyr/dx/workbench.js'
 import { TovyrCostMeter } from './TovyrCostMeter.js'
 import {
   TovyrNotifications,
@@ -9,6 +10,7 @@ import {
 } from './TovyrNotifications.js'
 import { TovyrSessionHeader } from './TovyrSessionHeader.js'
 import { TovyrStatusBar } from './TovyrStatusBar.js'
+import { TovyrHeader } from './TovyrHeader.js'
 
 export type TovyrWorkbenchContext = {
   project?: string
@@ -25,7 +27,16 @@ export type TovyrWorkbenchContext = {
   onDismissNotification?: (id: string) => void
 }
 
-type Props = TovyrWorkbenchContext
+type Props = TovyrWorkbenchContext & {
+  showAgentStatus?: boolean
+}
+
+/** The agents focus owns its live HUD; the context rail must not echo it. */
+export function shouldShowTovyrContextAgentStatus(
+  focus: WorkbenchFocus,
+): boolean {
+  return focus !== 'agents'
+}
 
 /**
  * A single, compact context line for the workbench. It deliberately has no
@@ -44,6 +55,7 @@ export function TovyrContextRail({
   refreshKey = 0,
   notifications = [],
   onDismissNotification = () => {},
+  showAgentStatus = true,
 }: Props): ReactNode {
   const facts = [
     project,
@@ -59,21 +71,20 @@ export function TovyrContextRail({
     <Box width="100%" flexDirection="column" flexShrink={0}>
       {facts.length > 0 ? (
         <Box width="100%" paddingX={1}>
-          <Text wrap="truncate-end">
-            <Text color="tovyrPrimary" bold>
-              Tovyr
-            </Text>
-            <Text color="subtle" dimColor>
-              {' · '}
+          <Box flexDirection="column" width="100%">
+            <TovyrHeader />
+            <Text color="subtle" dimColor wrap="truncate-end">
               {facts.join(' · ')}
             </Text>
-          </Text>
+          </Box>
         </Box>
       ) : null}
       <TovyrSessionHeader isLoading={isLoading} refreshKey={refreshKey} />
       <Box paddingX={1} flexDirection="row" gap={2} flexWrap="wrap">
         <TovyrCostMeter isLoading={isLoading} />
-        <TovyrStatusBar messages={messages} isLoading={isLoading} />
+        {showAgentStatus ? (
+          <TovyrStatusBar messages={messages} isLoading={isLoading} />
+        ) : null}
       </Box>
       <TovyrNotifications
         notifications={notifications}

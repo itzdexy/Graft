@@ -5,7 +5,10 @@ import { Box, Text } from '../../ink.js'
 import { FullscreenLayout } from '../FullscreenLayout.js'
 import type { ScrollBoxHandle } from '../../ink/components/ScrollBox.js'
 import { renderToText } from '../../test-support/renderInk.js'
-import { TovyrWorkbenchShell } from './TovyrWorkbenchShell.js'
+import {
+  shouldShowTovyrEmptyTranscript,
+  TovyrWorkbenchShell,
+} from './TovyrWorkbenchShell.js'
 
 const compactInput = {
   columns: 50,
@@ -29,6 +32,37 @@ const widePlanInput = {
 }
 
 describe('TovyrWorkbenchShell', () => {
+  test('only shows the empty state for a genuinely idle transcript', () => {
+    expect(
+      shouldShowTovyrEmptyTranscript({
+        messageCount: 0,
+        pendingUserText: '',
+        isLoading: false,
+        isProcessing: false,
+        activeToolCount: 0,
+      }),
+    ).toBe(true)
+
+    for (const state of [
+      { pendingUserText: 'Fix the parser' },
+      { isLoading: true },
+      { isProcessing: true },
+      { activeToolCount: 1 },
+      { messageCount: 1 },
+    ]) {
+      expect(
+        shouldShowTovyrEmptyTranscript({
+          messageCount: 0,
+          pendingUserText: '',
+          isLoading: false,
+          isProcessing: false,
+          activeToolCount: 0,
+          ...state,
+        }),
+      ).toBe(false)
+    }
+  })
+
   test('REPL mounts the shell only through the Tovyr runtime branch', () => {
     const repl = readFileSync(new URL('../../screens/REPL.tsx', import.meta.url), 'utf8')
 
@@ -36,6 +70,16 @@ describe('TovyrWorkbenchShell', () => {
     expect(repl).toMatch(/isTovyrRuntime\(\) \? \(\s*<TovyrWorkbenchShell/)
     expect(repl).toContain('overlay={toolPermissionOverlay}')
     expect(repl).not.toContain('focus={toolPermissionOverlay}')
+  })
+
+  test('routes the indexed /files command into the live file focus surface', () => {
+    const repl = readFileSync(new URL('../../screens/REPL.tsx', import.meta.url), 'utf8')
+    const files = readFileSync(new URL('../../commands/files/index.ts', import.meta.url), 'utf8')
+
+    expect(files).toContain("name: 'files'")
+    expect(files).toContain('isTovyrRuntime()')
+    expect(repl).toContain('resolveWorkbenchFocusFromCommand(input, commands, isCommandEnabled)')
+    expect(repl).toContain("requestedFocus: viewedAgentTask ? 'agents' : requestedWorkbenchFocus")
   })
 
   test('renders transcript and composer at 50 columns without a side rail', async () => {

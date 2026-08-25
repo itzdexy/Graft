@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { Box, Text } from '../../ink.js'
 import type { Message } from '../../types/message.js'
 import type { StreamingToolUse } from '../../utils/messages.js'
@@ -6,8 +13,8 @@ import { parseLooseToolArguments } from '../../services/tovyr/openaiCompat/toolN
 import type { SpinnerMode } from '../Spinner.js'
 import {
   formatOpenCodeToolLine,
-  formatOpenCodeThoughtLine,
   formatTovyrLiveStatusLabel,
+  summarizeToolInput,
   type OpenCodeToolLine,
 } from '../../services/tovyr/dx/activityDisplay.js'
 import {
@@ -21,17 +28,20 @@ import {
   isTovyrAccurateSpinnerEnabled,
   pickSpinnerVerb,
 } from '../../constants/spinnerVerbs.js'
-import { TovyrSpinnerStatusRow } from './TovyrSpinnerStatusRow.js'
 import { TovyrTreeRow } from './TovyrTreeRow.js'
-import {
-  ActivityClawd,
-  resolveClawdMood,
-} from '../LogoV2/ActivityClawd.js'
 import { useAppState } from '../../state/AppState.js'
+import {
+  getProviderConnectionSnapshot,
+  subscribeProviderConnection,
+} from '../../services/tovyr/providers/connectionStore.js'
+import { deriveTurnActivity } from '../../services/tovyr/dx/activityAdapter.js'
+import { TovyrActivitySurface } from './TovyrActivitySurface.js'
+import type { OrchestrationState } from '../../services/tovyr/agent/types.js'
+/** How long a playful spinner verb holds before re-rolling. */
+const VERB_ROTATE_MS = 4_000
 const MAX_IN_PROGRESS = 1
 const MAX_RESPONSE_PREVIEW = 520
 const MAX_STREAMING_TOOL_INPUT = 16 * 1024
-const THINKING_ANIM_FRAMES = ['○', '◦', '·', '◦']
 
 type InProgressTool = {
   id: string
@@ -100,6 +110,7 @@ type Props = {
   /** Permission mode for buddy mood (talk vs laptop). */
   permissionMode?: string
   permissionPending?: boolean
+  orchestrationState?: OrchestrationState
 }
 
 function collectStreamingTools(
@@ -186,38 +197,39 @@ export function TovyrLiveActivity({
   suppressIdleStatus = false,
   loadingStartTimeRef,
   epilogue,
-  thoughtDurationMs,
   showThought = false,
   streamMode = 'responding',
   streamingToolUses = [],
-  responseLengthRef,
   thinkingPreview,
   streamingTextPreview,
   statusOverride,
   activeToolCount = 0,
   showSpinner = false,
   turnFootnote,
-  permissionMode: permissionModeProp,
   permissionPending = false,
+  orchestrationState,
 }: Props): ReactNode {
-  const permissionModeFromState = useAppState(
-    s => s.toolPermissionContext.mode,
-  )
-  const permissionMode = permissionModeProp ?? permissionModeFromState
   const [elapsedMs, setElapsedMs] = useState(0)
   const [sessionVerb, setSessionVerb] = useState<string | null>(null)
-  const [thinkAnimFrame, setThinkAnimFrame] = useState(0)
+  const providerConnection = useSyncExternalStore(
+    subscribeProviderConnection,
+    getProviderConnectionSnapshot,
+    getProviderConnectionSnapshot,
+  )
   const messageCount = messages.length
 
   useEffect(() => {
-    if (isLoading) {
-      // Silly verbs only when accurate spinner is opted out (TOVYR_ACCURATE_SPINNER=0).
-      if (!isTovyrAccurateSpinnerEnabled()) {
-        setSessionVerb(prev => prev ?? pickSpinnerVerb())
-      }
+    if (!isLoading) {
+      setSessionVerb(null)
       return
     }
-    setSessionVerb(null)
+    // Literal phase labels are opt-in via TOVYR_ACCURATE_SPINNER=1.
+    if (isTovyrAccurateSpinnerEnabled()) return
+    // Re-roll periodically. A single verb pinned for a multi-minute turn reads
+    // as a hang; changing copy is the cheapest signal that work is ongoing.
+    setSessionVerb(pickSpinnerVerb())
+    const timer = setInterval(() => setSessionVerb(pickSpinnerVerb()), VERB_ROTATE_MS)
+    return () => clearInterval(timer)
   }, [isLoading])
 
   useEffect(() => {
@@ -231,7 +243,7 @@ export function TovyrLiveActivity({
       setElapsedMs(Math.max(0, Date.now() - start))
     }
     tick()
-    const id = setInterval(tick, 500)
+    const id = setInterval(tick, 1_000)
     return () => clearInterval(id)
   }, [isLoading, loadingStartTimeRef])
 
@@ -262,6 +274,13 @@ export function TovyrLiveActivity({
     if (isTovyrStreamingPreviewDuplicate(prose, committed)) return null
     return compactLivePreview(prose, MAX_RESPONSE_PREVIEW)
   }, [messages, streamPreviewKey, streamingTextPreview])
+
+  const activeTool = useMemo((): InProgressTool | null => {
+    const fromMessages = collectInProgressTools(messages, inProgressToolUseIDs)
+    const messageIds = new Set(fromMessages.map(tool => tool.id))
+    const fromStream = collectStreamingTools(streamingToolUses, messageIds)
+    return [...fromStream, ...fromMessages].at(-1) ?? null
+  }, [messages, inProgressKey, streamingKey, streamingToolUses])
 
   const rows = useMemo((): ActivityRow[] => {
     if (!isTovyrRuntime()) return []
@@ -322,6 +341,7 @@ export function TovyrLiveActivity({
               elapsedMs,
               tokenEstimate: responseStreamPreview ? 1 : 0,
               spinnerVerb: sessionVerb ?? undefined,
+              connectionState: providerConnection.state,
             }))
       if (label) {
         out.push({
@@ -351,224 +371,61 @@ export function TovyrLiveActivity({
     showSpinner,
     responseStreamPreview,
     permissionPending,
+    providerConnection.state,
   ])
 
   // Tool rows (not the generic status) suppress thinking/response snippets.
   const hasToolRows = rows.some(r => r.line != null)
-
-  const thoughtLine =
-    showThought &&
-    isTovyrRuntime() &&
-    !hasToolRows &&
-    !thinkingPreview?.trim() &&
-    !responseStreamPreview
-      ? formatOpenCodeThoughtLine(
-          thoughtDurationMs,
-          thoughtDurationMs == null,
-        )
-      : !isTovyrRuntime() && showThought && !hasToolRows
-        ? formatOpenCodeThoughtLine(
-            thoughtDurationMs,
-            thoughtDurationMs == null,
-          )
-        : null
 
   const thinkingSnippet =
     thinkingPreview?.trim() && showThought && !hasToolRows
       ? compactLivePreview(thinkingPreview, MAX_RESPONSE_PREVIEW)
       : null
 
-  const isThinkingInProgress = showThought && thoughtDurationMs == null
-  const isResponseStreaming = !!responseStreamPreview && isLoading
+  const statusRows = rows.filter(row => row.spinnerStatus)
+  const firstStatus = statusRows[0]
   const reducedMotion =
     useAppState(s => s.settings.prefersReducedMotion) ?? false
-
-  useEffect(() => {
-    if (
-      reducedMotion ||
-      !(isThinkingInProgress || isResponseStreaming)
-    ) {
-      setThinkAnimFrame(0)
-      return
-    }
-    const id = setInterval(() => {
-      setThinkAnimFrame(f => (f + 1) % THINKING_ANIM_FRAMES.length)
-    }, 220)
-    return () => clearInterval(id)
-  }, [isThinkingInProgress, isResponseStreaming, reducedMotion])
-
-  const showBuddy = false
-
-  // Must run unconditionally (hooks) — collect before any early return.
-  const activeToolNames = useMemo(() => {
-    const names: string[] = []
-    for (const stu of streamingToolUses) {
-      if (stu.contentBlock.name) names.push(stu.contentBlock.name)
-    }
-    for (const tool of collectInProgressTools(messages, inProgressToolUseIDs)) {
-      names.push(tool.name)
-    }
-    return names
-  }, [streamingToolUses, messages, inProgressKey, inProgressToolUseIDs])
-
-  const buddyMood = resolveClawdMood({
-    isWorking: showBuddy,
-    permissionMode,
-    activeToolNames,
+  const liveActivity = deriveTurnActivity({
+    at: Date.now(),
+    isLoading: isLoading && !suppressIdleStatus,
+    isProcessing,
+    streamMode,
+    permissionPending,
+    statusOverride: firstStatus?.spinnerStatus?.label ?? statusOverride,
+    spinnerVerb: sessionVerb,
+    thinkingLabel: thinkingSnippet
+      ? compactLivePreview(thinkingSnippet, 120)
+      : undefined,
+    hasStreamingText: !!responseStreamPreview,
+    streamingCharacterCount: streamingTextPreview?.length,
+    orchestrationState,
+    activeTool: activeTool
+      ? {
+          name: activeTool.name,
+          summary: summarizeToolInput(activeTool.name, activeTool.input),
+          input: activeTool.input,
+        }
+      : null,
   })
 
   const hasLiveContent =
-    rows.length > 0 ||
+    !!liveActivity ||
     !!epilogue ||
-    !!thoughtLine ||
-    !!thinkingSnippet ||
-    !!responseStreamPreview ||
-    isLoading ||
-    isProcessing ||
-    showSpinner ||
-    !!turnFootnote?.trim() ||
-    permissionPending
+    !!turnFootnote?.trim()
 
   if (!hasLiveContent) {
     return null
   }
 
-  const statusRows = rows.filter(r => r.spinnerStatus)
-  const toolRows = rows.filter(r => r.line)
-  const firstStatus = statusRows[0]
-  const restStatus = statusRows.slice(1)
-
   return (
     <Box flexDirection="column" marginTop={0} marginBottom={0} paddingX={0}>
-      {showBuddy || firstStatus ? (
-        <Box
-          flexDirection="row"
-          marginBottom={0}
-          paddingX={1}
-          gap={1}
-          alignItems="flex-end"
-        >
-          {showBuddy ? (
-            <ActivityClawd isActive mood={buddyMood} inline={false} />
-          ) : null}
-          {firstStatus ? (
-            <Box flexGrow={1} flexDirection="column" justifyContent="flex-end">
-              <TovyrSpinnerStatusRow
-                label={firstStatus.spinnerStatus!.label}
-                mode={streamMode}
-                responseLengthRef={responseLengthRef}
-                hasActiveTools={activeToolCount > 0}
-                hideGlyph={showBuddy}
-              />
-            </Box>
-          ) : null}
-        </Box>
+      {liveActivity ? (
+        <TovyrActivitySurface
+          activity={liveActivity}
+          reducedMotion={reducedMotion}
+        />
       ) : null}
-      {thoughtLine ? (
-        <TovyrTreeRow>
-          <Text>
-            <Text color={thoughtLine.color} bold={thoughtLine.inProgress}>
-              {thoughtLine.prefix}
-            </Text>
-            <Text> </Text>
-            <Text
-              color={thoughtLine.inProgress ? 'tovyrPrimary' : thoughtLine.color}
-              dimColor={!thoughtLine.inProgress}
-              bold={thoughtLine.inProgress}
-            >
-              {thoughtLine.text}
-            </Text>
-            {thoughtLine.inProgress ? (
-              <Text color="tovyrPrimary" dimColor bold>{' ...'}</Text>
-            ) : null}
-          </Text>
-        </TovyrTreeRow>
-      ) : null}
-      {thinkingSnippet ? (
-        <TovyrTreeRow nested={!isTovyrRuntime()}>
-          <Text>
-            {isTovyrRuntime() ? (
-              <Text color={isThinkingInProgress ? 'tovyrPrimary' : 'subtle'} bold={isThinkingInProgress}>
-                {isThinkingInProgress ? '> ' : '· '}
-              </Text>
-            ) : isThinkingInProgress ? (
-              <Text color="warning">
-                {THINKING_ANIM_FRAMES[thinkAnimFrame]}{' '}
-              </Text>
-            ) : (
-              <Text dimColor color="subtle">
-                ·{' '}
-              </Text>
-            )}
-            <Text
-              color={isThinkingInProgress ? 'text' : 'subtle'}
-              dimColor={!isThinkingInProgress}
-              italic={isThinkingInProgress}
-            >
-              {thinkingSnippet}
-            </Text>
-            {isThinkingInProgress ? (
-              <Text color="tovyrPrimary" dimColor bold>
-                {' ...'}
-              </Text>
-            ) : null}
-          </Text>
-        </TovyrTreeRow>
-      ) : null}
-      {responseStreamPreview && !thinkingSnippet ? (
-        <TovyrTreeRow>
-          <Text>
-            <Text color="tovyrPrimary" bold={isResponseStreaming}>
-              {isResponseStreaming
-                ? `${THINKING_ANIM_FRAMES[thinkAnimFrame]} `
-                : '> '}
-            </Text>
-            <Text
-              color={isResponseStreaming ? 'text' : 'subtle'}
-              dimColor={!isResponseStreaming}
-              italic={isResponseStreaming}
-            >
-              {responseStreamPreview}
-            </Text>
-            {isResponseStreaming ? (
-              <Text color="tovyrPrimary" dimColor bold>
-                {' ...'}
-              </Text>
-            ) : null}
-          </Text>
-        </TovyrTreeRow>
-      ) : null}
-      {toolRows.map(row =>
-        row.line ? (
-          <TovyrTreeRow key={row.key} nested={row.nested}>
-            <Text>
-              <Text color={row.line.color} bold={row.line.inProgress}>
-                {row.line.prefix}
-              </Text>
-              <Text> </Text>
-              <Text
-                color={row.line.inProgress ? 'tovyrPrimary' : row.line.color}
-                dimColor={!row.line.inProgress && row.line.color === 'text'}
-                bold={row.line.inProgress}
-              >
-                {row.line.text}
-              </Text>
-            </Text>
-          </TovyrTreeRow>
-        ) : null,
-      )}
-      {restStatus.map(row =>
-        row.spinnerStatus ? (
-          <TovyrTreeRow key={row.key} nested={row.nested}>
-            <TovyrSpinnerStatusRow
-              label={row.spinnerStatus.label}
-              mode={streamMode}
-              responseLengthRef={responseLengthRef}
-              hasActiveTools={activeToolCount > 0}
-            />
-          </TovyrTreeRow>
-        ) : null,
-      )}
       {epilogue ? (
         <Box flexDirection="row" marginTop={0} paddingX={1}>
           <Text color="tovyrPrimary" dimColor bold>

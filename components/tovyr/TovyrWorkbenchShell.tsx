@@ -3,10 +3,12 @@ import type { ReactNode } from 'react'
 import { Box } from '../../ink.js'
 import {
   deriveWorkbenchView,
+  type WorkbenchFocus,
   type WorkbenchInput,
 } from '../../services/tovyr/dx/workbench.js'
 import {
   TovyrContextRail,
+  shouldShowTovyrContextAgentStatus,
   type TovyrWorkbenchContext,
 } from './TovyrContextRail.js'
 import { TovyrFocusSurface } from './TovyrFocusSurface.js'
@@ -19,6 +21,27 @@ type Props = {
   composer: ReactNode
   focus?: ReactNode
   isTranscriptEmpty?: boolean
+}
+
+export type TovyrEmptyTranscriptInput = {
+  messageCount: number
+  pendingUserText: string
+  isLoading: boolean
+  isProcessing: boolean
+  activeToolCount: number
+}
+
+/** Empty guidance belongs only to a transcript with no pending or active turn. */
+export function shouldShowTovyrEmptyTranscript(
+  input: TovyrEmptyTranscriptInput,
+): boolean {
+  return (
+    input.messageCount === 0 &&
+    input.pendingUserText.trim().length === 0 &&
+    !input.isLoading &&
+    !input.isProcessing &&
+    input.activeToolCount === 0
+  )
 }
 
 /**
@@ -50,7 +73,12 @@ export function TovyrWorkbenchShell({
 
   return (
     <Box flexDirection="column" width="100%" flexShrink={0}>
-      {view.showHeader && context ? <TovyrContextRail {...context} /> : null}
+      {view.showHeader && context ? (
+        <TovyrContextRail
+          {...context}
+          showAgentStatus={shouldShowTovyrContextAgentStatus(view.focus)}
+        />
+      ) : null}
       <Box flexDirection="row" width="100%" flexShrink={0}>
         <Box
           flexDirection="column"

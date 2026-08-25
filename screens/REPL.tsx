@@ -143,6 +143,9 @@ import { TovyrChatDock } from '../components/tovyr/TovyrChatDock.js'
 import { TovyrAgentHud } from '../components/tovyr/TovyrAgentHud.js'
 import { TovyrAgentStepProgress } from '../components/tovyr/TovyrAgentStepProgress.js'
 import { TovyrWorkbenchShell } from '../components/tovyr/TovyrWorkbenchShell.js'
+import { shouldShowTovyrEmptyTranscript } from '../components/tovyr/TovyrWorkbenchShell.js'
+import { resolveWorkbenchFocusFromCommand } from '../services/tovyr/dx/workbenchFocus.js'
+import type { WorkbenchFocus } from '../services/tovyr/dx/workbench.js'
 import { useRemoteSession } from '../hooks/useRemoteSession.js'
 import { useDirectConnect } from '../hooks/useDirectConnect.js'
 import type { DirectConnectConfig } from '../server/directConnectManager.js'
@@ -1479,6 +1482,8 @@ export function REPL({
     isLocalJSXCommand?: boolean
     isImmediate?: boolean
   } | null>(null)
+  const [requestedWorkbenchFocus, setRequestedWorkbenchFocus] =
+    useState<WorkbenchFocus>('none')
 
   // Track local JSX commands separately so tools can't overwrite them.
   // This enables "immediate" commands (like /btw) to persist while Tovyr is processing.
@@ -4294,6 +4299,11 @@ export function REPL({
       },
       options?: { fromKeybinding?: boolean },
     ) => {
+      if (isTovyrRuntime()) {
+        setRequestedWorkbenchFocus(
+          resolveWorkbenchFocusFromCommand(input, commands, isCommandEnabled),
+        )
+      }
       // Re-pin scroll to bottom on submit so the user always sees the new
       // exchange (matches OpenCode's auto-scroll behavior).
       repinScroll()
@@ -6123,7 +6133,7 @@ export function REPL({
         input={{
           columns: transcriptCols,
           rows: terminalRows,
-          requestedFocus: viewedAgentTask ? 'agents' : 'none',
+          requestedFocus: viewedAgentTask ? 'agents' : requestedWorkbenchFocus,
           approvalPending: false,
         }}
         context={{
@@ -6148,7 +6158,14 @@ export function REPL({
         transcript={transcript}
         composer={null}
         isTranscriptEmpty={
-          !viewedAgentTask && displayedMessages.length === 0
+          !viewedAgentTask &&
+          shouldShowTovyrEmptyTranscript({
+            messageCount: displayedMessages.length,
+            pendingUserText: placeholderText ?? '',
+            isLoading,
+            isProcessing: Boolean(userInputOnProcessing),
+            activeToolCount: inProgressToolUseIDs.size,
+          })
         }
         focus={
           viewedAgentTask ? (
