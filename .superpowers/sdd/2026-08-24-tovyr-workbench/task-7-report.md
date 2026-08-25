@@ -372,7 +372,7 @@ bun run test: 689 pass, 0 fail
 bun run check:dead-ui: pass (0 baselined)
 bun run check:tovyr: pass (test, typecheck, dead-UI, brand)
 bun -e "await import('./screens/REPL.tsx')": REPL import OK
-focused provider/CLI/activation/dead-UI tests: 51 pass, 0 fail
+focused provider/CLI/activation/dead-UI tests: 58 pass, 0 fail
 git diff --check: pass
 ```
 
