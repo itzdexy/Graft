@@ -389,10 +389,6 @@ export function clearExpiredCache(): void {
   globalCache.clearExpired();
 }
 
-export function warmUpCache<T>(data: Map<string, T>, ttl?: number): Promise<void> {
-  return globalCache.warmUp(data, ttl);
-}
-
 export function exportCache(): Array<{ key: string; value: any; ttl: number; tags: string[] }> {
   return globalCache.export();
 }

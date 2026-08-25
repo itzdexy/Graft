@@ -55,6 +55,21 @@ describe('TovyrWorkbenchShell', () => {
     expect(output).not.toContain('│ plan')
   })
 
+  test('adds compact next-step guidance to an empty transcript', async () => {
+    const { output } = await renderToText(
+      <TovyrWorkbenchShell
+        input={compactInput}
+        transcript={<Text>chat</Text>}
+        composer={<Text>prompt</Text>}
+        isTranscriptEmpty
+      />,
+      { columns: 50 },
+    )
+
+    expect(output).toContain('chat')
+    expect(output).toContain('? help')
+  })
+
   test('uses an overlay instead of reserving a side rail at 80 columns', async () => {
     const { output } = await renderToText(
       <TovyrWorkbenchShell

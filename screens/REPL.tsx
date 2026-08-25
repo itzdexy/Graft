@@ -140,6 +140,8 @@ import type { PromptRequest, PromptResponse } from '../types/hooks.js'
 import PromptInput from '../components/PromptInput/PromptInput.js'
 import { PromptInputQueuedCommands } from '../components/PromptInput/PromptInputQueuedCommands.js'
 import { TovyrChatDock } from '../components/tovyr/TovyrChatDock.js'
+import { TovyrAgentHud } from '../components/tovyr/TovyrAgentHud.js'
+import { TovyrAgentStepProgress } from '../components/tovyr/TovyrAgentStepProgress.js'
 import { TovyrWorkbenchShell } from '../components/tovyr/TovyrWorkbenchShell.js'
 import { useRemoteSession } from '../hooks/useRemoteSession.js'
 import { useDirectConnect } from '../hooks/useDirectConnect.js'
@@ -986,6 +988,7 @@ export function REPL({
   const agentDefinitions = useAppState(s => s.agentDefinitions)
   const fileHistory = useAppState(s => s.fileHistory)
   const initialMessage = useAppState(s => s.initialMessage)
+  const currentNotification = useAppState(s => s.notifications.current)
   const queuedCommands = useCommandQueue()
   // feature() is a build-time constant — dead code elimination removes the hook
   // call entirely in external builds, so this is safe despite looking conditional.
@@ -6120,7 +6123,7 @@ export function REPL({
         input={{
           columns: transcriptCols,
           rows: terminalRows,
-          requestedFocus: 'none',
+          requestedFocus: viewedAgentTask ? 'agents' : 'none',
           approvalPending: false,
         }}
         context={{
@@ -6128,9 +6131,33 @@ export function REPL({
           model: mainLoopModel,
           session: `session ${String(conversationId).slice(0, 8)}`,
           connection: toolPermissionContext.mode,
+          messages: displayedMessages,
+          isLoading,
+          refreshKey: displayedMessages.length,
+          notifications:
+            currentNotification && 'text' in currentNotification
+              ? [{
+                  id: currentNotification.key,
+                  text: currentNotification.text,
+                  color: currentNotification.color,
+                  timeoutMs: currentNotification.timeoutMs,
+                }]
+              : [],
+          onDismissNotification: removeNotification,
         }}
         transcript={transcript}
         composer={null}
+        isTranscriptEmpty={
+          !viewedAgentTask && displayedMessages.length === 0
+        }
+        focus={
+          viewedAgentTask ? (
+            <>
+              <TovyrAgentHud messages={displayedMessages} isLoading={isLoading} />
+              <TovyrAgentStepProgress refreshKey={displayedMessages.length} />
+            </>
+          ) : undefined
+        }
       />
     ) : (
       transcript

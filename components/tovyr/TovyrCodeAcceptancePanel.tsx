@@ -11,9 +11,9 @@ import { useProjectTaskMap } from '../../hooks/useProjectTaskMap.js'
 
 type Props<T extends string> = {
   planMarkdown: string
-  options: OptionWithDescription<T>[]
-  onSelect: (value: T) => void
-  onCancel: () => void
+  options?: OptionWithDescription<T>[]
+  onSelect?: (value: T) => void
+  onCancel?: () => void
   onImagePaste?: (content: string, mediaType?: string) => void
   pastedContents?: Array<{ id: string; content: string; mediaType?: string }>
   onRemoveImage?: (id: string) => void
@@ -22,13 +22,14 @@ type Props<T extends string> = {
 }
 
 /**
- * Codex-inspired plan review: checklist, CHECKS strip, summary, Approve / Request changes.
+ * Plan review surface. The main permission dialog may retain its sticky action
+ * row by setting showActions false, while this surface owns the plan evidence.
  */
 export function TovyrCodeAcceptancePanel<T extends string>({
   planMarkdown,
-  options,
-  onSelect,
-  onCancel,
+  options = [],
+  onSelect = () => {},
+  onCancel = () => {},
   onImagePaste,
   pastedContents,
   onRemoveImage,

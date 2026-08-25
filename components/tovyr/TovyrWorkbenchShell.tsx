@@ -10,6 +10,7 @@ import {
   type TovyrWorkbenchContext,
 } from './TovyrContextRail.js'
 import { TovyrFocusSurface } from './TovyrFocusSurface.js'
+import { TovyrEmptyState } from './TovyrEmptyState.js'
 
 type Props = {
   input: WorkbenchInput
@@ -17,6 +18,7 @@ type Props = {
   transcript: ReactNode
   composer: ReactNode
   focus?: ReactNode
+  isTranscriptEmpty?: boolean
 }
 
 /**
@@ -30,6 +32,7 @@ export function TovyrWorkbenchShell({
   transcript,
   composer,
   focus,
+  isTranscriptEmpty = false,
 }: Props): ReactNode {
   const view = deriveWorkbenchView(input)
   const approvalPending = view.focus === 'permission'
@@ -56,6 +59,7 @@ export function TovyrWorkbenchShell({
           minWidth={0}
         >
           <Box flexDirection="column" flexShrink={0}>
+            {isTranscriptEmpty ? <TovyrEmptyState compact /> : null}
             {transcript}
           </Box>
         </Box>

@@ -87,6 +87,8 @@ import { Markdown } from '../../Markdown.js'
 import { PermissionDialog } from '../PermissionDialog.js'
 import type { PermissionRequestProps } from '../PermissionRequest.js'
 import { PermissionRuleExplanation } from '../PermissionRuleExplanation.js'
+import { TovyrCodeAcceptancePanel } from '../../tovyr/TovyrCodeAcceptancePanel.js'
+import { isTovyrRuntime } from '../../../utils/tovyrRuntime.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
@@ -857,19 +859,26 @@ export function ExitPlanModePermissionRequest({
           <Box paddingX={1} flexDirection="column">
             <Text>Here is Claude&apos;s plan:</Text>
           </Box>
-          <Box
-            borderColor="subtle"
-            borderStyle="dashed"
-            flexDirection="column"
-            borderLeft={false}
-            borderRight={false}
-            paddingX={1}
-            marginBottom={1}
-            // Necessary for Windows Terminal to render properly
-            overflow="hidden"
-          >
-            <Markdown>{currentPlan}</Markdown>
-          </Box>
+          {isTovyrRuntime() ? (
+            <TovyrCodeAcceptancePanel
+              planMarkdown={currentPlan}
+              showActions={false}
+            />
+          ) : (
+            <Box
+              borderColor="subtle"
+              borderStyle="dashed"
+              flexDirection="column"
+              borderLeft={false}
+              borderRight={false}
+              paddingX={1}
+              marginBottom={1}
+              // Necessary for Windows Terminal to render properly
+              overflow="hidden"
+            >
+              <Markdown>{currentPlan}</Markdown>
+            </Box>
+          )}
           <Box flexDirection="column" paddingX={1}>
             <PermissionRuleExplanation
               permissionResult={toolUseConfirm.permissionResult}
