@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.typecheck.json",
+  "include": [
+    "components/tovyr/**/*.ts",
+    "components/tovyr/**/*.tsx",
+    "services/tovyr/**/*.ts",
+    "commands/tovyr/**/*.ts",
+    "commands/tovyr/**/*.tsx",
+    "utils/tovyrRuntime.ts",
+    "test-support/**/*.ts",
+    "test-support/**/*.tsx"
+  ],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}
