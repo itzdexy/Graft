@@ -3,6 +3,7 @@ import { OAUTH_BETA_HEADER } from '../../../constants/oauth.js'
 import {
   getProvider,
   resolveActive,
+  resolveProviderSelection,
 } from '../../../scripts/tovyr-providers.js'
 import {
   openAiChatCompletionsUrl,
@@ -465,6 +466,14 @@ export async function probeActiveProviderConnection(
   }
 }
 
+/** Probe a candidate without mutating the user's active provider/model. */
+export async function probeProviderModel(input: { providerId: string; modelId: string }): Promise<{ ok: boolean; latencyMs: number; readiness: 'ready' | 'chat_only' | 'slow' | 'unavailable'; detail?: string }> {
+  const active = resolveProviderSelection(input.providerId, input.modelId)
+  if (!active) return { ok: false, latencyMs: 0, readiness: 'unavailable', detail: 'Provider is not configured.' }
+  const snapshot = await performProbe(active)
+  const readiness = snapshot.state === 'ready' ? snapshot.supportsTools === false ? 'chat_only' : 'ready' : snapshot.state === 'offline' ? 'slow' : 'unavailable'
+  return { ok: readiness === 'ready' || readiness === 'chat_only', latencyMs: snapshot.latencyMs ?? 0, readiness, detail: snapshot.detail }
+}
 export function scheduleActiveProviderProbe(
   options: { force?: boolean } = {},
 ): void {
