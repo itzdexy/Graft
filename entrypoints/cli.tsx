@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     } catch (error) {
       const detail = error instanceof Error ? `: ${error.message}` : ''
       throw new Error(
-        `TOVYR could not open the folder it was launched from (${invokeCwd})${detail}`,
+        `Tovyr could not open the folder it was launched from (${invokeCwd})${detail}`,
       )
     }
   }
