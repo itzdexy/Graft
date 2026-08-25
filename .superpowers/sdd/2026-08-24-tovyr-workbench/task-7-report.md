@@ -284,3 +284,47 @@ the empty-baseline checker passes, and `tsc -p tsconfig.tovyr.json` passes.
 The requested broader shared-checkout run (`components/tovyr`, launcher
 contract, `check:dead-ui`, and `check:tovyr`) also passes; unrelated overlay
 changes were not staged.
+
+## Review fix round 3 — final clean-tree verification
+
+The committed tree had been relying on ignored local sources. `d9b2998` makes
+the Bun preload/feature shim and the direct theory-of-mind dependency part of
+the source graph, and restores the committed `check:dead-ui` script. This
+removed the initial 36 failures and six module-load errors without weakening
+the gate.
+
+The dead-UI checker now tracks actual import bindings and scoped aliases. Its
+adversarial suite proves that comments, strings, regexes, type-only imports,
+unused aliases, `false &&`, literal ternaries, and shadowed bindings do not
+make an export live, while `memo(Ghost)` does only when its wrapper is mounted.
+`BASELINE` remains empty.
+
+`1bf4172`, `0e9d548`, `930571f`, `7a3865c`, and `4a74d22` restore the missing
+Tovyr-owned provider, prompt, invocation, and candidate-model-probe contracts.
+They replace stale Kairo module references rather than reintroducing a
+user-facing Kairo surface. Candidate verification resolves and probes the
+candidate without changing the saved active provider/model.
+
+The modal selector remains the input owner: its registered modal overlay gates
+the real `PromptInput` raw handler and global keybindings; rendered Esc and
+failed-activation tests cover no-leak/error behavior, and the synchronous
+in-flight guard prevents duplicate activation.
+
+Final detached clean worktree: `C:\Users\uwuuy\Downloads\tovyr-task7-final3\src`
+
+```text
+bun -e "await import('./screens/REPL.tsx')": REPL import ok
+bun run check:dead-ui: pass (0 baselined)
+bun run check:tovyr: pass (full suite, typecheck, dead-UI, brand)
+git diff --check: pass
+
+Focused selector/collapsed-group/dead-UI/REPL contracts: 11 pass, 0 fail.
+Invocation-directory, launcher-resolution, and git-diff clean-tree contracts:
+10 pass, 0 fail.
+Provider CLI/auth/local routing/system prompt contracts: 48 pass, 0 fail.
+```
+
+Risk: the existing launcher-resolution test assumes a conventional checkout
+directory named `src`; the final detached verification intentionally uses that
+normal layout. This does not mask a source dependency: the same clean checkout
+also passed the actual REPL import and full quality gate.
