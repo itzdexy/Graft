@@ -6,7 +6,8 @@ import { verifyGatewayToken } from './auth.js'
 import type { GatewayConfig } from './config.js'
 export function startGateway(config: GatewayConfig): Promise<{ server: Server; port: number }> {
   const server = createServer(async (req, res) => {
-    if (!verifyGatewayToken(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''), config.tokenHash)) { res.writeHead(401).end('Unauthorized'); return }
+    const suppliedToken = String(req.headers.authorization || req.headers['x-api-key'] || '').replace(/^Bearer\s+/i, '')
+    if (!verifyGatewayToken(suppliedToken, config.tokenHash)) { res.writeHead(401).end('Unauthorized'); return }
     if (req.method !== 'POST' || !['/v1/chat/completions', '/v1/messages', '/v1/responses'].includes(req.url || '')) { res.writeHead(404).end(); return }
     let raw = ''; for await (const chunk of req) raw += chunk
     try {
