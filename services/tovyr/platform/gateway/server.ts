@@ -30,11 +30,15 @@ export function startGateway(config: GatewayConfig): Promise<{ server: Server; p
       const request = assertNormalizedRequest({ ...body, model: body.model || body.input?.model, messages, stream: true })
       const stream = streamInference(request, req.destroyed ? AbortSignal.abort() : new AbortController().signal)
       const ollama = isOllamaCompat
+      const responses = req.url === '/v1/responses'
       res.writeHead(200, { 'content-type': ollama ? 'application/x-ndjson' : 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive', 'x-request-id': randomUUID() })
       for await (const event of stream) {
         if (ollama) {
           const payload = event.type === 'text_delta' ? { model: request.model, message: { role: 'assistant', content: event.text }, done: false } : event.type === 'complete' ? { model: request.model, done: true, done_reason: event.stopReason || 'stop' } : { model: request.model, done: false }
           res.write(`${JSON.stringify(payload)}\n`)
+        } else if (responses) {
+          const payload = event.type === 'text_delta' ? { type: 'response.output_text.delta', delta: event.text } : event.type === 'complete' ? { type: 'response.completed', response: { id: randomUUID(), object: 'response', status: 'completed', output: [] } } : event
+          res.write(`data: ${JSON.stringify(payload)}\n\n`)
         } else {
           const payload = event.type === 'text_delta' ? { choices: [{ index: 0, delta: { content: event.text }, finish_reason: null }] } : event.type === 'complete' ? { choices: [{ index: 0, delta: {}, finish_reason: event.stopReason || 'stop' }] } : event
           res.write(`data: ${JSON.stringify(payload)}\n\n`)
