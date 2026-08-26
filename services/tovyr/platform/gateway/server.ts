@@ -7,21 +7,22 @@ import type { GatewayConfig } from './config.js'
 import { listPlatformModels } from '../providerRegistry.js'
 export function startGateway(config: GatewayConfig): Promise<{ server: Server; port: number }> {
   const server = createServer(async (req, res) => {
-    const isOllamaCompat = req.url === '/api/tags' || req.url === '/api/chat' || req.url === '/api/generate'
+    const pathname = new URL(req.url || '/', 'http://127.0.0.1').pathname
+    const isOllamaCompat = pathname === '/api/tags' || pathname === '/api/chat' || pathname === '/api/generate'
     const suppliedToken = String(req.headers.authorization || req.headers['x-api-key'] || '').replace(/^Bearer\s+/i, '')
     const loopback = config.host === '127.0.0.1' || config.host === 'localhost' || config.host === '::1'
     if (!isOllamaCompat || !loopback) {
       if (!verifyGatewayToken(suppliedToken, config.tokenHash)) { res.writeHead(401).end('Unauthorized'); return }
     }
-    if (req.method === 'GET' && req.url === '/api/tags') {
+    if (req.method === 'GET' && pathname === '/api/tags') {
       res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ models: listPlatformModels().map(model => ({ name: model.id, model: model.id, modified_at: new Date().toISOString(), size: 0, digest: 'tovyr' })) }))
       return
     }
-    if (req.method === 'GET' && req.url === '/v1/models') {
+    if (req.method === 'GET' && pathname === '/v1/models') {
       res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', data: listPlatformModels().map(model => ({ id: model.id, object: 'model', owned_by: model.id.split('::')[0] })) }))
       return
     }
-    if (req.method !== 'POST' || (!isOllamaCompat && !['/v1/chat/completions', '/v1/messages', '/v1/responses'].includes(req.url || ''))) { res.writeHead(404).end(); return }
+    if (req.method !== 'POST' || (!isOllamaCompat && !['/v1/chat/completions', '/v1/messages', '/v1/responses'].includes(pathname))) { res.writeHead(404).end(); return }
     let raw = ''; for await (const chunk of req) raw += chunk
     try {
       const body = JSON.parse(raw)
@@ -30,7 +31,7 @@ export function startGateway(config: GatewayConfig): Promise<{ server: Server; p
       const request = assertNormalizedRequest({ ...body, model: body.model || body.input?.model, messages, stream: true })
       const stream = streamInference(request, req.destroyed ? AbortSignal.abort() : new AbortController().signal)
       const ollama = isOllamaCompat
-      const responses = req.url === '/v1/responses'
+      const responses = pathname === '/v1/responses'
       res.writeHead(200, { 'content-type': ollama ? 'application/x-ndjson' : 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive', 'x-request-id': randomUUID() })
       for await (const event of stream) {
         if (ollama) {
