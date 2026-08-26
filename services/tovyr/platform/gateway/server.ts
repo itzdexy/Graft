@@ -4,10 +4,15 @@ import { assertNormalizedRequest } from '../types.js'
 import { streamInference } from '../inference.js'
 import { verifyGatewayToken } from './auth.js'
 import type { GatewayConfig } from './config.js'
+import { listPlatformModels } from '../providerRegistry.js'
 export function startGateway(config: GatewayConfig): Promise<{ server: Server; port: number }> {
   const server = createServer(async (req, res) => {
     const suppliedToken = String(req.headers.authorization || req.headers['x-api-key'] || '').replace(/^Bearer\s+/i, '')
     if (!verifyGatewayToken(suppliedToken, config.tokenHash)) { res.writeHead(401).end('Unauthorized'); return }
+    if (req.method === 'GET' && req.url === '/v1/models') {
+      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', data: listPlatformModels().map(model => ({ id: model.id, object: 'model', owned_by: model.id.split('::')[0] })) }))
+      return
+    }
     if (req.method !== 'POST' || !['/v1/chat/completions', '/v1/messages', '/v1/responses'].includes(req.url || '')) { res.writeHead(404).end(); return }
     let raw = ''; for await (const chunk of req) raw += chunk
     try {
