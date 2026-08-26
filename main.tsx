@@ -24,7 +24,7 @@ import {
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 startKeychainPrefetch()
 
-import { feature } from 'bun:bundle'
+import { feature } from './utils/features.js'
 import {
   Command as CommanderCommand,
   InvalidArgumentError,
@@ -447,6 +447,7 @@ import {
   isTmuxAvailable,
   parsePRReference,
 } from './utils/worktree.js'
+import { USER_TYPE } from './utils/userType.js'
 
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 profileCheckpoint('main_tsx_imports_loaded')
@@ -510,7 +511,7 @@ function isBeingDebugged() {
 }
 
 // Exit if we detect node debugging or inspection
-if ("external" !== 'ant' && isBeingDebugged()) {
+if (USER_TYPE !== 'ant' && isBeingDebugged()) {
   // Use process.exit directly here since we're in the top-level code before imports
   // and gracefulShutdown is not yet available
   // eslint-disable-next-line custom-rules/no-top-level-side-effects
@@ -595,7 +596,7 @@ function runMigrations(): void {
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       resetAutoModeOptInForDefaultOffer()
     }
-    if ("external" === 'ant') {
+    if (USER_TYPE === 'ant') {
       migrateFennecToOpus()
     }
     saveGlobalConfig(prev =>
@@ -693,7 +694,7 @@ export function startDeferredPrefetches(): void {
   }
 
   // Event loop stall detector — logs when the main thread is blocked >500ms
-  if ("external" === 'ant') {
+  if (USER_TYPE === 'ant') {
     void import('./utils/eventLoopStallDetector.js').then(m =>
       m.startEventLoopStallDetector(),
     )
@@ -1318,7 +1319,7 @@ async function run(): Promise<CommanderCommand> {
   })
 
   program
-    .name('claude')
+    .name('tovyr')
     .description(
       `Tovyr - starts an interactive session by default, use -p/--print for non-interactive output`,
     )
@@ -1724,7 +1725,7 @@ async function run(): Promise<CommanderCommand> {
         logEvent('tengu_code_prompt_ignored', {})
         // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.warn(
-          chalk.yellow('Tip: You can launch Tovyr with just `claude`'),
+          chalk.yellow('Tip: You can launch Tovyr with just `tovyr`'),
         )
         prompt = undefined
       }
@@ -1862,14 +1863,14 @@ async function run(): Promise<CommanderCommand> {
 
       // Extract tasks mode options (ant-only)
       const tasksOption =
-        "external" === 'ant' &&
+        USER_TYPE === 'ant' &&
         (options as { tasks?: boolean | string }).tasks
       const taskListId = tasksOption
         ? typeof tasksOption === 'string'
           ? tasksOption
           : DEFAULT_TASKS_MODE_TASK_LIST_ID
         : undefined
-      if ("external" === 'ant' && taskListId) {
+      if (USER_TYPE === 'ant' && taskListId) {
         process.env.TOVYR_CODE_TASK_LIST_ID = taskListId
       }
 
@@ -2352,7 +2353,7 @@ async function run(): Promise<CommanderCommand> {
       const enableClaudeInChrome =
         !tovyrChromeUnavailable &&
         shouldEnableClaudeInChrome(chromeOpts.chrome) &&
-        ("external" === 'ant' || isTovyrWebSubscriber())
+        (USER_TYPE === 'ant' || isTovyrWebSubscriber())
       const autoEnableClaudeInChrome =
         !tovyrChromeUnavailable &&
         !enableClaudeInChrome &&
@@ -2624,7 +2625,7 @@ async function run(): Promise<CommanderCommand> {
 
       // Handle overly broad shell allow rules for ant users (Bash(*), PowerShell(*))
       if (
-        "external" === 'ant' &&
+        USER_TYPE === 'ant' &&
         overlyBroadBashPermissions.length > 0
       ) {
         for (const permission of overlyBroadBashPermissions) {
@@ -2942,7 +2943,7 @@ async function run(): Promise<CommanderCommand> {
       //  - flag absent from disk (== null also catches pre-#22279 poisoned null)
       const explicitModel = options.model || process.env.ANTHROPIC_MODEL
       if (
-        "external" === 'ant' &&
+        USER_TYPE === 'ant' &&
         explicitModel &&
         explicitModel !== 'default' &&
         !hasGrowthBookEnvOverride('tengu_ant_model_override') &&
@@ -2975,6 +2976,10 @@ async function run(): Promise<CommanderCommand> {
         `[STARTUP] Commands and agents loaded in ${Date.now() - commandsStart}ms`,
       )
       profileCheckpoint('action_commands_loaded')
+
+      if (isTovyrRuntime() && !isNonInteractiveSession) {
+        prepareReplModules()
+      }
 
       // Parse CLI agents if provided via --agents flag
       let cliAgents: typeof agentDefinitionsResult.activeAgents = []
@@ -3152,7 +3157,7 @@ async function run(): Promise<CommanderCommand> {
           // Log agent memory loaded event for tmux teammates
           if (customAgent.memory) {
             logEvent('tengu_agent_memory_loaded', {
-              ...("external" === 'ant' && {
+              ...(USER_TYPE === 'ant' && {
                 agent_type:
                   customAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               }),
@@ -3245,7 +3250,7 @@ async function run(): Promise<CommanderCommand> {
         getFpsMetrics = ctx.getFpsMetrics
         stats = ctx.stats
         // Install asciicast recorder before Ink mounts (ant-only, opt-in via TOVYR_CODE_TERMINAL_RECORDING=1)
-        if ("external" === 'ant') {
+        if (USER_TYPE === 'ant') {
           installAsciicastRecorder()
         }
 
@@ -3942,7 +3947,7 @@ async function run(): Promise<CommanderCommand> {
           void import('./utils/backgroundHousekeeping.js').then(m =>
             m.startBackgroundHousekeeping(),
           )
-          if ("external" === 'ant') {
+          if (USER_TYPE === 'ant') {
             void import('./utils/sdkHeapDumpMonitor.js').then(m =>
               m.startSdkMemoryMonitor(),
             )
@@ -4218,7 +4223,7 @@ async function run(): Promise<CommanderCommand> {
       //   - Safety: TOVYR_CODE_DISABLE_SESSION_DATA_UPLOAD=1 bypasses (tests set this).
       // Import is dynamic + async to avoid adding startup latency.
       const sessionUploaderPromise =
-        "external" === 'ant'
+        USER_TYPE === 'ant'
           ? import('./utils/sessionDataUploader.js')
           : null
 
@@ -4903,7 +4908,7 @@ async function run(): Promise<CommanderCommand> {
             }
           }
         }
-        if ("external" === 'ant') {
+        if (USER_TYPE === 'ant') {
           if (
             options.resume &&
             typeof options.resume === 'string' &&
@@ -5244,7 +5249,7 @@ async function run(): Promise<CommanderCommand> {
     )
   }
 
-  if ("external" === 'ant') {
+  if (USER_TYPE === 'ant') {
     program.addOption(
       new Option(
         '--delegate-permissions',
@@ -5454,6 +5459,16 @@ async function run(): Promise<CommanderCommand> {
     .configureHelp(createSortedHelpConfig())
     .enablePositionalOptions()
 
+  program
+    .command('serve')
+    .description('Start the authenticated local Tovyr compatibility gateway')
+    .option('--host <host>', 'Bind address (defaults to loopback)')
+    .option('--port <port>', 'Port (defaults to 4317)')
+    .action(async (options: { host?: string; port?: string }) => {
+      const { serveGateway } = await import('./services/tovyr/platform/gateway/command.js')
+      await serveGateway(options)
+    })
+
   mcp
     .command('serve')
     .description(`Start the Tovyr MCP server`)
@@ -5533,7 +5548,8 @@ async function run(): Promise<CommanderCommand> {
     )
 
   mcp
-    .command('add-from-claude-desktop')
+    .command('add-from-tovyr-desktop')
+    .alias('add-from-claude-desktop')
     .description('Import MCP servers from Tovyr Desktop (Mac and WSL only)')
     .option(
       '-s, --scope <scope>',
@@ -6194,7 +6210,7 @@ async function run(): Promise<CommanderCommand> {
     })
 
   // tovyr up — run the project's CLAUDE.md "# tovyr up" setup instructions.
-  if ("external" === 'ant') {
+  if (USER_TYPE === 'ant') {
     program
       .command('up')
       .description(
@@ -6208,7 +6224,7 @@ async function run(): Promise<CommanderCommand> {
 
   // tovyr rollback (ant-only)
   // Rolls back to previous releases
-  if ("external" === 'ant') {
+  if (USER_TYPE === 'ant') {
     program
       .command('rollback [target]')
       .description(
@@ -6246,7 +6262,7 @@ async function run(): Promise<CommanderCommand> {
     )
 
   // ant-only commands
-  if ("external" === 'ant') {
+  if (USER_TYPE === 'ant') {
     const validateLogId = (value: string) => {
       const maybeSessionId = validateUuid(value)
       if (maybeSessionId) return maybeSessionId
@@ -6306,7 +6322,7 @@ Examples:
         await exportHandler(source, outputFile)
       })
 
-    if ("external" === 'ant') {
+    if (USER_TYPE === 'ant') {
       const taskCmd = program
         .command('task')
         .description('[ANT-ONLY] Manage task list tasks')
@@ -6516,7 +6532,7 @@ async function logTenguInit({
       }),
       autoUpdatesChannel: (getInitialSettings().autoUpdatesChannel ??
         'latest') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      ...("external" === 'ant'
+      ...(USER_TYPE === 'ant'
         ? (() => {
             const cwd = getCwd()
             const gitRoot = findGitRoot(cwd)

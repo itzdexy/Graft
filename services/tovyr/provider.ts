@@ -30,6 +30,7 @@ import {
   getAnthropicApiKeyWithSource,
   getApiKeyFromConfigOrMacOSKeychain,
   getTovyrWebOAuthTokens,
+  isCustomApiKeyApproved,
   saveApiKey,
 } from '../../utils/auth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
@@ -40,6 +41,7 @@ import { syncTovyrModelToSession } from './syncModelState.js'
 import { warmRepoMapCache } from './repo/repoContext.js'
 import { applyTovyrActiveProviderToEnv } from './applyProviderEnv.js'
 import { scheduleActiveProviderProbe } from './providers/probe.js'
+import { getActivePlatformSelection } from './platform/providerRegistry.js'
 
 /** Drop tovyr web OAuth so Tovyr uses only the FreeModel API key. */
 export function clearClaudeAiOAuthSession(): void {
@@ -80,16 +82,17 @@ export function applyTovyrProviderEnv(): void {
   if (isTovyr) {
     try {
       const active = resolveActive()
-      if (active && (active.apiKey || active.authMode === 'oauth')) {
+      const platformSelection = getActivePlatformSelection()
+      if (active && platformSelection && (active.apiKey || active.authMode === 'oauth')) {
         applyTovyrActiveProviderToEnv({
-          providerId: active.providerId,
-          baseUrl: active.baseUrl,
-          apiKey: active.apiKey,
-          model: active.model,
-          authMode: active.authMode,
+          providerId: platformSelection.providerId,
+          baseUrl: platformSelection.baseUrl,
+          apiKey: platformSelection.apiKey,
+          model: platformSelection.modelId,
+          authMode: platformSelection.authMode,
         })
-        if (active.model) {
-          syncTovyrModelToSession(active.model)
+        if (platformSelection.modelId) {
+          syncTovyrModelToSession(platformSelection.modelId)
         }
         if (active.authMode !== 'oauth') {
           clearClaudeAiOAuthSession()
@@ -155,9 +158,10 @@ export function applyTovyrProviderEnv(): void {
   }
 
   const config = getGlobalConfig()
+  const apiKeyRecord = getApiKeyFromConfigOrMacOSKeychain()
   const usesTovyr =
     !!config.tovyrProvider ||
-    !!config.primaryApiKey?.startsWith('fe_oa_') ||
+    !!apiKeyRecord?.key?.startsWith('fe_oa_') ||
     !!process.env.TOVYR_API_KEY?.trim()
 
   if (usesTovyr) {
@@ -168,13 +172,11 @@ export function applyTovyrProviderEnv(): void {
   }
 
   const envKey = process.env.TOVYR_API_KEY?.trim()
-  const configKey = config.primaryApiKey?.trim()
-  const key = envKey || configKey
+  const storedKey = apiKeyRecord?.key?.trim()
+  const key = envKey || storedKey
 
   if (usesTovyr && key?.startsWith('fe_oa_')) {
-    const approved = config.customApiKeyResponses?.approved ?? []
-    const normalized = key.slice(-20)
-    if (approved.includes(normalized)) {
+    if (isCustomApiKeyApproved(key)) {
       process.env.ANTHROPIC_API_KEY = key
     }
   } else if (envKey) {

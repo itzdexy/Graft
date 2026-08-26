@@ -1,6 +1,6 @@
 # Tovyr — User Guide
 
-Complete guide for installing, configuring, and using **Tovyr v1.2.0**. This document reflects **what is implemented today** in this repository.
+Complete guide for installing, configuring, and using **Tovyr v1.3.6**. This document reflects **what is implemented today** in this repository.
 
 ---
 
@@ -75,8 +75,8 @@ On Windows, open a **new** terminal so `tovyr` is on PATH. If not found, run `bi
 ### Source (recommended)
 
 ```bash
-git clone https://github.com/itsdexy/Tovyr.git
-cd TovyrCode
+git clone https://github.com/itzdexy/Tovyr.git
+cd Tovyr
 npm install
 npm run warm
 npm install -g .
@@ -211,6 +211,9 @@ tovyr provider model <model-id-from-lm-studio>
 | `TOVYR_DEFAULT_MODEL` | Default model id |
 | `TOVYR_AUTO_FAILOVER` | `1` = retry on hard provider failures |
 | `TOVYR_CROSS_PROVIDER_FAILOVER` | `1` = allow hopping across providers (with `TOVYR_AUTO_FAILOVER`) |
+| `TOVYR_FIRST_RESPONSE_TIMEOUT_MS` | Stop a request with no response event (default `30000`; `0` disables) |
+| `TOVYR_STREAM_IDLE_TIMEOUT_MS` | Abort a stream that starts and then goes idle (default `45000`) |
+| `TOVYR_CODE_ENABLE_TELEMETRY` | `1` = opt in to analytics (default is no-telemetry) |
 | `TOVYR_PROXY_DEBUG` | `1` = log proxy traffic to `.tovyr/proxy-debug.log` |
 
 ### Failover
@@ -531,13 +534,13 @@ tovyr config
 
 Do **not** use `/login` for API-key auth — use `tovyr auth login` or `/provider`.
 
-### Model silent 30–120 seconds
+### Model sends no response
 
-GPU providers (NIM, etc.) cold-start. Wait for the spinner timer, or switch model/provider with `/model`.
+Tovyr stops a model that has not produced its first response event after 30 seconds by default, then tries another verified model on the same provider when one is available. Use `/model` or `/provider` to switch manually, or raise `TOVYR_FIRST_RESPONSE_TIMEOUT_MS` for a provider with known cold starts.
 
-### Stream timeout after ~2 minutes
+### Stream starts, then stalls
 
-Provider sent no tokens. Try another model, enable `TOVYR_AUTO_FAILOVER=1`, or check `TOVYR_PROXY_DEBUG=1` logs in `.tovyr/proxy-debug.log`.
+The provider stopped sending events for the idle watchdog window (default `45000` ms via `TOVYR_STREAM_IDLE_TIMEOUT_MS`). Try another model, raise the timeout, enable `TOVYR_AUTO_FAILOVER=1`, or check `TOVYR_PROXY_DEBUG=1` logs in `.tovyr/proxy-debug.log`.
 
 ### Enter does nothing (Windows)
 
@@ -786,5 +789,9 @@ application allowlist. Screenshot retention defaults to `never`.
 
 - **In-app:** `/guide`, `/help`
 - **Shell:** `tovyr --help`, `tovyr doctor --help`, `tovyr provider --help`
-- **GitHub:** [itsdexy/Tovyr](https://github.com/itsdexy/Tovyr)
-- **Issues:** [github.com/itsdexy/Tovyr/issues](https://github.com/itsdexy/Tovyr/issues)
+- **GitHub:** [itzdexy/Tovyr](https://github.com/itzdexy/Tovyr)
+- **Issues:** [github.com/itzdexy/Tovyr/issues](https://github.com/itzdexy/Tovyr/issues)
+
+## Local compatibility gateway
+
+Run `tovyr serve` to expose the active Ollama, FreeModel, or configured provider through an authenticated loopback gateway. It accepts bearer-authenticated streaming requests at `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`. The generated token is printed once; the hashed token is persisted in `~/.tovyr/gateway.json`. Bind to a non-loopback address only when you explicitly need remote access.
