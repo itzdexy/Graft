@@ -256,7 +256,8 @@ Export a pure scanner helper and add cases constructed without embedding the for
 ```js
 const legacyName = ['bl', 'ink'].join('')
 expect(scanText(`Welcome to ${legacyName}`, 'README.md')).toContain('legacy product name')
-expect(scanText('https://github.com/itsdexy/Tovyr', 'README.md')).toContain('stale repository URL')
+const staleOwner = ['its', 'dexy'].join('')
+expect(scanText(`https://github.com/${staleOwner}/Tovyr`, 'README.md')).toContain('stale repository URL')
 expect(scanText('browser blink event', 'vendor/protocol.md')).toEqual([])
 ```
 
@@ -264,7 +265,7 @@ expect(scanText('browser blink event', 'vendor/protocol.md')).toEqual([])
 
 Run: `bun test scripts/check-tovyr-brand.test.js; npm run check:brand`
 
-Expected: FAIL on the five maintained historical references and stale `itsdexy/Tovyr` URLs.
+Expected: FAIL on the five maintained historical references and retired-owner Tovyr URLs.
 
 - [ ] **Step 3: Implement the exact scan policy and migrate content**
 
@@ -289,7 +290,7 @@ Run:
 ```powershell
 npm run check:brand
 bun test scripts/check-tovyr-brand.test.js scripts/tovyr-cli.integration.test.ts services/tovyr
-rg -n -i "blink|github\.com/itsdexy/Tovyr" . -g '!node_modules/**' -g '!.git/**' -g '!.claude/**' -g '!.superpowers/**'
+node scripts/check-tovyr-brand.js
 ```
 
 Expected: brand check and tests PASS; `rg` returns no maintained product residue.

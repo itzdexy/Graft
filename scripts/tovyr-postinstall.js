@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const root = join(fileURLToPath(import.meta.url), '..', '..')
-const cli = join(root, 'entrypoints', 'cli.tsx')
+const cli = join(root, 'src', 'entrypoints', 'cli.tsx')
 const warm = join(root, 'scripts', 'tovyr-warm.js')
 
 if (!existsSync(cli) || !existsSync(warm)) {

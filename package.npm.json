@@ -1,18 +1,18 @@
 {
-  "name": "tovyrcode",
-  "version": "1.2.0",
+  "name": "tovyr",
+  "version": "1.3.6",
   "description": "Tovyr — a fast, polished AI coding agent for your terminal",
   "type": "module",
   "license": "MIT",
   "author": "itsdexy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsdexy/Tovyr.git"
+    "url": "git+https://github.com/itzdexy/Tovyr.git"
   },
   "bugs": {
-    "url": "https://github.com/itsdexy/Tovyr/issues"
+    "url": "https://github.com/itzdexy/Tovyr/issues"
   },
-  "homepage": "https://github.com/itsdexy/Tovyr#readme",
+  "homepage": "https://github.com/itzdexy/Tovyr#readme",
   "keywords": [
     "tovyr",
     "tovyrcode",
@@ -55,6 +55,7 @@
     "scripts/tovyr-windows-launcher.js",
     "docs/GUIDE.md",
     "LICENSE",
+    "NOTICE",
     "README.md"
   ],
   "scripts": {

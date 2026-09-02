@@ -84,7 +84,7 @@ export function runScript(
   }
 }
 
-/** Run `bun entrypoints/cli.tsx --version` when Bun is available. */
+/** Run `bun src/entrypoints/cli.tsx --version` when Bun is available. */
 export function runCliVersion(opts: RunOpts = {}): RunResult | null {
   const testHome = opts.env?.HOME || opts.env?.USERPROFILE || opts.env?.TOVYR_HOME
     ? null
@@ -99,7 +99,7 @@ export function runCliVersion(opts: RunOpts = {}): RunResult | null {
         return null
       }
     }
-    const entry = join(PKG_ROOT, 'entrypoints', 'cli.tsx')
+    const entry = join(PKG_ROOT, 'src', 'entrypoints', 'cli.tsx')
     return spawnSync(bun, [entry, '--version'], {
       cwd: PKG_ROOT,
       encoding: 'utf8',

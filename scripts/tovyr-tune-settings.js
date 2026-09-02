@@ -1,10 +1,18 @@
 /**
- * Tovyr-specific ~/.claude/settings.json cleanup.
+ * Tovyr-specific ~/.tovyr/settings.json cleanup.
  * - Disables plugins with bash/python3 hooks that fail on Windows
  * - Removes duplicate ANTHROPIC_API_KEY when apiKeyHelper is used
+ *
+ * This used to read and OVERWRITE ~/.claude/settings.json on every single
+ * launch, creating the directory if it did not exist. That is another
+ * product's configuration file: it clobbered the user's Claude Code setup
+ * and was the reported "installing Tovyr messes up claude code" bug.
+ * Tovyr's own settings live in ~/.tovyr (see
+ * getRelativeSettingsFilePathForSource in utils/settings/settings.ts), and
+ * nothing outside ~/.tovyr may be written.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { dirname, join } from 'path'
 
 /** Plugins that install Unix-only hooks (python3, bash). */
 const DISABLE_ON_WINDOWS = [
@@ -72,26 +80,41 @@ export function tuneTovyrSettings(settings) {
   return tuned
 }
 
-export function applyTovyrSettingsTune() {
+/** Absolute path to Tovyr's own user settings file. */
+export function getTovyrSettingsPath() {
   const home = process.env.USERPROFILE || process.env.HOME || ''
-  const claudeDir = join(home, '.claude')
-  const settingsPath = join(claudeDir, 'settings.json')
+  return join(home, '.tovyr', 'settings.json')
+}
 
-  if (!existsSync(claudeDir)) {
-    mkdirSync(claudeDir, { recursive: true })
+export function applyTovyrSettingsTune() {
+  const settingsPath = getTovyrSettingsPath()
+  const tovyrDir = dirname(settingsPath)
+
+  if (!existsSync(tovyrDir)) {
+    mkdirSync(tovyrDir, { recursive: true })
   }
 
   let settings = {}
   if (existsSync(settingsPath)) {
-    settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
+    } catch {
+      // A corrupt settings file must not stop the CLI from starting; the tune
+      // below rebuilds a valid document from scratch.
+      settings = {}
+    }
   }
 
   const tuned = tuneTovyrSettings(settings)
-  writeFileSync(settingsPath, JSON.stringify(tuned, null, 2))
+  writeFileSync(settingsPath, `${JSON.stringify(tuned, null, 2)}
+`)
   return settingsPath
 }
 
-if (process.argv[1]?.endsWith('kairo-tune-settings.js')) {
+// Self-invoke guard. This checked for 'kairo-tune-settings.js', a filename
+// left over from an earlier rename, so running this script directly did
+// nothing at all.
+if (process.argv[1]?.endsWith('tovyr-tune-settings.js')) {
   const path = applyTovyrSettingsTune()
   console.log(`Tovyr settings tuned: ${path}`)
 }

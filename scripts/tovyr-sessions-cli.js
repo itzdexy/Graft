@@ -24,7 +24,12 @@ if (argv.includes('--help') || argv.includes('-h')) {
 }
 
 const sub = argv[0]
+if (!sub) {
+  printSessionsHelp()
+  process.exit(EXIT.OK)
+}
 if (sub !== 'list') {
+  console.error(`Unknown subcommand: "${sub}"`)
   console.error('Usage: tovyr sessions list [--limit=N]')
   console.error('Run: tovyr sessions --help')
   process.exit(EXIT.USAGE)
@@ -33,7 +38,7 @@ if (sub !== 'list') {
 const cliEntry = resolveTovyrCliEntry(root)
 if (!cliEntry) {
   console.error(
-    'Session listing requires the source checkout (entrypoints/cli.tsx).\n' +
+    'Session listing requires the source checkout (src/entrypoints/cli.tsx).\n' +
       'Clone the repo or run `tovyr` and use /resume in the app.',
   )
   process.exit(EXIT.ERROR)

@@ -8,8 +8,20 @@ describe('tovyr-workflow-prompts', () => {
   test('buildWorkflowPrintArgs wraps review in -p', () => {
     const args = buildWorkflowPrintArgs('review', ['src/auth.ts'])
     expect(args[0]).toBe('-p')
-    expect(args.join(' ')).toContain('Senior code review')
+    expect(args.join(' ')).toContain('senior engineer')
     expect(args.join(' ')).toContain('src/auth.ts')
+  })
+
+  test('review with no scope uses default scope', () => {
+    const args = buildWorkflowPrintArgs('review', [])
+    expect(args[0]).toBe('-p')
+    expect(args.join(' ')).toContain('git diff')
+  })
+
+  test('fix with no scope uses default goal', () => {
+    const args = buildWorkflowPrintArgs('fix', [])
+    expect(args[0]).toBe('-p')
+    expect(args.join(' ')).toContain('working tree')
   })
 
   test('ask passes question through', () => {

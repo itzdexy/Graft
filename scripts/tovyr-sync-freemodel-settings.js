@@ -1,15 +1,17 @@
 /**
- * Sync ~/.claude/settings.json per FreeModel official CC client setup.
- * https://freemodel.dev docs — cc.freemodel.dev + apiKeyHelper
+ * Sync ~/.tovyr/settings.json for the active Tovyr provider.
+ *
+ * Tovyr credentials and provider env are isolated under ~/.tovyr; we do not
+ * write them to foreign ~/.claude configuration.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { mergeTovyrCompatIntoSettingsEnv } from './kairo-model-compat.js'
+import { mergeTovyrCompatIntoSettingsEnv } from './tovyr-model-compat.js'
 
 export const FREEMODEL_BASE_URL = 'https://cc.freemodel.dev'
 
 /**
- * Write ~/.claude/settings.json for the active Tovyr provider.
+ * Write ~/.tovyr/settings.json for the active Tovyr provider.
  * @param {string} apiKey
  * @param {{ baseUrl?: string, model?: string, authMode?: 'apiKey'|'authToken', providerId?: string }} [opts]
  */
@@ -21,11 +23,11 @@ export function syncProviderSettings(apiKey, opts = {}) {
   const baseUrl = opts.baseUrl || FREEMODEL_BASE_URL
   const authMode = opts.authMode || 'apiKey'
   const home = process.env.USERPROFILE || process.env.HOME || ''
-  const claudeDir = join(home, '.claude')
-  const settingsPath = join(claudeDir, 'settings.json')
+  const tovyrDir = join(home, '.tovyr')
+  const settingsPath = join(tovyrDir, 'settings.json')
 
-  if (!existsSync(claudeDir)) {
-    mkdirSync(claudeDir, { recursive: true })
+  if (!existsSync(tovyrDir)) {
+    mkdirSync(tovyrDir, { recursive: true })
   }
 
   let settings = {}
@@ -79,18 +81,18 @@ export function syncFreeModelSettings(apiKey, opts = {}) {
   return syncProviderSettings(apiKey, { baseUrl: FREEMODEL_BASE_URL, ...opts })
 }
 
-if (process.argv[1]?.endsWith('kairo-sync-freemodel-settings.js')) {
+if (process.argv[1]?.endsWith('tovyr-sync-freemodel-settings.js')) {
   const key =
     process.argv[2]?.trim() ||
-    (existsSync(join(process.env.USERPROFILE || '', '.kairo', 'api-key'))
+    (existsSync(join(process.env.USERPROFILE || '', '.tovyr', 'api-key'))
       ? readFileSync(
-          join(process.env.USERPROFILE || '', '.kairo', 'api-key'),
+          join(process.env.USERPROFILE || '', '.tovyr', 'api-key'),
           'utf8',
         ).trim()
       : '')
 
   if (!key) {
-    console.error('Usage: node kairo-sync-freemodel-settings.js <fe_oa_...>')
+    console.error('Usage: node tovyr-sync-freemodel-settings.js <fe_oa_...>')
     process.exit(1)
   }
 

@@ -1,10 +1,10 @@
 import { createInterface } from 'node:readline'
-import { installOAuthTokens } from '../cli/handlers/auth.oauth.js'
+import { installOAuthTokens } from '../src/cli/handlers/auth.oauth.js'
 import {
   setActiveProvider,
   setProviderAuth,
 } from './tovyr-providers.js'
-import { OAuthService } from '../services/oauth/index.js'
+import { OAuthService } from '../src/services/oauth/index.js'
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`Tovyr Anthropic account login

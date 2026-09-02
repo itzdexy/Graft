@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'bun:test'
 import { runLauncher } from './tovyr-cli-test-helpers.js'
 import { EXIT } from './tovyr-cli-ux.js'
-import { runBenchmark } from '../services/tovyr/benchmark/runner.js'
+import { runBenchmark } from '../src/services/tovyr/benchmark/runner.js'
 
 describe('tovyr bench CLI', () => {
   test('--help exits 0', () => {

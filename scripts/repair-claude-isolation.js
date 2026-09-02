@@ -2,6 +2,9 @@
 /**
  * Remove settings written into Claude Code by older Tovyr launchers.
  * Creates timestamped backups first and never touches Claude credentials.
+ *
+ * Backups live under ~/.tovyr — writing them into ~/.claude was itself a
+ * (smaller) version of the problem this script exists to undo.
  */
 import {
   copyFileSync,
@@ -21,8 +24,8 @@ const tovyrConfigPath = path.join(home, '.tovyr.json')
 const tovyrSettingsPath = path.join(home, '.tovyr', 'settings.json')
 const backupDir = path.join(
   home,
-  '.claude',
-  `tovyr-isolation-backup-${Date.now()}`,
+  '.tovyr',
+  `isolation-backup-${Date.now()}`,
 )
 
 function readJson(file) {
@@ -44,10 +47,30 @@ const claudeSettings = readJson(claudeSettingsPath)
 const tovyrConfig = readJson(tovyrConfigPath)
 const tovyrSettings = readJson(tovyrSettingsPath)
 
+const PROVIDER_ENV_KEYS = [
+  'ANTHROPIC_BASE_URL',
+  'ANTHROPIC_MODEL',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+  'TOVYR_CODE_DISABLE_NONESSENTIAL_TRAFFIC',
+  'TOVYR_CODE_DISABLE_THINKING',
+  'DISABLE_INTERLEAVED_THINKING',
+  'ENABLE_TOOL_SEARCH',
+]
+
+/** Provider env Tovyr pushed into Claude Code's settings.json. */
+const settingsCarriesTovyrEnv = Boolean(
+  claudeSettings?.env &&
+    (claudeSettings.env.ANTHROPIC_BASE_URL ===
+      tovyrSettings?.env?.ANTHROPIC_BASE_URL ||
+      claudeSettings.env.ANTHROPIC_MODEL ===
+        tovyrSettings?.env?.ANTHROPIC_MODEL),
+)
+
 const hasTovyrMarkers = Boolean(
   claudeConfig?.tovyrProvider ||
-    claudeConfig?.kairoProvider ||
-    claudeConfig?.companion?.name === 'Tovyr Buddy',
+    claudeConfig?.companion?.name === 'Tovyr Buddy' ||
+    settingsCarriesTovyrEnv,
 )
 
 if (!hasTovyrMarkers) {
@@ -64,42 +87,36 @@ for (const file of [claudeConfigPath, claudeSettingsPath]) {
 
 if (claudeConfig) {
   delete claudeConfig.tovyrProvider
-  delete claudeConfig.kairoProvider
   if (claudeConfig.companion?.name === 'Tovyr Buddy') {
     delete claudeConfig.companion
     delete claudeConfig.companionMuted
   }
+  const tovyrKeyPath = path.join(home, '.tovyr', 'api-key')
+  const tovyrApiKey = existsSync(tovyrKeyPath)
+    ? readFileSync(tovyrKeyPath, 'utf8').trim()
+    : tovyrConfig?.primaryApiKey
   if (
     claudeConfig.primaryApiKey &&
-    claudeConfig.primaryApiKey === tovyrConfig?.primaryApiKey
+    claudeConfig.primaryApiKey === tovyrApiKey
   ) {
     delete claudeConfig.primaryApiKey
   }
   writeJsonAtomic(claudeConfigPath, claudeConfig)
 }
 
-if (claudeSettings?.env) {
-  const providerEnvKeys = [
-    'ANTHROPIC_BASE_URL',
-    'ANTHROPIC_MODEL',
-    'ANTHROPIC_API_KEY',
-    'ANTHROPIC_AUTH_TOKEN',
-    'TOVYR_CODE_DISABLE_NONESSENTIAL_TRAFFIC',
-    'TOVYR_CODE_DISABLE_THINKING',
-    'DISABLE_INTERLEAVED_THINKING',
-    'ENABLE_TOOL_SEARCH',
-  ]
-  const sameProvider =
-    claudeSettings.env.ANTHROPIC_BASE_URL ===
-      tovyrSettings?.env?.ANTHROPIC_BASE_URL ||
-    claudeSettings.env.ANTHROPIC_MODEL === tovyrSettings?.env?.ANTHROPIC_MODEL
-  if (sameProvider) {
-    for (const key of providerEnvKeys) delete claudeSettings.env[key]
-    if (Object.keys(claudeSettings.env).length === 0) {
-      delete claudeSettings.env
-    }
+if (claudeSettings?.env && settingsCarriesTovyrEnv) {
+  for (const key of PROVIDER_ENV_KEYS) delete claudeSettings.env[key]
+  if (Object.keys(claudeSettings.env).length === 0) {
+    delete claudeSettings.env
   }
   writeJsonAtomic(claudeSettingsPath, claudeSettings)
 }
 
 console.log(`Claude Code isolation repaired. Backup: ${backupDir}`)
+if (settingsCarriesTovyrEnv) {
+  console.log(
+    'Note: older Tovyr builds also stripped python3/bash hooks from ' +
+      'Claude Code settings without backing them up first. Those cannot be ' +
+      'restored automatically — check your hooks if you used any.',
+  )
+}

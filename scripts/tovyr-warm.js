@@ -1,11 +1,11 @@
 /**
  * Tovyr Warm Compile Cache
  *
- * Pre-compiles heavy UI modules so interactive `tovyr` starts with a working TUI.
- * Reduces first-launch time from 1-3 minutes to <5 seconds on subsequent runs.
+ * Bundles the standalone source graph into a split Bun runtime cache so the
+ * interactive CLI avoids reloading thousands of source modules per client.
  *
  * Uses file fingerprinting (SHA256 of main.tsx, cli.tsx, package.json) to detect
- * when recompilation is needed. Cache stored in .cache/tovyr-warm.stamp.
+ * when regeneration is needed. Cache stored under .cache/runtime.
  *
  * Run automatically before first launch, after updates, or manually via:
  *   npm run warm
@@ -15,7 +15,7 @@
  */
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { spawn } from 'node:child_process'
 import { join } from 'node:path'
@@ -30,16 +30,64 @@ const root = getTovyrPackageRoot()
 const bun = resolveBunExecutable()
 const cacheDir = join(root, '.cache')
 const stampPath = join(cacheDir, 'tovyr-warm.stamp')
-const WARM_CACHE_VERSION = '3'
+const runtimeEntry = join(cacheDir, 'runtime', 'tovyr-cli.js')
+const WARM_CACHE_VERSION = '5'
+
+function walkMaxMtime(dir, depth, maxDepth, hash) {
+  if (depth > maxDepth || !existsSync(dir)) return
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    if (entry.name === 'node_modules' || entry.name === '.cache' || entry.name.startsWith('.')) {
+      continue
+    }
+    const full = join(dir, entry.name)
+    try {
+      if (entry.isDirectory()) {
+        walkMaxMtime(full, depth + 1, maxDepth, hash)
+      } else if (entry.isFile() && /\.(tsx?|jsx?|json)$/.test(entry.name)) {
+        hash.update(full)
+        hash.update(String(statSync(full).mtimeMs))
+      }
+    } catch {
+      // ignore unreadable entries
+    }
+  }
+}
+
+/**
+ * A launch calls tovyrWarmNeeded() up to three times (launcher gate, runTovyrWarm,
+ * then getTovyrRuntimeEntry), each re-walking ~430 source files. Source cannot
+ * change mid-launch, so the digest is computed once per process.
+ * @type {string | null}
+ */
+let cachedFingerprint = null
+
+/** Drops the memo so a rebuild in this process re-reads mtimes. */
+function resetWarmFingerprint() {
+  cachedFingerprint = null
+}
 
 function warmFingerprint() {
-  // Only invalidate on core entry / package changes — not every UI tweak.
-  // Bun's module cache still compiles changed files; this stamp just skips
-  // a full multi-minute re-warm on every dock/theme edit.
+  if (cachedFingerprint !== null) return cachedFingerprint
+  cachedFingerprint = computeWarmFingerprint()
+  return cachedFingerprint
+}
+
+function computeWarmFingerprint() {
+  // Invalidate when core entries or deep product sources change so
+  // `.cache/runtime/tovyr-cli.js` cannot silently serve a stale graph.
   const files = [
-    'main.tsx',
-    'entrypoints/cli.tsx',
+    'src/main.tsx',
+    'src/entrypoints/cli.tsx',
+    'src/build/preload.ts',
+    'bunfig.toml',
     'package.json',
+    'scripts/build-tovyr-runtime.ts',
   ]
   const hash = createHash('sha256')
   hash.update(WARM_CACHE_VERSION)
@@ -50,12 +98,22 @@ function warmFingerprint() {
       hash.update(String(statSync(path).mtimeMs))
     }
   }
+  for (const relDir of ['src/entrypoints', 'src/screens', 'src/services/tovyr', 'src/components/tovyr', 'src/query.ts']) {
+    const path = join(root, relDir)
+    if (existsSync(path) && statSync(path).isFile()) {
+      hash.update(relDir)
+      hash.update(String(statSync(path).mtimeMs))
+    } else {
+      walkMaxMtime(path, 0, 5, hash)
+    }
+  }
   return hash.digest('hex').slice(0, 16)
 }
 
 export function tovyrWarmNeeded() {
-  if (!existsSync(join(root, 'entrypoints', 'cli.tsx'))) return false
+  if (!existsSync(join(root, 'src', 'entrypoints', 'cli.tsx'))) return false
   if (process.env.TOVYR_SKIP_WARM === '1') return false
+  if (!existsSync(runtimeEntry)) return true
   const fp = warmFingerprint()
   if (!existsSync(stampPath)) return true
   try {
@@ -65,8 +123,18 @@ export function tovyrWarmNeeded() {
   }
 }
 
+export function getTovyrRuntimeEntry() {
+  return existsSync(runtimeEntry) && !tovyrWarmNeeded()
+    ? runtimeEntry
+    : undefined
+}
+
 function writeWarmStamp() {
   mkdirSync(cacheDir, { recursive: true })
+  // Recompute after the build: a source edit made while the build ran must not
+  // be stamped as already-compiled, or the stale bundle is served until the
+  // next edit. Only the rebuild path pays for this walk.
+  resetWarmFingerprint()
   writeFileSync(stampPath, warmFingerprint(), 'utf8')
 }
 
@@ -75,13 +143,13 @@ export function runTovyrWarm({ force = false } = {}) {
     return Promise.resolve(0)
   }
 
-  const cliEntry = join(root, 'entrypoints', 'cli.tsx')
-  if (!existsSync(cliEntry)) {
+  const buildEntry = join(root, 'scripts', 'build-tovyr-runtime.ts')
+  if (!existsSync(buildEntry)) {
     return Promise.resolve(0)
   }
 
   return new Promise((resolve) => {
-    const child = spawn(bun, [cliEntry, '--bare', '--warm-cache'], {
+    const child = spawn(bun, [buildEntry], {
       cwd: root,
       // Pipe stdout so a parent PowerShell session does not repaint its prompt
       // when the warm child exits (stdio inherit shares the console with PSReadLine).
@@ -92,6 +160,7 @@ export function runTovyrWarm({ force = false } = {}) {
         TOVYR_SRC: root,
         TOVYR_WARM_QUIET_LOADER: '1',
         TOVYR_CODE_SIMPLE: '1',
+        NODE_ENV: 'production',
         // Never inherit interactive mode into warm — stdin.ref() prevents exit
         // and hangs the parent forever on the compiling screen.
         TOVYR_FORCE_INTERACTIVE: '0',

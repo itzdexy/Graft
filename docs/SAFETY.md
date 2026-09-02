@@ -42,7 +42,7 @@ Keys are never written into the npm package or committed to git by Tovyr itself.
 When `TOVYR_SRC` or `TOVYR_PACKAGE_ROOT` is set (normal Tovyr runs):
 
 - **Debug logs** (`logForDebugging`, `--debug`) redact API keys, bearer tokens, env assignments
-- **Tool logs** redact inputs and errors via `services/tovyr/tools/safety.ts`
+- **Tool logs** redact inputs and errors via `src/services/tovyr/tools/safety.ts`
 - Patterns include: `fe_oa_…`, `sk-ant-…`, `sk-…`, `ghp_…`, `AKIA…`, `Bearer …`, `KEY=value`
 
 Redaction applies to debug output — not to intentional key entry via `tovyr auth login`.
@@ -67,7 +67,7 @@ In Tovyr runtime, these patterns trigger **ask** (user confirmation) unless `/by
 | World-writable chmod | `chmod -R 777` |
 | Pipe to shell | `curl … \| bash`, `wget … \| sh` |
 
-Implementation: `services/tovyr/permissions/destructiveShell.ts`, wired in `tools/BashTool/BashTool.tsx`.
+Implementation: `src/services/tovyr/permissions/destructiveShell.ts`, wired in `src/tools/BashTool/BashTool.tsx`.
 
 ### Command injection defenses
 
@@ -85,7 +85,7 @@ Implementation: `services/tovyr/permissions/destructiveShell.ts`, wired in `tool
 | **Code / acceptEdits** | Same as Ask | Auto-accepted |
 | **Bypass** | Allowed (destructive patterns still flagged unless bypass) | Allowed |
 
-Implementation: `services/tovyr/permissions/toolGate.ts`.
+Implementation: `src/services/tovyr/permissions/toolGate.ts`.
 
 ---
 
@@ -93,7 +93,7 @@ Implementation: `services/tovyr/permissions/toolGate.ts`.
 
 ### Path validation
 
-Before file tools run in Tovyr, paths are checked (`utils/permissions/pathValidation.ts`, `services/tovyr/tools/safety.ts`):
+Before file tools run in Tovyr, paths are checked (`src/utils/permissions/pathValidation.ts`, `src/services/tovyr/tools/safety.ts`):
 
 - No null bytes
 - No shell expansion in paths
@@ -110,7 +110,7 @@ Auto-edit is restricted for sensitive paths (`utils/permissions/filesystem.ts`):
 
 ### Overwriting work
 
-- **Git checkpoint** before first Edit/Write in an assistant turn: stashes uncommitted changes as `tovyr-checkpoint` (`services/tovyr/git/checkpoint.ts`)
+- **Git checkpoint** before first Edit/Write in an assistant turn: stashes uncommitted changes as `tovyr-checkpoint` (`src/services/tovyr/git/checkpoint.ts`)
 - **Permission prompts** for secret paths and non-allowlisted / destructive shell
 - **Plan mode** prevents writes entirely
 
@@ -139,7 +139,7 @@ File reads also append a **malware awareness** system reminder (models are instr
 
 ## Agent loop limits
 
-Active only during `/agent` sessions (`services/tovyr/agent/loopGuard.ts`):
+Active only during `/agent` sessions (`src/services/tovyr/agent/loopGuard.ts`):
 
 | Limit | Default |
 |-------|---------|
@@ -172,7 +172,7 @@ The main REPL chat loop does **not** apply these limits unless an agent session 
 
 ## Reporting issues
 
-Security concerns: [GitHub Issues](https://github.com/itsdexy/Tovyr/issues) (mark as security-sensitive if applicable).
+Security concerns: [GitHub Issues](https://github.com/itzdexy/Tovyr/issues) (mark as security-sensitive if applicable).
 
 ---
 
@@ -180,14 +180,14 @@ Security concerns: [GitHub Issues](https://github.com/itsdexy/Tovyr/issues) (mar
 
 | Area | Path |
 |------|------|
-| Tool safety helpers | `services/tovyr/tools/safety.ts` |
-| Destructive shell | `services/tovyr/permissions/destructiveShell.ts` |
-| Permission tiers | `services/tovyr/permissions/toolGate.ts` |
+| Tool safety helpers | `src/services/tovyr/tools/safety.ts` |
+| Destructive shell | `src/services/tovyr/permissions/destructiveShell.ts` |
+| Permission tiers | `src/services/tovyr/permissions/toolGate.ts` |
 | Path validation | `utils/permissions/pathValidation.ts` |
 | Log redaction | `bridge/debugUtils.ts`, `utils/debug.ts` |
 | Provider key storage | `scripts/tovyr-providers.js`, `scripts/tovyr-save-api-key.js` |
-| Git checkpoint | `services/tovyr/git/checkpoint.ts` |
-| Agent limits | `services/tovyr/agent/loopGuard.ts` |
+| Git checkpoint | `src/services/tovyr/git/checkpoint.ts` |
+| Agent limits | `src/services/tovyr/agent/loopGuard.ts` |
 | Unicode sanitization | `utils/sanitization.ts` |
 
-Tests: `bridge/debugUtils.test.ts`, `services/tovyr/tools/safety.test.ts`, `services/tovyr/permissions/destructiveShell.test.ts`, `scripts/tovyr-cli.integration.test.ts`.
+Tests: `src/bridge/debugUtils.test.ts`, `src/services/tovyr/tools/safety.test.ts`, `src/services/tovyr/permissions/destructiveShell.test.ts`, `scripts/tovyr-cli.integration.test.ts`.

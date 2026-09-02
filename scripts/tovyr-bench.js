@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const entry = path.join(root, 'entrypoints', 'cli.tsx')
+const entry = path.join(root, 'src', 'entrypoints', 'cli.tsx')
 
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b)
@@ -47,11 +47,24 @@ const results = {
   help: measure(['--help']),
 }
 
-console.log(JSON.stringify(results, null, 2))
+const runtimePolicy = {
+  legacyForcedGcWakeupsPerMinute: 60,
+  activeForcedGcWakeupsPerMinute: 0,
+  idleSamplerWakeupsPerMinute: 2,
+  idleGraceMs: 30_000,
+  collectionCooldownMs: 5 * 60_000,
+}
+
+console.log(JSON.stringify({ ...results, runtimePolicy }, null, 2))
 for (const [name, result] of Object.entries(results)) {
   if (result.p95Ms <= 250) continue
   console.error(
-    `${name} p95 ${result.p95Ms}ms exceeds the Tovyr 1.2 budget of 250ms.`,
+    `${name} p95 ${result.p95Ms}ms exceeds the Tovyr 1.3 budget of 250ms.`,
   )
+  process.exitCode = 1
+}
+
+if (runtimePolicy.activeForcedGcWakeupsPerMinute !== 0) {
+  console.error('Active runs must not schedule forced garbage collection.')
   process.exitCode = 1
 }

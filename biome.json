@@ -1,22 +1,23 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
   "vcs": {
-    "enabled": false,
+    "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
     "ignoreUnknown": true,
     "includes": [
-      "services/tovyr/models/**/*.ts",
-      "utils/settings/envInt.ts",
-      "utils/settings/envInt.test.ts",
-      "utils/sandbox/network/**/*.ts",
-      "services/mcp/diagnostics.ts",
-      "services/mcp/diagnostics.test.ts",
-      "services/mcp/redact.ts",
-      "services/mcp/redact.test.ts",
-      "components/tovyr/McpDiagnosticsView.tsx"
+      "src/services/tovyr/models/**/*.ts",
+      "src/utils/settings/envInt.ts",
+      "src/utils/settings/envInt.test.ts",
+      "src/utils/sandbox/network/**/*.ts",
+      "src/services/mcp/diagnostics.ts",
+      "src/services/mcp/diagnostics.test.ts",
+      "src/services/mcp/redact.ts",
+      "src/services/mcp/redact.test.ts",
+      "src/components/tovyr/McpDiagnosticsView.tsx",
+      "!packages/tovyrroute"
     ]
   },
   "formatter": {
@@ -36,7 +37,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "suspicious": {
         "noConsole": "error"
       }

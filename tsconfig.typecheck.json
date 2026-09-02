@@ -6,20 +6,20 @@
     "types": ["node", "bun"]
   },
   "include": [
-    "utils/filePersistence/**/*.ts",
-    "utils/tovyrStartupLoader.ts",
-    "hooks/useTovyrBootScreen.ts",
-    "components/tovyr/**/*.tsx",
-    "mcp/builtin/**/*.ts",
-    "commands/tovyr/superthink.impl.tsx",
-    "services/tovyr/intent/**/*.ts",
-    "services/tovyr/openaiCompat/**/*.ts",
-    "services/tovyr/modelContext.ts",
-    "services/tovyr/validateProviderModel.ts",
-    "services/tovyr/providerFailover.ts",
-    "services/tovyr/applyActiveProvider.ts",
-    "services/tovyr/providerModels.ts",
-    "constants/tovyrSystemPrompt.ts"
+    "src/utils/filePersistence/**/*.ts",
+    "src/utils/tovyrStartupLoader.ts",
+    "src/hooks/useTovyrBootScreen.ts",
+    "src/components/tovyr/**/*.tsx",
+    "src/mcp/builtin/**/*.ts",
+    "src/commands/tovyr/superthink.impl.tsx",
+    "src/services/tovyr/intent/**/*.ts",
+    "src/services/tovyr/openaiCompat/**/*.ts",
+    "src/services/tovyr/modelContext.ts",
+    "src/services/tovyr/validateProviderModel.ts",
+    "src/services/tovyr/providerFailover.ts",
+    "src/services/tovyr/applyActiveProvider.ts",
+    "src/services/tovyr/providerModels.ts",
+    "src/constants/tovyrSystemPrompt.ts"
   ],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

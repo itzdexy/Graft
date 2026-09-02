@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 /**
- * Publish the thin tovyrcode launcher to npm (package.npm.json manifest).
+ * Publish the thin tovyr launcher to npm (package.npm.json manifest).
  * Restores package.json after publish. Does not publish devDependencies.
  */
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { getTovyrPackageRoot } from './tovyr-package-root.js'
@@ -23,9 +29,9 @@ if (!existsSync(npmPkgPath)) {
 
 const npmPkg = JSON.parse(readFileSync(npmPkgPath, 'utf8'))
 
-// Keep npm manifest version aligned with TOVYR_VERSION (constants/tovyr.js).
+// Keep npm manifest version aligned with TOVYR_VERSION (src/constants/tovyr.js).
 try {
-  const tovyrConstants = join(root, 'constants', 'tovyr.js')
+  const tovyrConstants = join(root, 'src', 'constants', 'tovyr.js')
   const src = readFileSync(tovyrConstants, 'utf8')
   const match = src.match(/export const TOVYR_VERSION = '([^']+)'/)
   if (match?.[1]) {
@@ -127,7 +133,7 @@ if (!dryRun) {
         `Then publish again: npm run publish:npm`,
         '',
         `Package "${npmPkg.name}" on npm is owned by tovyr2 — use that account`,
-        '(or an npm account added as a maintainer on https://www.npmjs.com/package/tovyrcode).',
+        '(or an npm account added as a maintainer on https://www.npmjs.com/package/tovyr).',
       ].join('\n'),
     )
     process.exit(1)
@@ -167,10 +173,13 @@ try {
 } finally {
   if (existsSync(backupPkg)) {
     copyFileSync(backupPkg, devPkgPath)
+    rmSync(backupPkg, { force: true })
   }
   if (existsSync(backupReadme)) {
     copyFileSync(backupReadme, readmeMain)
+    rmSync(backupReadme, { force: true })
   }
+  rmSync(join(root, 'runtime'), { recursive: true, force: true })
 }
 
 if (result.status !== 0) {

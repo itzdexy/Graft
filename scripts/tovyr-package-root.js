@@ -30,16 +30,16 @@ function isTovyrPackageRoot(root) {
     }
   }
   return (
-    isFile('entrypoints', 'cli.tsx') ||
+    isFile('src', 'entrypoints', 'cli.tsx') ||
     (isFile('package.json') &&
       (isFile('bin', 'tovyr.js') || isFile('bin', 'tovyr.js')) &&
-      (isFile('constants', 'tovyr.js') || isFile('constants', 'product.ts') || isFile('constants', 'tovyr.js')))
+      (isFile('src', 'constants', 'tovyr.js') || isFile('runtime', 'cli.js')))
   )
 }
 
 /** Tovyr source CLI entry (Ink UI, TovyrBuddy, etc.) — never tovyr.exe. */
 export function resolveTovyrCliEntry(packageRoot = getTovyrPackageRoot()) {
-  const sourceEntry = join(packageRoot, 'entrypoints', 'cli.tsx')
+  const sourceEntry = join(packageRoot, 'src', 'entrypoints', 'cli.tsx')
   if (existsSync(sourceEntry)) return sourceEntry
   const bundledEntry = join(packageRoot, 'runtime', 'cli.js')
   return existsSync(bundledEntry) ? bundledEntry : null

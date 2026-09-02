@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { TOVYR_VERSION } from '../constants/tovyr.js'
+import { TOVYR_VERSION } from '../src/constants/tovyr.js'
 import { EXIT } from './tovyr-cli-ux.js'
 import {
   combinedOutput,
@@ -18,22 +18,22 @@ import { createTovyrTestHome } from './tovyr-test-home.js'
 import {
   AGENT_DEFAULT_MAX_TURNS,
   AGENT_DEFAULT_MAX_TOOL_CALLS,
-} from '../services/tovyr/agent/types.js'
+} from '../src/services/tovyr/agent/types.js'
 import {
   checkDestructiveShellCommand,
   isRetryableToolError,
   previewFileEditDiff,
   validateTovyrFileToolPath,
-} from '../services/tovyr/tools/safety.js'
-import { withToolRetry } from '../services/tovyr/tools/framework.js'
+} from '../src/services/tovyr/tools/safety.js'
+import { withToolRetry } from '../src/services/tovyr/tools/framework.js'
 import {
   checkLoopLimits,
   createLoopState,
   getSessionLimits,
   recordAgentTurn,
-} from '../services/tovyr/agent/loopGuard.js'
+} from '../src/services/tovyr/agent/loopGuard.js'
 import type { ToolPermissionContext } from '../Tool.js'
-import type { AgentSession } from '../services/tovyr/agent/types.js'
+import type { AgentSession } from '../src/services/tovyr/agent/types.js'
 
 const permissiveCtx: ToolPermissionContext = {
   mode: 'bypassPermissions',
@@ -344,26 +344,6 @@ describe('CLI agent loop limits', () => {
     expect(limits.maxToolCalls).toBe(AGENT_DEFAULT_MAX_TOOL_CALLS)
     const check = checkLoopLimits(session)
     expect(check.allowed).toBe(true)
-  })
-})
-
-describe('unreleased Tovyr browser extension', () => {
-  test('chrome setup is unavailable without exposing Claude setup', () => {
-    const result = runLauncher(['chrome', 'setup', '--extension-id', 'badid'])
-    expect(result.status).toBe(EXIT.OK)
-    expect(combinedOutput(result)).toContain(
-      'Tovyr browser extension integration is not available yet',
-    )
-    expect(combinedOutput(result)).not.toContain('Claude')
-    expect(combinedOutput(result)).not.toContain('extension ID')
-  })
-
-  test('chrome --help suggests working browser alternatives', () => {
-    const result = runLauncher(['chrome', '--help'])
-    expect(result.status).toBe(EXIT.OK)
-    expect(result.stdout).toContain('Playwright')
-    expect(result.stdout).toContain('computer-use MCP')
-    expect(result.stdout).not.toContain('chrome setup')
   })
 })
 

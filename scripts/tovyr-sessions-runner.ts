@@ -1,7 +1,7 @@
 /**
  * Bun runner for `tovyr sessions list` — lists resumable sessions for cwd.
  */
-import { listSessionsImpl } from '../utils/listSessionsImpl.js'
+import { listSessionsImpl } from '../src/utils/listSessionsImpl.js'
 import { EXIT, cliExit, isJsonMode } from './tovyr-cli-ux.js'
 
 const limitArg = process.argv.find(a => a.startsWith('--limit='))

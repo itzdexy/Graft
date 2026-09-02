@@ -2,7 +2,7 @@
  * Per-provider / per-model env tuning so third-party gateways work with
  * Tovyr's full tool surface (skills, MCP, bash, agents).
  */
-import { PROVIDER_CATALOG } from './kairo-provider-catalog.js'
+import { PROVIDER_CATALOG } from './tovyr-provider-catalog.js'
 
 /** Env keys owned by compat tuning — cleared when switching providers. */
 export const TOVYR_COMPAT_ENV_KEYS = [

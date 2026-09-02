@@ -210,11 +210,11 @@ export const EXTRA_PROVIDER_CATALOG = {
     apiFormat: 'openai',
     notes: 'One OpenAI-compatible endpoint for models from many vendors.',
     models: [
-      { id: 'claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-      { id: 'claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-      { id: 'claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-      { id: 'claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-      { id: 'claude-haiku-4-5', label: 'Tovyr Haiku 4.5', tier: 'haiku' },
+      { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+      { id: 'claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+      { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+      { id: 'claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+      { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', tier: 'haiku' },
       { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
       { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
       { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', tier: 'haiku' },
@@ -333,16 +333,17 @@ export const EXTRA_PROVIDER_CATALOG = {
     authMode: 'authToken',
     anyModel: true,
     apiFormat: 'openai',
-    defaultModel: 'meta/llama-3.3-70b-instruct',
+    defaultModel: 'meta/llama-3.1-8b-instruct',
     notes:
-      'Hosted build.nvidia.com uses OpenAI Chat Completions — Tovyr starts a local Tovyr translator automatically.',
+      'Hosted build.nvidia.com uses OpenAI Chat Completions — Tovyr starts a local translator. /model lists curated chat models only (not embeds/guards from /v1/models).',
     models: [
-      { id: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B Instruct', tier: 'opus' },
-      { id: 'meta/llama-3.1-70b-instruct', label: 'Llama 3.1 70B Instruct', tier: 'sonnet' },
       { id: 'meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B Instruct', tier: 'haiku' },
-      { id: 'deepseek-ai/deepseek-r1', label: 'DeepSeek R1', tier: 'opus' },
+      { id: 'meta/llama-3.1-70b-instruct', label: 'Llama 3.1 70B Instruct', tier: 'sonnet' },
+      { id: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B Instruct', tier: 'opus' },
+      { id: 'z-ai/glm-5.2', label: 'GLM-5.2', tier: 'opus' },
+      { id: 'deepseek-ai/deepseek-v4-flash', label: 'DeepSeek V4 Flash', tier: 'sonnet' },
       { id: 'deepseek-ai/deepseek-v4-pro', label: 'DeepSeek V4 Pro', tier: 'opus' },
-      { id: 'deepseek-ai/deepseek-v4-flash', label: 'DeepSeek V4 Flash', tier: 'sonnet' }
+      { id: 'deepseek-ai/deepseek-r1', label: 'DeepSeek R1', tier: 'opus' }
     ],
   },
   cloudflare_workers_ai: {
@@ -515,11 +516,11 @@ export const EXTRA_PROVIDER_CATALOG = {
     notes:
       'Tovyr on Bedrock — use Portkey, LiteLLM, or Bedrock Tovyr-compatible proxy URL.',
     models: [
-      { id: 'us.anthropic.claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-      { id: 'us.anthropic.claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-      { id: 'us.anthropic.claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-      { id: 'us.anthropic.claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-      { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', label: 'Tovyr Haiku 4.5', tier: 'haiku' }
+      { id: 'us.anthropic.claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+      { id: 'us.anthropic.claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+      { id: 'us.anthropic.claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+      { id: 'us.anthropic.claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+      { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', label: 'Claude Haiku 4.5', tier: 'haiku' }
     ],
   },
   azure_ai_foundry: {
@@ -545,11 +546,11 @@ export const EXTRA_PROVIDER_CATALOG = {
     custom: true,
     notes: 'Vertex Tovyr or Gemini — configure proxy URL (Portkey/LiteLLM recommended).',
     models: [
-      { id: 'claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-      { id: 'claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-      { id: 'claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-      { id: 'claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-      { id: 'claude-haiku-4-5@20251001', label: 'Tovyr Haiku 4.5', tier: 'haiku' },
+      { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+      { id: 'claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+      { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+      { id: 'claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+      { id: 'claude-haiku-4-5@20251001', label: 'Claude Haiku 4.5', tier: 'haiku' },
       { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', tier: 'sonnet' },
       { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)', tier: 'opus' },
       { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', tier: 'opus' },

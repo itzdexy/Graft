@@ -9,7 +9,7 @@
  * unit suite can see it. The user found all four by launching the app and
  * reporting "it doesn't show anything".
  *
- * This is deliberately narrow: exported components under components/tovyr and
+ * This is deliberately narrow: exported components under src/components/tovyr and
  * exported Tovyr-runtime prefetch/warm helpers. A general dead-export scan over this repo
  * produces hundreds of hits (SDK surface, re-exports, ant-only paths) and gets
  * ignored, which is worse than not running it.
@@ -19,6 +19,7 @@ import { join, relative, resolve, sep } from 'node:path'
 import ts from 'typescript'
 
 const ROOT = process.cwd()
+const SRC_ROOT = join(ROOT, 'src')
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.claude', 'dist', 'build-output', 'packages', 'website', 'vendor',
 ])
@@ -42,20 +43,20 @@ const SOURCE_ROOTS = [
 const SOURCE_FILES = ['commands.ts', 'main.tsx', 'query.ts', 'tools.ts']
 const files = [
   ...SOURCE_ROOTS.flatMap(dir => {
-  const full = join(ROOT, dir)
+  const full = join(SRC_ROOT, dir)
   try {
     return statSync(full).isDirectory() ? walk(full) : []
   } catch {
     return []
   }
   }),
-  ...SOURCE_FILES.map(file => join(ROOT, file)).filter(file => {
+  ...SOURCE_FILES.map(file => join(SRC_ROOT, file)).filter(file => {
     try { return statSync(file).isFile() } catch { return false }
   }),
 ]
 const sources = new Map()
 for (const f of files) {
-  const rel = relative(ROOT, f).split(sep).join('/')
+  const rel = relative(SRC_ROOT, f).split(sep).join('/')
   if (/\.(?:test|spec)\.tsx?$/.test(rel)) continue
   try { sources.set(f, readFileSync(f, 'utf8')) } catch { /* unreadable */ }
 }
@@ -275,7 +276,7 @@ function hasRuntimeUse(file, aliases, isComponent) {
 /** Exported names we care about, with the file that defines them. */
 const candidates = []
 for (const [file, src] of sources) {
-  const rel = relative(ROOT, file).split(sep).join('/')
+  const rel = relative(SRC_ROOT, file).split(sep).join('/')
   if (/\.test\.tsx?$/.test(rel)) continue
 
   const isTovyrComponent = rel.startsWith('components/tovyr/')
@@ -300,7 +301,7 @@ const dead = []
 for (const candidate of candidates) {
   let live = false
   for (const [file, parsed] of sourceFiles) {
-    const other = relative(ROOT, file).split(sep).join('/')
+    const other = relative(SRC_ROOT, file).split(sep).join('/')
     if (other === candidate.rel) continue
     const aliases = importedRuntimeNames(parsed, candidate)
     if (hasRuntimeUse(parsed, aliases, candidate.isComponent)) {

@@ -9,23 +9,34 @@
  */
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { TOVYR_PRODUCT_NAME, TOVYR_VERSION } from '../constants/tovyr.js'
-import { TOVYR_TIPS } from '../constants/tovyrTips.js'
+import {
+  TOVYR_ICON,
+  TOVYR_PRODUCT_NAME,
+  TOVYR_VERSION,
+} from '../src/constants/tovyr.js'
+import { TOVYR_TIPS } from '../src/constants/tovyrTips.js'
 
 /** @typedef {'launch' | 'compile' | 'modules' | 'ui' | 'ready'} TovyrStartupPhase */
 
+/**
+ * Rotating braille circle. The old two-glyph ◆/◇ pair blinked in place rather
+ * than turning, which reads as a stall during a multi-minute cold compile —
+ * exactly when the user most needs to see that something is still moving.
+ */
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const DOT_FRAMES = ['   ', '.  ', '.. ', '...']
-/** Calm tick — Windows terminals choke on faster full-block redraws. */
-const FRAME_MS = 120
+/**
+ * 10fps: fast enough for the circle to read as continuous rotation, still one
+ * write per frame from the animator child so the parent compile is unaffected.
+ */
+const FRAME_MS = 100
 const LOADER_PATH = fileURLToPath(import.meta.url)
 
-/** Number of frames to hold each tip (≈ 6 seconds at 120ms/frame). */
-const TIP_HOLD_FRAMES = 48
+/** Number of frames to hold each tip (about 6 seconds). */
+const TIP_HOLD_FRAMES = 60
 
 /** Content rows drawn each frame (excluding top pad). Tips add one line. */
 function contentLines() {
-  return shouldShowStartupTips() ? 7 : 6
+  return shouldShowStartupTips() ? 5 : 4
 }
 
 /** @type {Record<TovyrStartupPhase, string>} */
@@ -139,26 +150,27 @@ export function pickStartupTip(index) {
 export function formatStartupLoaderFrame(input) {
   const cols = input.columns ?? terminalColumns()
   const spinner = SPINNER_FRAMES[input.frame % SPINNER_FRAMES.length]
-  const dots = DOT_FRAMES[Math.floor(input.frame / 4) % DOT_FRAMES.length]
   const elapsed = formatElapsedSeconds(input.elapsedMs)
-  const verb = PHASE_LABEL[input.phase] ?? 'loading'
+  const verb = PHASE_LABEL[input.phase] ?? 'Loading'
 
-  const brand = ansi('1;36', `${TOVYR_PRODUCT_NAME} Code`)
-  const version = ansi('2', `v${TOVYR_VERSION}`)
-  const loading = ansi('1;37', `loading${dots}`)
-  const status = ansi('2', `${spinner}  ${verb}  ·  ${elapsed}`)
+  const brand = ansi('1;36', `${TOVYR_ICON} ${TOVYR_PRODUCT_NAME}`)
+  const version = ansi('2', ` v${TOVYR_VERSION}`)
+  // The circle settles into a greeting once the runtime is up, so the last
+  // frame the user sees is an arrival rather than a spinner cut short.
+  const status =
+    input.phase === 'ready'
+      ? `${ansi('1;36', TOVYR_ICON)}  ${ansi('1;37', `Welcome to ${TOVYR_PRODUCT_NAME}`)}  ${ansi('2', `· ${elapsed}`)}`
+      : `${ansi('1;36', spinner)}  ${ansi('1;37', verb)}  ${ansi('2', `· ${elapsed}`)}`
 
   const tipIndex =
     input.tipIndex ?? Math.floor(input.frame / TIP_HOLD_FRAMES)
   const tip = pickStartupTip(tipIndex)
   const tipLine = tip ? center(ansi('2', `Tip: ${tip}`), cols) : ''
 
-  // Compact block — brand/version/loading/status, optional tip, trailing blank.
+  // Compact block: one identity row, one live stage, one optional tip.
   const lines = [
     '',
-    center(brand, cols),
-    center(version, cols),
-    center(loading, cols),
+    center(`${brand}${version}`, cols),
     center(status, cols),
   ]
   if (tipLine) {

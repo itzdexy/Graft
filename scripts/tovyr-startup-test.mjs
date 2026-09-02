@@ -4,7 +4,7 @@ import { resolveBunExecutable, resolveTovyrCliEntry, getTovyrPackageRoot } from 
 const root = getTovyrPackageRoot()
 const bun = resolveBunExecutable()
 const entry = resolveTovyrCliEntry(root)
-const args = ['entrypoints/cli.tsx', '--bare', '--debug-to-stderr']
+const args = [entry, '--bare', '--debug-to-stderr']
 
 const child = spawn(bun, args, {
   cwd: root,

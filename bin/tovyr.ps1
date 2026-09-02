@@ -85,24 +85,21 @@ function Test-IsBunInstalled {
   return ($null -ne $cmd)
 }
 
-$TovyrCliSubcommands = @('setup', 'doctor', 'bench', 'auth', 'provider', 'chrome', 'config', 'models')
+$TovyrCliSubcommands = @(
+  'setup', 'doctor', 'bench', 'auth', 'provider', 'chrome', 'config', 'models', 'sessions',
+  'serve', 'mcp', 'providers', 'launch', 'apps', 'codex', 'claude', 'claude-code', 'claude-desktop', 'chatgpt', 'chatgpt-desktop'
+)
+$TovyrAppCommands = @(
+  'launch', 'apps', 'codex', 'claude', 'claude-code', 'claude-desktop', 'chatgpt', 'chatgpt-desktop'
+)
 
 if ($cliArgs -contains '--allow-home') { $env:TOVYR_ALLOW_HOME = '1' }
 $cliArgs = @($cliArgs | Where-Object { $_ -ne '--allow-home' })
 
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'ask') {
-  if ($cliArgs.Count -lt 2) {
-    Write-Host 'Usage: tovyr ask <question>' -ForegroundColor Red
-    Write-Host 'Example: tovyr ask "summarize this repo"' -ForegroundColor DarkGray
-    exit 1
-  }
-  $rest = @($cliArgs[1..($cliArgs.Count - 1)])
-  if ($rest -notcontains '-p' -and $rest -notcontains '--print') {
-    $cliArgs = @('-p') + $rest
-  } else {
-    $cliArgs = $rest
-  }
-}
+# ask/review/fix/plan turn a scope into a print-mode prompt. bin/tovyr.js owns
+# that construction (buildWorkflowPrintArgs); this launcher must not re-derive
+# it, or the two entry points drift.
+$TovyrWorkflowCommands = @('ask', 'review', 'fix', 'plan')
 
 function Test-IsInteractiveTovyrLaunch {
   param([string[]]$PassArgs)
@@ -110,8 +107,7 @@ function Test-IsInteractiveTovyrLaunch {
   if ($PassArgs -contains '--help' -or $PassArgs -contains '-h') { return $false }
   if ($PassArgs -contains '--version' -or $PassArgs -contains '-v' -or $PassArgs -contains '-V') { return $false }
   if ($PassArgs.Count -ge 1 -and $PassArgs[0] -in $TovyrCliSubcommands) { return $false }
-  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -eq 'ask') { return $false }
-  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -eq 'sessions') { return $false }
+  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -in $TovyrWorkflowCommands) { return $false }
   return $true
 }
 
@@ -120,6 +116,12 @@ function Invoke-TovyrWarmCompile {
   $warm = Join-Path $Root 'scripts\tovyr-warm.js'
   if (-not (Test-Path $warm)) { return $true }
 
+  # Staleness is decided only by tovyrWarmNeeded(). This used to be shortcut by
+  # an inline check of six entry files, which missed every edit under
+  # components/** and services/** — i.e. most of the product — so the launcher
+  # silently served a stale compiled bundle and source changes never appeared.
+  # The real fingerprint walks those trees; it memoizes per process and costs
+  # ~20ms, which is not worth risking a stale UI to save.
   Push-Location $Root
   try {
     $neededOut = & $Node -e "import('./scripts/tovyr-warm.js').then(m => console.log(m.tovyrWarmNeeded() ? '1' : '0'))"
@@ -193,9 +195,9 @@ function Test-TovyrOpenNewWindow {
   if ($env:TOVYR_NO_NEW_WINDOW -eq '1') { return $false }
   if ($PassArgs -contains '--help' -or $PassArgs -contains '-h') { return $false }
   if ($PassArgs -contains '--version' -or $PassArgs -contains '-v' -or $PassArgs -contains '-V') { return $false }
+  if ($PassArgs -contains '-p' -or $PassArgs -contains '--print') { return $false }
   if ($PassArgs.Count -ge 1 -and $PassArgs[0] -in $TovyrCliSubcommands) { return $false }
-  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -eq 'ask') { return $false }
-  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -eq 'sessions') { return $false }
+  if ($PassArgs.Count -ge 1 -and $PassArgs[0] -in $TovyrWorkflowCommands) { return $false }
   return $true
 }
 
@@ -229,7 +231,7 @@ if ($Host.Name -eq 'ConsoleHost') {
 }
 
 $sourceRoot = Split-Path $PSScriptRoot -Parent
-$PkgRoot = if (Test-Path (Join-Path $sourceRoot 'entrypoints\cli.tsx')) {
+$PkgRoot = if (Test-Path (Join-Path $sourceRoot 'src\entrypoints\cli.tsx')) {
   $sourceRoot
 } elseif ($env:TOVYR_PACKAGE_ROOT) {
   $env:TOVYR_PACKAGE_ROOT
@@ -268,7 +270,6 @@ try {
   }
 } catch {
   Write-Host "Bun executable found but failed to run. Reinstall Bun: https://bun.sh" -ForegroundColor Red
-  Write-Host "Bun executable found but failed to run. Reinstall Bun: https://bun.sh" -ForegroundColor Red
   exit 1
 }
 
@@ -276,124 +277,49 @@ try {
 # overrides only after this executable has passed the native version probe.
 $env:TOVYR_BUN_CMD = $Bun
 
-$cliEntry = Join-Path $PkgRoot 'entrypoints\cli.tsx'
+$cliEntry = Join-Path $PkgRoot 'src\entrypoints\cli.tsx'
+
+# This launcher exists for exactly one reason: npm's node->bun hop breaks Ink
+# raw mode on Windows, so the interactive UI has to start Bun in-process. Every
+# other path -- subcommands, workflow prompts, --help/--version, print mode --
+# is dispatched by bin/tovyr.js, which owns the subcommand table, the workflow
+# prompt builder, the exit codes, and the source-missing fallbacks. Keeping a
+# second copy of that table here is what silently dropped `sessions` and
+# `review|fix|plan`: both were declared non-interactive but never routed, so
+# they fell through and were handed to the agent as raw positional arguments.
+# TOVYR_WIN_PS_LAUNCH stops tovyr.js from delegating straight back here.
+if (-not (Test-IsInteractiveTovyrLaunch -PassArgs $cliArgs)) {
+  $nodeCli = Join-Path $PkgRoot 'bin\tovyr.js'
+  if (-not (Test-Path $nodeCli)) {
+    Write-Host "Tovyr launcher not found at $nodeCli." -ForegroundColor Red
+    Write-Host 'Reinstall the tovyr package.' -ForegroundColor DarkGray
+    Exit-Tovyr 1
+  }
+  $env:TOVYR_WIN_PS_LAUNCH = '1'
+  & $Node $nodeCli @cliArgs
+  Exit-Tovyr $LASTEXITCODE
+}
+
+# Interactive launch only: without the source entry there is nothing to run.
 if (-not (Test-Path $cliEntry)) {
-  if ($cliArgs.Count -ge 1 -and ($cliArgs[0] -eq 'setup' -or $cliArgs[0] -eq 'doctor')) {
-    $env:TOVYR_DOCTOR_INVOKED_AS = $cliArgs[0]
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-doctor.js')
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'config') {
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-config-cli.js')
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'bench') {
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-bench-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'models') {
-    $modelArgs = if ($cliArgs.Count -ge 2) { @('models', $cliArgs[1]) } else { @('models') }
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-provider-cli.js') @modelArgs
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'provider') {
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-provider-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'chrome') {
-    & $Node (Join-Path $PkgRoot 'scripts\tovyr-chrome-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-    exit $LASTEXITCODE
-  }
-
-  if ($cliArgs.Count -ge 2 -and $cliArgs[0] -eq 'auth' -and $cliArgs[1] -eq 'login') {
-    $env:TOVYR_WIN_PS_LAUNCH = '1'
-    & $Node (Join-Path $PkgRoot 'bin\tovyr.js') @cliArgs
-    exit $LASTEXITCODE
-  }
-
-  Write-Error (
-    "Tovyr source not found at $PkgRoot (missing entrypoints\cli.tsx). " +
-    "Tovyr will not fall back to, patch, or launch another AI CLI."
-  )
-}
-
-if ($cliArgs.Count -ge 1 -and ($cliArgs[0] -eq 'setup' -or $cliArgs[0] -eq 'doctor')) {
-  $env:TOVYR_DOCTOR_INVOKED_AS = $cliArgs[0]
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-doctor.js')
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'config') {
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-config-cli.js')
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'bench') {
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-bench-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'models') {
-  $modelArgs = if ($cliArgs.Count -ge 2) { @('models', $cliArgs[1]) } else { @('models') }
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-provider-cli.js') @modelArgs
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'provider') {
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-provider-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 1 -and $cliArgs[0] -eq 'chrome') {
-  & $Node (Join-Path $PkgRoot 'scripts\tovyr-chrome-cli.js') @($cliArgs[1..($cliArgs.Count - 1)])
-  exit $LASTEXITCODE
-}
-
-if ($cliArgs.Count -ge 2 -and $cliArgs[0] -eq 'auth' -and $cliArgs[1] -eq 'login') {
-  $env:TOVYR_WIN_PS_LAUNCH = '1'
-  & $Node (Join-Path $PkgRoot 'bin\tovyr.js') @cliArgs
-  exit $LASTEXITCODE
-}
-
-# Static paths never require provider credentials or a warm interactive cache.
-if ($cliArgs.Count -eq 1 -and ($cliArgs[0] -eq '--version' -or $cliArgs[0] -eq '-v' -or $cliArgs[0] -eq '-V' -or $cliArgs[0] -eq '--help' -or $cliArgs[0] -eq '-h')) {
-  $env:TOVYR_WIN_PS_LAUNCH = '1'
-  & $Node (Join-Path $PkgRoot 'bin\tovyr.js') @cliArgs
-  exit $LASTEXITCODE
+  Write-Host "Tovyr source not found at $PkgRoot (missing src\entrypoints\cli.tsx)." -ForegroundColor Red
+  Write-Host 'Tovyr will not fall back to, patch, or launch another AI CLI.' -ForegroundColor DarkGray
+  Write-Host 'Install the complete tovyr package or run from its source checkout.' -ForegroundColor DarkGray
+  Exit-Tovyr 1
 }
 
 $exitCode = 0
 try {
-Push-Location $PkgRoot
-try {
-  $envJson = & $Node -e "import('./scripts/tovyr-prep-auth.js').then(m => console.log(JSON.stringify(m.buildTovyrChildAuthEnv())))"
-} finally {
-  Pop-Location
-}
-try {
-  $auth = $envJson | ConvertFrom-Json
-  $env:TOVYR_PACKAGE_ROOT = $PkgRoot
-  $env:TOVYR_SRC = $PkgRoot
-  $env:TOVYR_FORCE_INTERACTIVE = '1'
-  if (-not $env:TOVYR_CODE_NO_FLICKER) { $env:TOVYR_CODE_NO_FLICKER = '1' }
-  $env:TOVYR_SKIP_TERMINAL_QUERIES = '1'
-  foreach ($prop in $auth.PSObject.Properties) {
-    $name = $prop.Name
-    $val = [string]$prop.Value
-    if ($val) {
-      Set-Item -Path "Env:$name" -Value $val
-    } else {
-      Remove-Item "Env:$name" -ErrorAction SilentlyContinue
-    }
-  }
-} catch {
-  Write-Error "Failed to load auth env: $_"
-}
+$env:TOVYR_PACKAGE_ROOT = $PkgRoot
+$env:TOVYR_SRC = $PkgRoot
+$env:TOVYR_FORCE_INTERACTIVE = '1'
+if (-not $env:TOVYR_CODE_NO_FLICKER) { $env:TOVYR_CODE_NO_FLICKER = '1' }
+$env:TOVYR_SKIP_TERMINAL_QUERIES = '1'
+
+# Interactive init reads the active provider straight from Tovyr's config, so
+# no throwaway Node process runs before Bun can start accepting input. The
+# non-interactive auth prep that used to sit here is gone: those invocations
+# now delegate to bin/tovyr.js above, which runs buildTovyrChildAuthEnv itself.
 Remove-Item Env:TOVYR_CODE_OAUTH_TOKEN -ErrorAction SilentlyContinue
 
 if ($cliArgs -contains '--fast') {
@@ -410,8 +336,19 @@ if ($cliArgs -contains '--fast') {
   $env:TOVYR_CODE_SIMPLE = '1'
 }
 
-if (Test-IsInteractiveTovyrLaunch -PassArgs $cliArgs) {
-  $null = Invoke-TovyrWarmCompile -Root $PkgRoot
+$null = Invoke-TovyrWarmCompile -Root $PkgRoot
+
+$runtimeEntry = Join-Path $PkgRoot '.cache\runtime\tovyr-cli.js'
+# Existence alone is not enough: a bundle left over from an earlier build is
+# exactly how stale code gets served. Only run it when the warm step confirmed
+# the cache matches current source, otherwise fall back to compiling from
+# source — slower to start, but never wrong.
+if (
+  $cliArgs -contains '--bare' -and
+  (Test-Path $runtimeEntry) -and
+  $env:TOVYR_CACHE_WARMED -eq '1'
+) {
+  $cliEntry = $runtimeEntry
 }
 
 Push-Location $PkgRoot
@@ -437,7 +374,12 @@ try {
 }
 if ($exitCode -ne 0 -and $exitCode -ne 130) {
   [Console]::Error.WriteLine('')
-  [Console]::Error.WriteLine("Tovyr exited with code $exitCode. Run: tovyr setup")
+  if ($cliArgs.Count -ge 1 -and $cliArgs[0] -in $TovyrAppCommands) {
+    [Console]::Error.WriteLine("Tovyr app command '$($cliArgs[0])' exited with code $exitCode.")
+    [Console]::Error.WriteLine('Run: tovyr apps list   (verify providers/models)')
+  } else {
+    [Console]::Error.WriteLine("Tovyr exited with code $exitCode. Run: tovyr setup")
+  }
   [Console]::Error.WriteLine('For details: tovyr --debug-to-stderr')
 }
 exit $exitCode

@@ -7,7 +7,7 @@ The npm package includes Tovyr's complete Bun runtime: the terminal UI, Buddy, p
 ## Install
 
 ```bash
-npm install -g tovyrcode
+npm install -g tovyr
 ```
 
 On Windows, open a **new** terminal after install, then:
@@ -26,7 +26,7 @@ tovyr
 If install scripts were blocked, approve them:
 
 ```powershell
-npm approve-scripts tovyrcode
+npm approve-scripts tovyr
 ```
 
 ## Quick start
@@ -61,7 +61,8 @@ tovyr auth login --key fe_oa_YOUR_KEY_HERE
 | `tovyr provider use <id>` | Switch provider |
 | `tovyr setup` | Verify the local runtime and optional provider configuration |
 
-Also available as `tovyrcode` — same binary.
+The `tovyrcode` binary name still works — same launcher. The package was
+published as `tovyrcode` before v1.3.7.
 
 ## Web tools
 
@@ -70,7 +71,7 @@ Built-in **WebSearch**, **WebFetch**, and **TovyrWeb** work without a browser ex
 ## Full source install (recommended)
 
 ```bash
-git clone https://github.com/itsdexy/Tovyr.git
+git clone https://github.com/itzdexy/Tovyr.git
 cd TovyrCode
 npm install
 npm run build
@@ -78,6 +79,10 @@ npm install -g .
 ```
 
 Requires [Bun](https://bun.sh). Unlocks `/agent`, `/provider`, `/buddy`, auto-verify, and all Tovyr slash commands.
+
+The source application lives under `src/`; its Bun entrypoint is
+`src/entrypoints/cli.tsx`. Repository provenance and third-party licensing
+context are documented in `NOTICE`.
 
 ## Performance (Windows)
 
@@ -102,7 +107,7 @@ Full feature guide: [docs/GUIDE.md](docs/GUIDE.md) (slash commands, providers, m
 | `TOVYR_DEFAULT_MODEL` | Default model override |
 | `TOVYR_AUTO_FAILOVER` | `1` = switch provider on hard failures |
 | `TOVYR_IMPLEMENTATION_GUARD` | On by default; set `0` to disable extra build-request nudges |
-| `TOVYR_STREAM_IDLE_TIMEOUT_MS` | Abort hung streams (120000 ms via `tovyr` launcher; 90000 ms otherwise) |
+| `TOVYR_STREAM_IDLE_TIMEOUT_MS` | Abort hung streams after idle ms (default `120000`; maps to `CLAUDE_STREAM_IDLE_TIMEOUT_MS`) |
 
 ## Notes
 

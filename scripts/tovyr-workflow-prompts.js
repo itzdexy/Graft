@@ -9,22 +9,25 @@ export const WORKFLOW_PROMPT_BUILDERS = {
   ask: scope => scope,
   review: scope =>
     [
-      'Senior code review. Check bugs, security, maintainability, and performance.',
-      'Use severity labels: Critical / Warning / Suggestion.',
-      'Inspect the git working tree and cited files — do not guess.',
-      scope ? `\nScope: ${scope}` : '\nScope: uncommitted changes and recent edits.',
+      'You are a senior engineer doing a code review. Be direct and specific.',
+      'Check for: bugs and logic errors, security issues (injection, auth, data exposure), performance problems, maintainability concerns.',
+      'Label each finding: Critical / Warning / Suggestion. Skip nitpicks.',
+      'Read the actual files — do not guess at code that is not shown.',
+      scope ? `\nScope: ${scope}` : '\nScope: uncommitted changes in the working tree (run git diff to find them).',
     ].join('\n'),
   fix: scope =>
     [
-      'Fix the issue with the smallest correct change. Read relevant files first.',
-      'Run tests or lint when available. Summarize what changed.',
-      scope ? `\nGoal: ${scope}` : '\nGoal: fix issues in the working tree.',
+      'Fix the described issue with the smallest correct change.',
+      'Steps: read the relevant files, make the fix, run tests or lint if available, summarize exactly what changed and why.',
+      'Do not refactor surrounding code or add features beyond the fix.',
+      scope ? `\nGoal: ${scope}` : '\nGoal: identify and fix the most pressing issue in the working tree.',
     ].join('\n'),
   plan: scope =>
     [
-      'Draft an implementation plan with numbered phases, risks, and files to touch.',
-      'Save the plan to tovyrplan.md when appropriate. Do not implement until asked.',
-      scope ? `\nTask: ${scope}` : '\nTask: plan the next feature for this repository.',
+      'Draft a concrete implementation plan. Do not write any code yet.',
+      'Include: numbered phases, key files to create or modify, risks and open questions, rough effort estimate.',
+      'If a tovyrplan.md already exists, update it; otherwise create it.',
+      scope ? `\nTask: ${scope}` : '\nTask: plan the next meaningful feature or improvement for this repository.',
     ].join('\n'),
 }
 

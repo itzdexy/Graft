@@ -1,10 +1,10 @@
 /**
  * Verify Tovyr install: Bun, source checkout, API key, warm compile.
  */
-import { accessSync, constants, existsSync } from 'fs'
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { spawnSync } from 'child_process'
-import { TOVYR_VERSION, TOVYR_PRODUCT_NAME } from '../constants/tovyr.js'
+import { TOVYR_VERSION, TOVYR_PRODUCT_NAME } from '../src/constants/tovyr.js'
 import {
   getTovyrPackageRoot,
   platformLabel,
@@ -16,8 +16,14 @@ import { getTovyrHome } from './tovyr-home.js'
 import { summarizeInstallPathState } from './tovyr-install-checks.js'
 import { tovyrWarmNeeded } from './tovyr-warm.js'
 import { formatAgentLimitsSummary } from './tovyr-agent-limits.js'
+import { listAppAdapters } from './tovyr-apps/catalog.js'
+import {
+  detectTovyrPlatform,
+  formatTovyrPlatform,
+} from './tovyr-platform.js'
 import {
   cliExit,
+  isExportMode,
   isJsonMode,
   isQuiet,
   parseGlobalCliFlags,
@@ -122,6 +128,172 @@ function checkPathDirectories() {
   }
 }
 
+function checkBrowserDeps() {
+  const hasNpx = (() => {
+    try {
+      const cmd = process.platform === 'win32' ? 'where npx' : 'which npx'
+      const out = spawnSync(cmd, { shell: true, encoding: 'utf8' })
+      return out.status === 0 && out.stdout.trim().length > 0
+    } catch {
+      return false
+    }
+  })()
+  const playwrightDir = join(root, 'node_modules', 'playwright')
+  const playwrightMcpDir = join(root, 'node_modules', '@playwright', 'mcp')
+
+  if (existsSync(playwrightDir) && existsSync(playwrightMcpDir)) {
+    ok(
+      'Browser dependencies',
+      `Playwright + MCP present at ${root}/node_modules`,
+    )
+    return
+  }
+  if (hasNpx) {
+    warn(
+      'Browser dependencies',
+      'Playwright not installed locally; use /browser in Tovyr to configure Playwright MCP',
+    )
+    return
+  }
+  warn(
+    'Browser dependencies',
+    'npx not found — browser tools will not work until Playwright MCP is installed',
+  )
+}
+
+function checkMcpConfig() {
+  const userMcp = home ? join(home, '.tovyr', 'mcp.json') : ''
+  const projectMcp = join(process.cwd(), '.mcp.json')
+  const globalMcp = home ? join(home, '.tovyr', 'settings.json') : ''
+  const sources = []
+
+  if (home && existsSync(userMcp)) sources.push(userMcp)
+  if (existsSync(projectMcp)) sources.push(projectMcp)
+  if (home && existsSync(globalMcp)) {
+    try {
+      const text = readFileSync(globalMcp, 'utf8')
+      const parsed = JSON.parse(text)
+      const mcpServers = parsed?.mcpServers
+      if (
+        mcpServers &&
+        typeof mcpServers === 'object' &&
+        Object.keys(mcpServers).length > 0
+      ) {
+        sources.push(`${globalMcp} (${Object.keys(mcpServers).length} servers)`)
+      }
+    } catch {
+      // ignore malformed settings
+    }
+  }
+
+  if (sources.length > 0) {
+    ok(
+      'MCP configuration',
+      `${sources.length} source(s): ${sources.join('; ')}`,
+    )
+    return
+  }
+
+  warn(
+    'MCP configuration',
+    'no MCP servers found — use /mcp to add one, or run: tovyr mcp add',
+  )
+}
+
+function checkConfigPermissions() {
+  const tovyrDir = home ? join(home, '.tovyr') : ''
+  if (!tovyrDir) {
+    warn('Config directory', 'home directory not found')
+    return
+  }
+
+  if (!existsSync(tovyrDir)) {
+    try {
+      mkdirSync(tovyrDir, { recursive: true })
+      ok('Config directory', `created ${tovyrDir}`)
+    } catch {
+      fail('Config directory', `cannot create ${tovyrDir}`)
+    }
+    return
+  }
+
+  try {
+    accessSync(tovyrDir, constants.W_OK)
+    ok('Config directory writable', tovyrDir)
+  } catch {
+    fail('Config directory', `${tovyrDir} is not writable`)
+  }
+}
+
+function checkDiskSpace() {
+  const dir = home || process.cwd()
+  try {
+    if (process.platform === 'win32') {
+      const drive = dir[0]?.toUpperCase() || 'C'
+      // Try fsutil first (works on all modern Windows; wmic is deprecated in Win11).
+      const fsutil = spawnSync(
+        'fsutil',
+        ['volume', 'diskfree', `${drive}:`],
+        { encoding: 'utf8' },
+      )
+      if (fsutil.status === 0) {
+        const match = fsutil.stdout.match(/Total free bytes\s*:\s*(\d+)/i)
+        if (match) {
+          const freeGB = Number(match[1]) / (1024 ** 3)
+          reportFreeSpace(freeGB, dir)
+          return
+        }
+      }
+      // Fallback: PowerShell Get-PSDrive (works without admin rights).
+      const ps = spawnSync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', `(Get-PSDrive ${drive}).Free`],
+        { encoding: 'utf8' },
+      )
+      if (ps.status === 0 && ps.stdout.trim()) {
+        const freeGB = Number(ps.stdout.trim()) / (1024 ** 3)
+        if (!Number.isNaN(freeGB)) {
+          reportFreeSpace(freeGB, dir)
+          return
+        }
+      }
+      throw new Error('could not read free space')
+    }
+
+    const out = spawnSync('df -k .', { shell: true, encoding: 'utf8' })
+    const lines = out.stdout.trim().split(/\r?\n/)
+    const data = lines.at(-1)?.trim().split(/\s+/)
+    if (!data || data.length < 4) throw new Error('df output unexpected')
+    const freeKB = Number(data[3])
+    if (Number.isNaN(freeKB)) throw new Error('df free space not numeric')
+    const freeGB = freeKB / (1024 ** 2)
+    reportFreeSpace(freeGB, dir)
+  } catch {
+    warn('Disk space', `could not determine free space at ${dir}`)
+  }
+}
+
+function reportFreeSpace(freeGB, dir) {
+  if (freeGB >= 1) {
+    ok('Disk space', `${freeGB.toFixed(1)} GB free at ${dir}`)
+  } else {
+    warn('Disk space', `${freeGB.toFixed(1)} GB free at ${dir}`)
+  }
+}
+
+// This is intentionally catalog-only. A normal `tovyr doctor` run must not
+// start the gateway or make provider/API requests just to report integrations.
+function checkApplicationAdapters() {
+  const adapters = listAppAdapters()
+  const ids = new Set(adapters.map(adapter => adapter.id))
+  if (ids.size === adapters.length && adapters.length > 0) {
+    ok('Application adapters', `${adapters.length} clients available — run: tovyr apps status`)
+  } else {
+    fail('Application adapters', 'catalog contains duplicate or missing client ids')
+  }
+}
+
+const home = getTovyrHome()
 const invokedAs = process.env.TOVYR_DOCTOR_INVOKED_AS === 'setup' ? 'setup' : 'doctor'
 if (!isJsonMode() && !isQuiet()) {
   const title =
@@ -133,6 +305,25 @@ if (!isJsonMode() && !isQuiet()) {
 
 checkTovyrOnPath()
 checkPathDirectories()
+checkConfigPermissions()
+checkDiskSpace()
+checkApplicationAdapters()
+
+const runtimePlatform = detectTovyrPlatform()
+if (runtimePlatform.supported) {
+  ok(
+    'Runtime platform',
+    `${formatTovyrPlatform(runtimePlatform)} · ${runtimePlatform.libc}`,
+  )
+  if (runtimePlatform.termux) {
+    warn(
+      'Termux compatibility',
+      'requires pkg install glibc patchelf; Android/Bionic is not a Bun target',
+    )
+  }
+} else {
+  fail('Runtime platform', runtimePlatform.reason)
+}
 
 const cliEntry = resolveTovyrCliEntry(root)
 const launcherOnly = !cliEntry
@@ -142,7 +333,7 @@ if (cliEntry) {
 } else {
   warn(
     'Source checkout',
-    'npm launcher mode — clone github.com/itsdexy/Tovyr for full UI',
+    'npm launcher mode — clone github.com/itzdexy/Tovyr for full UI',
   )
 }
 
@@ -192,7 +383,6 @@ if (!apiKeyMissing) {
   warn('Provider', 'none selected — Tovyr will ask on first launch')
 }
 
-const home = getTovyrHome()
 if (home && existsSync(join(home, '.tovyr', 'providers.json'))) {
   ok('Providers config', join(home, '.tovyr', 'providers.json'))
 } else {
@@ -219,6 +409,9 @@ try {
   warn('Git', 'not on PATH')
 }
 
+checkBrowserDeps()
+checkMcpConfig()
+
 if (home) {
   try {
     accessSync(home, constants.W_OK)
@@ -226,6 +419,17 @@ if (home) {
   } catch {
     fail('Home writable', `${home} — check permissions`)
   }
+}
+
+{
+  const telemetryOn = process.env.TOVYR_CODE_ENABLE_TELEMETRY === '1'
+  const essentialOnly = Boolean(process.env.TOVYR_CODE_DISABLE_NONESSENTIAL_TRAFFIC)
+  const level = telemetryOn
+    ? 'default (telemetry opted in)'
+    : essentialOnly
+      ? 'essential-traffic'
+      : 'no-telemetry (default)'
+  ok('Privacy', level)
 }
 
 if (!launcherOnly) {
@@ -245,6 +449,38 @@ if (activated.length > 1) {
 if (!isJsonMode() && !isQuiet() && !launcherOnly) {
   console.log('')
   console.log(`  ${formatAgentLimitsSummary()}`)
+}
+
+if (isExportMode()) {
+  const reportPath = join(
+    home || process.cwd(),
+    `.tovyr-doctor-report-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+  )
+  try {
+    writeFileSync(
+      reportPath,
+      JSON.stringify(
+        {
+          version: TOVYR_VERSION,
+          invokedAs,
+          timestamp: new Date().toISOString(),
+          checks,
+          warnings: warned,
+          failures: failed,
+          passed: failed === 0,
+        },
+        null,
+        2,
+      ),
+    )
+    if (!isQuiet()) {
+      console.log(`\nExported doctor report: ${reportPath}`)
+    }
+  } catch (error) {
+    if (!isJsonMode() && !isQuiet()) {
+      console.error(`Failed to export report: ${error?.message || error}`)
+    }
+  }
 }
 
 if (isJsonMode()) {

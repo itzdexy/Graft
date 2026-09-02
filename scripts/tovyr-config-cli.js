@@ -2,7 +2,7 @@
  * CLI: tovyr config — show active provider, model, and config file paths.
  */
 import { join } from 'node:path'
-import { TOVYR_PRODUCT_NAME } from '../constants/tovyr.js'
+import { TOVYR_PRODUCT_NAME } from '../src/constants/tovyr.js'
 import { getTovyrHome } from './tovyr-home.js'
 import {
   getActiveProviderId,
@@ -112,9 +112,9 @@ if (active?.authMode === 'oauth') {
     `  Authentication: OAuth (${providerId === 'openai' ? 'official Codex transport' : 'Tovyr secure storage'})`,
   )
 } else {
-console.log(
-  `  API key:        ${active ? 'configured' : 'missing — run: tovyr auth login --key <key>'}`,
-)
+  console.log(
+    `  API key:        ${active ? 'configured' : 'missing — run: tovyr auth login --key <key>'}`,
+  )
 }
 
 if (envModel || envKey || envBase) {

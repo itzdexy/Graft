@@ -5,14 +5,17 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { TOVYR_PRODUCT_NAME, TOVYR_VERSION } from '../constants/tovyr.js'
+import { TOVYR_PRODUCT_NAME, TOVYR_VERSION } from '../src/constants/tovyr.js'
 import {
   getTovyrPackageRoot,
-  resolveBunExecutable,
   resolveTovyrCliEntry,
   assertBunAvailable,
 } from '../scripts/tovyr-package-root.js'
-import { runTovyrWarm, tovyrWarmNeeded } from '../scripts/tovyr-warm.js'
+import {
+  getTovyrRuntimeEntry,
+  runTovyrWarm,
+  tovyrWarmNeeded,
+} from '../scripts/tovyr-warm.js'
 import {
   startTovyrStartupLoader,
   stopTovyrStartupLoader,
@@ -91,7 +94,7 @@ function isInteractiveLaunch(argv) {
   if (argv.includes('-p') || argv.includes('--print')) return false
   if (argv.includes('--help') || argv.includes('-h')) return false
   if (argv.includes('--version') || argv.includes('-v') || argv.includes('-V')) return false
-  if (argv.length >= 1 && ['setup', 'doctor', 'bench', 'auth', 'provider', 'config', 'models', 'ask', 'review', 'fix', 'plan', 'sessions'].includes(argv[0])) {
+  if (argv.length >= 1 && CLI_SUBCOMMANDS.has(argv[0])) {
     return false
   }
   return true
@@ -246,10 +249,20 @@ const CLI_SUBCOMMANDS = new Set([
   'bench',
   'auth',
   'provider',
-  'chrome',
   'config',
   'models',
   'sessions',
+  'serve',
+  'mcp',
+  'providers',
+  'launch',
+  'apps',
+  'codex',
+  'claude',
+  'claude-code',
+  'claude-desktop',
+  'chatgpt',
+  'chatgpt-desktop',
 ])
 
 const WORKFLOW_COMMANDS = new Set(['ask', 'review', 'fix', 'plan'])
@@ -300,8 +313,15 @@ async function main() {
     const kind = args[0]
     const rest = args.slice(1)
     if (rest.length === 0) {
-      console.error(`Usage: tovyr ${kind} <${kind === 'ask' ? 'question' : 'scope'}>`)
-      console.error(`Example: tovyr ${kind} "${kind === 'review' ? 'uncommitted changes' : kind === 'plan' ? 'add auth module' : 'fix failing tests'}"`)
+      const noun = kind === 'ask' ? 'question' : 'scope'
+      const examples = {
+        ask: 'Example: tovyr ask "summarize this repository"',
+        review: 'Example: tovyr review "uncommitted changes"',
+        fix: 'Example: tovyr fix "failing unit tests"',
+        plan: 'Example: tovyr plan "add OAuth login"',
+      }
+      console.error(`Usage: tovyr ${kind} <${noun}>`)
+      console.error(examples[kind])
       process.exit(EXIT.USAGE)
     }
     args = buildWorkflowPrintArgs(kind, rest)
@@ -360,11 +380,6 @@ async function main() {
     return
   }
 
-  if (args[0] === 'chrome') {
-    await runNodeScript('tovyr-chrome-cli.js', args.slice(1))
-    return
-  }
-
   if (args[0] === 'setup' || args[0] === 'doctor') {
     process.env.TOVYR_DOCTOR_INVOKED_AS = args[0]
     await runNodeScript('tovyr-doctor.js')
@@ -373,6 +388,25 @@ async function main() {
 
   if (args[0] === 'provider') {
     await runNodeScript('tovyr-provider-cli.js', args.slice(1))
+    return
+  }
+
+  // Friendly plural/verb aliases from the platform docs. Keep one provider
+  // CLI and one app launcher so aliases cannot create a second config system.
+  if (args[0] === 'providers') {
+    await runNodeScript('tovyr-provider-cli.js', args.slice(1))
+    return
+  }
+
+  // Third-party app launch/configuration stays in the lightweight Node
+  // launcher. It can choose a connected Tovyr model before Ink starts.
+  if (
+    ['launch', 'apps', 'codex', 'claude', 'claude-code', 'claude-desktop', 'chatgpt', 'chatgpt-desktop'].includes(
+      args[0],
+    )
+  ) {
+    if (args[0] === 'launch') process.env.TOVYR_APP_LAUNCH = '1'
+    await runNodeScript('tovyr-app-cli.js', args[0] === 'launch' ? args.slice(1) : args)
     return
   }
 
@@ -419,10 +453,10 @@ async function main() {
   const launcherOnly = isLauncherOnlyInstall(PKG_ROOT)
   const launchArgs = launcherOnly ? applyLauncherDefaultArgs(args, true) : args
 
-  const cliEntry = resolveTovyrCliEntry(PKG_ROOT)
+  let cliEntry = resolveTovyrCliEntry(PKG_ROOT)
   if (!cliEntry) {
     console.error(
-      'Tovyr source not found (missing entrypoints/cli.tsx).\n' +
+      'Tovyr source not found (missing src/entrypoints/cli.tsx).\n' +
         'Tovyr will not fall back to, patch, or launch another AI CLI.\n' +
         'Install the complete tovyrcode package or run from its source checkout.\n' +
         'Install Bun: https://bun.sh',
@@ -458,6 +492,10 @@ async function main() {
         ? 'Starting Tovyr (full mode — loading plugins; first compile may take several minutes)...'
         : 'Starting Tovyr...',
     )
+  }
+
+  if (isTovyrFastLaunch(launchArgs)) {
+    cliEntry = getTovyrRuntimeEntry() ?? cliEntry
   }
 
   delete process.env.TOVYR_CODE_OAUTH_TOKEN

@@ -33,34 +33,37 @@ docs/INTEGRATION_PLAN.md
 docs/ENHANCEMENTS.md
 docs/ARCHITECTURE_ANALYSIS.md
 
-# Unwired experimental scaffolds (keep local until productized)
-agents/
-adversary/
-autonomous/
-graph/
-events/
-crew/
-cloning/
-codemode/
-
 # Local test / debug artifacts
 .tovyr-patched
 .tovyr-test-*
 _tovyr-test-*
+.tovyr-review-build/
+.tovyr-test-build/
+tovyr-test-*.txt
+tovyr-test-*.log
 *.log
+errs.txt
+filelist.txt
+status.txt
+lsfiles.txt
+website/
+
+# Bundled sidecar packages (not part of core release)
+packages/tovyrroute/
 
 # Build outputs
-build/
+/build/
 .cache/
 dist/
 /runtime/
-installer/
+/installer/
 *.tgz
 tovyrcode-*.tgz
 
 # Internal agent / upgrade notes (not for public repo)
 tovyrcode-build-prompt.md
 tovyrcode-upgrade-pack.md
+.superpowers/brainstorm/
 
 # OS junk
 .DS_Store

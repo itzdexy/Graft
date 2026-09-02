@@ -2,7 +2,7 @@
  * Shared CLI UX — help text, global flags, exit codes, and output formatting.
  * Used by bin/tovyr.js and lightweight script subcommands.
  */
-import { TOVYR_VERSION, TOVYR_PRODUCT_NAME } from '../constants/tovyr.js'
+import { TOVYR_VERSION, TOVYR_PRODUCT_NAME } from '../src/constants/tovyr.js'
 
 /** Exit codes (documented in README / GUIDE). */
 export const EXIT = {
@@ -17,26 +17,32 @@ const GLOBAL_FLAGS = new Set([
   '--verbose',
   '--debug',
   '--json',
+  '--export',
+  '--no-tips',
 ])
 
 /**
  * Parse and strip global CLI flags. Sets process.env side effects.
  * @param {string[]} argv
- * @returns {{ argv: string[], quiet: boolean, verbose: boolean, debug: boolean, json: boolean }}
+ * @returns {{ argv: string[], quiet: boolean, verbose: boolean, debug: boolean, json: boolean, export: boolean, noTips: boolean }}
  */
 export function parseGlobalCliFlags(argv) {
   const quiet = argv.includes('--quiet') || argv.includes('-q')
   const verbose = argv.includes('--verbose')
   const debug = argv.includes('--debug')
   const json = argv.includes('--json')
+  const exportMode = argv.includes('--export')
+  const noTips = argv.includes('--no-tips')
 
   if (quiet) process.env.TOVYR_QUIET = '1'
   if (verbose) process.env.TOVYR_VERBOSE = '1'
   if (debug) process.env.TOVYR_DEBUG = '1'
   if (json) process.env.TOVYR_JSON = '1'
+  if (exportMode) process.env.TOVYR_EXPORT = '1'
+  if (noTips) process.env.TOVYR_NO_TIPS = '1'
 
   const cleaned = argv.filter(a => !GLOBAL_FLAGS.has(a))
-  return { argv: cleaned, quiet, verbose, debug, json }
+  return { argv: cleaned, quiet, verbose, debug, json, export: exportMode, noTips }
 }
 
 export function isQuiet() {
@@ -49,6 +55,10 @@ export function isVerbose() {
 
 export function isJsonMode() {
   return process.env.TOVYR_JSON === '1'
+}
+
+export function isExportMode() {
+  return process.env.TOVYR_EXPORT === '1'
 }
 
 /** Write to stderr unless --quiet. */
@@ -117,8 +127,19 @@ Providers:
   tovyr provider use <id>         Switch provider
   tovyr provider model <id>       Set model for active provider
   tovyr models [provider]         List models
+  tovyr codex                     Choose a Tovyr model and launch Codex
+  tovyr chatgpt                   Open installed ChatGPT Desktop for Tovyr models
+  tovyr claude                    Choose a Tovyr model and launch Claude Code
+  tovyr launch <app>              Launch or show the connection recipe for an app
+  tovyr apps list                 List every supported app and readiness state
+  tovyr apps status [app]         Check app discovery without launching anything
+  tovyr apps configure <app>      Show a safe endpoint/model recipe
+  tovyr apps doctor [app]         Print actionable app diagnostics
+  tovyr apps disconnect <app>     Remove Tovyr-managed app metadata
+  tovyr apps restore <app>        Restore the last recorded app backup
 
 Browser:
+  tovyr chrome                    Browser integration status (not available yet)
 
 Options:
   -h, --help           Show this help
@@ -131,6 +152,7 @@ Options:
   --full               Full mode: all plugins and MCP
   --allow-home         Allow launch from home directory (not recommended)
   --debug-to-stderr    Verbose startup logs on stderr
+  --no-tips            Suppress startup tips (or set TOVYR_NO_TIPS=1)
 
 Examples:
   tovyr ask "summarize this repository"
@@ -140,6 +162,8 @@ Examples:
   tovyr sessions list
   tovyr auth login --provider anthropic --key sk-ant-YOUR_KEY
   tovyr provider use ollama
+  tovyr apps list
+  tovyr apps doctor claude-desktop
   tovyr bench                     Offline benchmark scorecard
   tovyr bench --live              Include model latency/quality probes
   tovyr bench compare             Compare last two runs
@@ -156,19 +180,20 @@ export function printDoctorHelp() {
   console.log(`Usage: tovyr doctor [options]
        tovyr setup  (alias — same checks, onboarding tone)
 
-Verify install: PATH, Bun, API key, providers config, git, warm cache, dependencies.
+Verify install: PATH, Bun, API key, providers config, git, warm cache, dependencies, browser, MCP, permissions.
 
 Options:
   -h, --help     Show help
   -q, --quiet    Only print summary line
   --json         Machine-readable report
+  --export       Write JSON report to tovyr-doctor-report-<timestamp>.json
   --verbose      Show all check details (default)
 
 Examples:
   tovyr setup
   tovyr doctor --json
-`)
-}
+  tovyr doctor --export
+`)}
 
 export function printSessionsHelp() {
   console.log(`Usage: tovyr sessions list [options]
@@ -219,6 +244,8 @@ Examples:
   tovyr provider use openrouter
   tovyr provider model anthropic/claude-sonnet-4
   tovyr models ollama
+  tovyr codex --provider openrouter --model openai/gpt-5
+  tovyr claude --provider anthropic --model claude-sonnet-5
 `)
 }
 

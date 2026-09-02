@@ -5,10 +5,10 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import * as coreSchemas from '../entrypoints/sdk/coreSchemas.ts'
-import * as controlSchemas from '../entrypoints/sdk/controlSchemas.ts'
+import * as coreSchemas from '../src/entrypoints/sdk/coreSchemas.ts'
+import * as controlSchemas from '../src/entrypoints/sdk/controlSchemas.ts'
 
-const sdkDir = join(dirname(fileURLToPath(import.meta.url)), '../entrypoints/sdk')
+const sdkDir = join(dirname(fileURLToPath(import.meta.url)), '../src/entrypoints/sdk')
 
 function generateFromSchemas(
   schemas: Record<string, unknown>,

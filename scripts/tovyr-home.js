@@ -1,6 +1,6 @@
 import os from 'node:os'
 
-/** Cross-platform user home (~/.kairo, ~/.claude). */
+/** Cross-platform user home (~/.tovyr). */
 export function getTovyrHome() {
   return process.env.TOVYR_HOME || process.env.HOME || process.env.USERPROFILE || os.homedir() || ''
 }

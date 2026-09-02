@@ -13,12 +13,12 @@ See **[docs/GUIDE.md](GUIDE.md)** for installation, providers, config format, co
 | **npm global** (`tovyrcode`) | End users | Node 18+ | Tovyr launcher + multi-provider auth |
 | **Source checkout** | Contributors / full UI | **Bun** + Node | Ink REPL, `/provider`, `/model`, agents, Tovyr branding |
 
-The npm package does **not** include `entrypoints/cli.tsx`. Users who expect the full Tovyr TUI must clone the repo, install Bun, run `npm run warm`, and `npm install -g .`.
+The npm package does **not** include `src/entrypoints/cli.tsx`. Users who expect the full Tovyr TUI must clone the repo, install Bun, run `npm run warm`, and `npm install -g .`.
 
 ## Source deployment checklist
 
 ```bash
-git clone https://github.com/itsdexy/Tovyr.git
+git clone https://github.com/itzdexy/Tovyr.git
 cd TovyrCode
 bun install --frozen-lockfile   # or npm install after Bun is on PATH
 npm run warm                    # pre-compile (~1–3 min first time)
@@ -51,7 +51,7 @@ cd your-project && tovyr
 Workflow: `.github/workflows/ci.yml`
 
 - Ubuntu + Windows: `npm test` (Tovyr services, live activity UI guard, Windows/input tests)
-- Smoke: `bun run entrypoints/cli.tsx --version`, `node bin/tovyr.js --version`
+- Smoke: `bun run src/entrypoints/cli.tsx --version`, `node bin/tovyr.js --version`
 - Doctor: `node scripts/tovyr-doctor.js` (Windows)
 
 ## npm publish
@@ -69,9 +69,9 @@ Many files under `agents/`, `browser/`, `cicd/`, `workflows/`, etc. are **scaffo
 
 - `query.ts` → `services/api/tovyr.ts`
 - `tools.ts` → Bash, Read, Write, Edit, Agent, MCP
-- `services/tovyr/provider.ts` → multi-provider routing
+- `src/services/tovyr/provider.ts` → multi-provider routing
 
-Do not assume every `/expansion` feature is production-ready without checking `services/tovyr/expansion/index.ts` status.
+Do not assume every `/expansion` feature is production-ready without checking `src/services/tovyr/expansion/index.ts` status.
 
 ## Troubleshooting deploy
 

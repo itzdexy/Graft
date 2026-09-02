@@ -16,13 +16,12 @@ export const PROVIDER_MODEL_EXPANSIONS = {
     { id: 'deepseek-ai/deepseek-v4-flash', label: 'DeepSeek V4 Flash', tier: 'sonnet' }
   ],
   openrouter: [
-    { id: 'anthropic/claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-    { id: 'anthropic/claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-    { id: 'anthropic/claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-    { id: 'anthropic/claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-    { id: 'anthropic/claude-fable-5', label: 'Tovyr Fable 5', tier: 'opus' },
-    { id: 'anthropic/claude-mythos-5', label: 'Tovyr Mythos 5', tier: 'opus' },
-    { id: 'anthropic/claude-haiku-4-5', label: 'Tovyr Haiku 4.5', tier: 'haiku' },
+    { id: 'anthropic/claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+    { id: 'anthropic/claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+    { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+    { id: 'anthropic/claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+    { id: 'anthropic/claude-fable-5', label: 'Claude Fable 5', tier: 'opus' },
+    { id: 'anthropic/claude-haiku-4-5', label: 'Claude Haiku 4.5', tier: 'haiku' },
     { id: 'openai/gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
     { id: 'openai/gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
     { id: 'openai/gpt-5.6-luna', label: 'GPT-5.6 Luna', tier: 'haiku' },
@@ -70,11 +69,11 @@ export const PROVIDER_MODEL_EXPANSIONS = {
     { id: 'google/gemma-2-27b-it', label: 'Gemma 2 27B', tier: 'sonnet' }
   ],
   portkey: [
-    { id: '@anthropic/claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-    { id: '@anthropic/claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-    { id: '@anthropic/claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-    { id: '@anthropic/claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-    { id: '@anthropic/claude-haiku-4-5', label: 'Tovyr Haiku 4.5', tier: 'haiku' },
+    { id: '@anthropic/claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+    { id: '@anthropic/claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+    { id: '@anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+    { id: '@anthropic/claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+    { id: '@anthropic/claude-haiku-4-5', label: 'Claude Haiku 4.5', tier: 'haiku' },
     { id: '@openai/gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
     { id: '@openai/gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
     { id: '@openai/gpt-5.6-luna', label: 'GPT-5.6 Luna', tier: 'haiku' },
@@ -86,11 +85,11 @@ export const PROVIDER_MODEL_EXPANSIONS = {
     { id: '@deepseek/deepseek-v4-flash', label: 'DeepSeek V4 Flash', tier: 'sonnet' }
   ],
   aimlapi: [
-    { id: 'claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-    { id: 'claude-opus-4-7', label: 'Tovyr Opus 4.7', tier: 'opus' },
-    { id: 'claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-    { id: 'claude-sonnet', label: 'Tovyr Sonnet 4.6', tier: 'sonnet' },
-    { id: 'claude-haiku-4-5', label: 'Tovyr Haiku 4.5', tier: 'haiku' },
+    { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+    { id: 'claude-opus-4-7', label: 'Claude Opus 4.7', tier: 'opus' },
+    { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+    { id: 'claude-sonnet', label: 'Claude Sonnet 4.6', tier: 'sonnet' },
+    { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', tier: 'haiku' },
     { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
     { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
     { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', tier: 'haiku' },
@@ -111,8 +110,8 @@ export const PROVIDER_MODEL_EXPANSIONS = {
     { id: 'meta-llama/Llama-3.3-70B-Instruct', label: 'Llama 3.3 70B', tier: 'sonnet' }
   ],
   llmrouter: [
-    { id: 'anthropic/claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
-    { id: 'anthropic/claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
+    { id: 'anthropic/claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
+    { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
     { id: 'openai/gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
     { id: 'openai/gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
     { id: 'openai/gpt-5.6-luna', label: 'GPT-5.6 Luna', tier: 'haiku' },
@@ -127,8 +126,8 @@ export const PROVIDER_MODEL_EXPANSIONS = {
   novita: [
     { id: 'moonshotai/kimi-k3', label: 'Kimi K3', tier: 'sonnet' },
     { id: 'deepseek/deepseek-v4-pro', label: 'DeepSeek V4 Pro', tier: 'opus' },
-    { id: 'anthropic/claude-sonnet-5', label: 'Tovyr Sonnet 5', tier: 'sonnet' },
-    { id: 'anthropic/claude-opus-4-8', label: 'Tovyr Opus 4.8', tier: 'opus' },
+    { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', tier: 'sonnet' },
+    { id: 'anthropic/claude-opus-4-8', label: 'Claude Opus 4.8', tier: 'opus' },
     { id: 'openai/gpt-5.6-sol', label: 'GPT-5.6 Sol', tier: 'opus' },
     { id: 'openai/gpt-5.6-terra', label: 'GPT-5.6 Terra', tier: 'sonnet' },
     { id: 'google/gemini-3.6-flash', label: 'Gemini 3.6 Flash', tier: 'sonnet' }

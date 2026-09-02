@@ -11,6 +11,8 @@ test('dead UI baseline is empty', () => {
   expect(source).toContain('const BASELINE = new Set([])')
 })
 
+// Scans every component in the repo, which takes ~5s -- right on Bun's default
+// 5000ms timeout, so this test failed roughly half the time on nothing.
 test('accepts the repository with no grandfathered dead UI', () => {
   const result = Bun.spawnSync({
     cmd: [NODE, 'scripts/check-dead-ui.js'],
@@ -23,23 +25,23 @@ test('accepts the repository with no grandfathered dead UI', () => {
   expect(result.stdout.toString()).toContain(
     'check-dead-ui: no NEW unreferenced components (0 baselined).',
   )
-})
+}, 60_000)
 
 test('does not treat test-only comments or strings as production reachability', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-'))
   try {
-    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'components', 'tovyr'), { recursive: true })
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.tsx'),
       'export function TovyrGhost() { return null }\n',
     )
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.test.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.test.tsx'),
       "// TovyrGhost is mentioned only by this test\\nconst fixture = '<TovyrGhost />'\\n",
     )
-    mkdirSync(join(fixture, 'services'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'services'), { recursive: true })
     writeFileSync(
-      join(fixture, 'services', 'notes.ts'),
+      join(fixture, 'src', 'services', 'notes.ts'),
       "import { TovyrGhost } from '../components/tovyr/TovyrGhost.js'\n/* TovyrGhost is not mounted */\nconst label = 'TovyrGhost'\n",
     )
 
@@ -60,14 +62,14 @@ test('does not treat test-only comments or strings as production reachability', 
 test('rejects type-only, regex, and unused-value mentions as runtime reachability', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-ast-'))
   try {
-    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'components', 'tovyr'), { recursive: true })
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.tsx'),
       'export function TovyrGhost() { return null }\n',
     )
-    mkdirSync(join(fixture, 'services'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'services'), { recursive: true })
     writeFileSync(
-      join(fixture, 'services', 'mentions.tsx'),
+      join(fixture, 'src', 'services', 'mentions.tsx'),
       [
         "import type { TovyrGhost } from '../components/tovyr/TovyrGhost.js'",
         "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
@@ -94,14 +96,14 @@ test('rejects type-only, regex, and unused-value mentions as runtime reachabilit
 test('rejects unreachable, shadowed, and wrapper-only runtime mentions', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-bindings-'))
   try {
-    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'components', 'tovyr'), { recursive: true })
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.tsx'),
       'export function TovyrGhost() { return null }\n',
     )
-    mkdirSync(join(fixture, 'services'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'services'), { recursive: true })
     writeFileSync(
-      join(fixture, 'services', 'mentions.tsx'),
+      join(fixture, 'src', 'services', 'mentions.tsx'),
       [
         "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
         'false && <Ghost />',
@@ -132,14 +134,14 @@ test('rejects unreachable, shadowed, and wrapper-only runtime mentions', () => {
 test('accepts a wrapped imported component when it is actually mounted', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-wrapper-'))
   try {
-    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'components', 'tovyr'), { recursive: true })
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.tsx'),
       'export function TovyrGhost() { return null }\n',
     )
-    mkdirSync(join(fixture, 'services'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'services'), { recursive: true })
     writeFileSync(
-      join(fixture, 'services', 'live.tsx'),
+      join(fixture, 'src', 'services', 'live.tsx'),
       [
         "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
         'const Wrapped = memo(Ghost)',
@@ -163,14 +165,14 @@ test('accepts a wrapped imported component when it is actually mounted', () => {
 test('accepts a component passed to a JSX component-owner prop', () => {
   const fixture = mkdtempSync(join(tmpdir(), 'tovyr-dead-ui-jsx-owner-'))
   try {
-    mkdirSync(join(fixture, 'components', 'tovyr'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'components', 'tovyr'), { recursive: true })
     writeFileSync(
-      join(fixture, 'components', 'tovyr', 'TovyrGhost.tsx'),
+      join(fixture, 'src', 'components', 'tovyr', 'TovyrGhost.tsx'),
       'export function TovyrGhost() { return null }\n',
     )
-    mkdirSync(join(fixture, 'services'), { recursive: true })
+    mkdirSync(join(fixture, 'src', 'services'), { recursive: true })
     writeFileSync(
-      join(fixture, 'services', 'route.tsx'),
+      join(fixture, 'src', 'services', 'route.tsx'),
       [
         "import { TovyrGhost as Ghost } from '../components/tovyr/TovyrGhost.js'",
         'export const Route = () => <Router component={Ghost} />',

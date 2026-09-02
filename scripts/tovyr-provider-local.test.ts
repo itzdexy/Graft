@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { isLocalProvider, isLocalProviderId } from './tovyr-provider-local.js'
-import { getProvider, resolveActive } from './tovyr-providers.js'
+import { getProvider, isValidKey, resolveActive } from './tovyr-providers.js'
 import { providerNeedsOpenAiCompat } from './tovyr-provider-upstream.js'
 
 const isolatedState = {
@@ -38,5 +38,9 @@ describe('local providers', () => {
     expect(active?.providerId).toBe('ollama')
     expect(active?.apiKey).toBe('local-only')
     expect(isLocalProvider(getProvider('ollama', isolatedState))).toBe(true)
+  })
+
+  test('rejects credentials for an unknown provider definition', () => {
+    expect(isValidKey(null, 'apparently-valid-key')).toBe(false)
   })
 })

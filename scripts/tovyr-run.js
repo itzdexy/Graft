@@ -1,8 +1,8 @@
 /**
- * Launch Tovyr from source (bun + entrypoints/cli.tsx).
+ * Launch Tovyr from source (bun + src/entrypoints/cli.tsx).
  */
 import { spawn } from 'node:child_process'
-import { TOVYR_PRODUCT_NAME, TOVYR_VERSION } from '../constants/tovyr.js'
+import { TOVYR_PRODUCT_NAME, TOVYR_VERSION } from '../src/constants/tovyr.js'
 import {
   assertBunAvailable,
   getTovyrPackageRoot,
@@ -84,7 +84,7 @@ async function main() {
 
   const cliEntry = resolveTovyrCliEntry(srcRoot)
   if (!cliEntry) {
-    console.error('tovyr-run: entrypoints/cli.tsx not found')
+    console.error('tovyr-run: src/entrypoints/cli.tsx not found')
     process.exit(1)
   }
 

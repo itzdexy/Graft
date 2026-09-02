@@ -16,9 +16,9 @@
 
 ## Learned Workspace Facts
 
-- `tovyrcode` npm package: Tovyr is an AI coding agent with multi-provider / FreeModel support; GitHub repo is [itsdexy/Tovyr](https://github.com/itsdexy/Tovyr).
-- Source entry is `entrypoints/cli.tsx` via Bun; launchers are `bin/tovyr.js` and `bin/tovyr.ps1`; plain `tovyr` adds `--bare` by default (`tovyr --full` for all plugin MCP servers).
-- `query.ts` is the runtime source of truth; Tovyr product logic lives in `services/tovyr/**`.
+- `tovyrcode` npm package: Tovyr is an AI coding agent with multi-provider / FreeModel support; GitHub repo is [itzdexy/Tovyr](https://github.com/itzdexy/Tovyr).
+- Source entry is `src/entrypoints/cli.tsx` via Bun; launchers are `bin/tovyr.js` and `bin/tovyr.ps1`; plain `tovyr` adds `--bare` by default (`tovyr --full` for all plugin MCP servers).
+- `src/query.ts` is the runtime source of truth; Tovyr product logic lives in `src/services/tovyr/**`.
 - Multi-provider routing uses `/provider` and `/model`; provider keys live under `~/.tovyr/` (with legacy `~/.tovyr.json` auth); OpenAI-compat providers filter `/model` to verified live API models.
 - Default FreeModel upstream base URL is `https://cc.freemodel.dev`.
 - Provider auto-failover is off by default; enable with `TOVYR_AUTO_FAILOVER=1`.

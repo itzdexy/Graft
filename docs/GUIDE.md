@@ -48,7 +48,7 @@ Your prompt
 | Layer | Entry | Purpose |
 |-------|-------|---------|
 | **npm launcher** | `bin/tovyr.js` | Fast commands, auth routing, and Bun runtime launch |
-| **Full CLI** | `runtime/cli.js` in npm; `entrypoints/cli.tsx` from source | Interactive REPL, Buddy, providers, models, tools, and streaming |
+| **Full CLI** | `runtime/cli.js` in npm; `src/entrypoints/cli.tsx` from source | Interactive REPL, Buddy, providers, models, tools, and streaming |
 
 The npm package includes the complete bundled Tovyr UI. Source checkouts run the TypeScript entry directly; both paths use Bun and remain independent from other AI terminals.
 
@@ -250,7 +250,7 @@ In the TUI model picker, **✓** means the provider confirmed the model works wi
 
 ### Capabilities metadata
 
-Tovyr tracks per-model capabilities (tool calling, streaming, vision, context window, cost tier) in `services/tovyr/modelCapabilities.ts`. Use `tovyr models` or `/model` for human-readable lists.
+Tovyr tracks per-model capabilities (tool calling, streaming, vision, context window, cost tier) in `src/services/tovyr/modelCapabilities.ts`. Use `tovyr models` or `/model` for human-readable lists.
 
 ---
 
@@ -365,14 +365,19 @@ Available after Bun loads `main.tsx`:
 | Area | Commands |
 |------|----------|
 | **Setup** | `/guide`, `/help`, `/init`, `/doctor` |
-| **Modes** | `/plan`, `/code`, `/bypass`, `/superthink` |
+| **Modes** | `/plan`, `/code`, `/auto`, `/bypass`, `/superthink` |
 | **Build** | `/build`, `/fix`, `/debug`, `/review`, `/verify` |
-| **Agents** | `/agent start`, `/agent status`, `/agent resume`, `/agent autofix`, `/agent stop` |
+| **Agents** | `/agent start`, `/agent status`, `/agent resume`, `/agent autofix`, `/agent stop`, `/peers` |
 | **Models** | `/model`, `/provider` |
 | **Memory** | `/buddy`, `/clear`, `/resume` |
 | **Config** | `/config`, `/theme`, `/permissions` |
 
 Plan mode writes `tovyrplan.md`; `/code` implements the accepted plan.
+
+`/auto` is classifier-guarded autonomy, not bypass mode. It can approve routine
+workspace edits and allowlisted commands for supported models, while destructive
+commands, secret paths, unusual shell operations, and cross-machine messages
+retain their permission checks.
 
 ---
 
@@ -418,6 +423,20 @@ Review `tovyrplan.md`, then:
 
 Pick a **✓ Fast** (haiku-tier) verified model.
 
+### Collaborate across Tovyr sessions
+
+Start Tovyr in two project terminals, then run:
+
+```text
+/peers
+```
+
+The model-facing equivalent is `ListPeers`. Its results include an address such
+as `uds:\\.\pipe\tovyr-...` on Windows or `uds:/tmp/tovyr-....sock` on Unix.
+`SendMessage` accepts that address. Messages queue while the receiving session
+is busy and arrive as attributed cross-session user turns. The JSONL protocol
+is capped at 256 KiB and can also be implemented by another local AI agent.
+
 ### Scripting / CI
 
 ```bash
@@ -454,11 +473,12 @@ Tovyr includes several layers of protection for tool execution. **Full details:*
 | **Default (Ask)** | Auto-accepts Write/Edit and allowlisted shell (`git`, `gh`, `npm`, …); prompts for unusual/destructive commands |
 | **Plan** | Read-only planning; blocks writes |
 | **Code / acceptEdits** | Same auto-edit behavior as Ask |
+| **Auto** | Classifier-guarded routine edits and commands; risky actions still ask |
 | **Bypass** | Fewer prompts — use only when you accept the risk |
 
 ### Destructive shell blocking
 
-In Tovyr runtime, commands matching patterns like `rm -rf`, `git push --force`, `git reset --hard`, `DROP DATABASE`, etc. are blocked or require explicit user confirmation (`services/tovyr/permissions/destructiveShell.ts`).
+In Tovyr runtime, commands matching patterns like `rm -rf`, `git push --force`, `git reset --hard`, `DROP DATABASE`, etc. are blocked or require explicit user confirmation (`src/services/tovyr/permissions/destructiveShell.ts`).
 
 ### Path validation
 
@@ -471,7 +491,7 @@ File tools validate paths before execution:
 
 ### Tool execution safety layer
 
-`services/tovyr/tools/safety.ts` provides:
+`src/services/tovyr/tools/safety.ts` provides:
 
 - Secret redaction in debug logs (API keys, bearer tokens, env assignments)
 - Structured error messages (timeout, cancellation, path denied, …)
@@ -480,7 +500,7 @@ File tools validate paths before execution:
 
 ### Agent loop limits
 
-When an `/agent` session is active (`services/tovyr/agent/loopGuard.ts`):
+When an `/agent` session is active (`src/services/tovyr/agent/loopGuard.ts`):
 
 | Limit | Default |
 |-------|---------|
@@ -502,7 +522,7 @@ Debug and tool logs redact API keys, bearer tokens, and env assignments when run
 
 ### Git checkpoints
 
-Before the first file edit in an assistant turn, Tovyr can create a git checkpoint (`services/tovyr/git/editHook.ts`) so changes can be recovered.
+Before the first file edit in an assistant turn, Tovyr can create a git checkpoint (`src/services/tovyr/git/editHook.ts`) so changes can be recovered.
 
 ### Home directory guard
 
@@ -584,8 +604,8 @@ Reports save to `.tovyr/benchmarks/latest.json` (and timestamped history). Offli
 ### Run from source
 
 ```bash
-bun run entrypoints/cli.tsx          # dev
-bun run entrypoints/cli.tsx --version
+bun run src/entrypoints/cli.tsx          # dev
+bun run src/entrypoints/cli.tsx --version
 ```
 
 ### Tests
@@ -593,8 +613,8 @@ bun run entrypoints/cli.tsx --version
 ```bash
 npm test                                              # full suite (~550 tests)
 bun test scripts/tovyr-cli.integration.test.ts        # CLI integration
-bun test services/tovyr/tools/safety.test.ts          # tool safety
-bun test services/tovyr/agent/loopGuard.test.ts       # agent limits
+bun test src/services/tovyr/tools/safety.test.ts          # tool safety
+bun test src/services/tovyr/agent/loopGuard.test.ts       # agent limits
 ```
 
 ### Key paths
@@ -602,14 +622,14 @@ bun test services/tovyr/agent/loopGuard.test.ts       # agent limits
 | Path | Purpose |
 |------|---------|
 | `bin/tovyr.js` | npm launcher |
-| `entrypoints/cli.tsx` | Bun bootstrap |
+| `src/entrypoints/cli.tsx` | Bun bootstrap |
 | `main.tsx` | Commander CLI + REPL |
 | `query.ts` | Agent tool loop |
 | `tools.ts` | Built-in tool registry |
 | `scripts/tovyr-providers.js` | Provider state |
 | `scripts/tovyr-provider-catalog.js` | Provider catalog |
-| `services/tovyr/agent/` | `/agent` autonomous loop |
-| `services/tovyr/tools/safety.ts` | Tool safety helpers |
+| `src/services/tovyr/agent/` | `/agent` autonomous loop |
+| `src/services/tovyr/tools/safety.ts` | Tool safety helpers |
 
 ### Environment (development)
 
@@ -687,9 +707,9 @@ bun test services/tovyr/agent/loopGuard.test.ts       # agent limits
    MyTool,
    ```
 
-3. **Permissions** (optional): add rules in `utils/permissions/` or `services/tovyr/permissions/toolGate.ts` for Tovyr-specific gates.
+3. **Permissions** (optional): add rules in `src/utils/permissions/` or `src/services/tovyr/permissions/toolGate.ts` for Tovyr-specific gates.
 
-4. **Tests**: add `tools/MyTool/MyTool.test.ts` or integration tests under `services/tovyr/`.
+4. **Tests**: add `src/tools/MyTool/MyTool.test.ts` or integration tests under `src/services/tovyr/`.
 
 ### MCP tool (no core code change)
 
@@ -726,15 +746,19 @@ Multi-step goals with phases (observe → plan → execute → verify → reflec
 /agent stop
 ```
 
-- Implementation: `services/tovyr/agent/` (`AgentManager`, `ExecutionEngine`, `loopGuard`)
+- Implementation: `src/services/tovyr/agent/` (`AgentManager`, `ExecutionEngine`, `loopGuard`)
 - State: `~/.tovyr/agent/session-<project-slug>.json`
-- Slash command: `commands/tovyr/agent.ts`
+- Slash command: `src/commands/tovyr/agent.ts`
 
-To extend behavior, edit prompts in `services/tovyr/agent/` (e.g. `ExecutionEngine.ts`, `specialists.ts`) or add specialist roles in `services/tovyr/agent/types.ts`.
+To extend behavior, edit prompts in `src/services/tovyr/agent/` (e.g. `ExecutionEngine.ts`, `specialists.ts`) or add specialist roles in `src/services/tovyr/agent/types.ts`.
 
 ### 2. Sub-agents via the `Agent` tool
 
-The main chat loop can spawn sub-agents for parallel exploration using the built-in **Agent** tool (`tools/AgentTool/`). Configure allowed tools via permission rules and `--allowed-tools`.
+The main chat loop can spawn named sub-agents for parallel exploration using the built-in **Agent** tool (`tools/AgentTool/`). Named agents remain addressable with `SendMessage` while running. If a named agent stopped or its task was evicted, a follow-up message resumes it from its persisted transcript. Configure allowed tools via permission rules and `--allowed-tools`.
+
+Subagents are children of one Tovyr session. For collaboration between separate
+Tovyr processes—or with another local AI harness—use `/peers`, `ListPeers`, and
+`SendMessage` with a returned `uds:` address.
 
 ### 3. Custom agents (CLI flag)
 
@@ -751,7 +775,7 @@ Parsed in `main.tsx` (~line 2055). Agents are session-scoped prompt presets, not
 
 To add a workflow command like `/myworkflow`:
 
-1. Create `commands/tovyr/myworkflow.ts` (see `commands/tovyr/fix.ts`)
+1. Create `src/commands/tovyr/myworkflow.ts` (see `src/commands/tovyr/fix.ts`)
 2. Register in `commands.ts`
 3. Command appears as `/myworkflow` in the REPL
 
@@ -794,4 +818,71 @@ application allowlist. Screenshot retention defaults to `never`.
 
 ## Local compatibility gateway
 
-Run `tovyr serve` to expose the active Ollama, FreeModel, or configured provider through an authenticated loopback gateway. It accepts bearer-authenticated streaming requests at `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`. The generated token is printed once; the hashed token is persisted in `~/.tovyr/gateway.json`. Bind to a non-loopback address only when you explicitly need remote access.
+Run `tovyr serve` to expose the active Tovyr provider through a loopback gateway on port `11434` (or set `TOVYR_GATEWAY_PORT`). Loopback clients are allowed without a token so app launchers can reuse an already-running gateway, matching Ollama's local behavior; set `TOVYR_GATEWAY_REQUIRE_AUTH=1` to require the bearer token locally. Non-loopback binds remain authenticated. The gateway accepts native streaming and JSON requests at `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`, plus Ollama-compatible `/api/chat`, `/api/generate`, and `/api/tags` routes.
+
+The same gateway works with clients that support a custom API base URL:
+
+- Claude Code/CLI and Claude-compatible desktop clients: base URL `http://127.0.0.1:11434`, gateway token as `ANTHROPIC_API_KEY` (or `x-api-key`), and a Tovyr model such as `anthropic::claude-sonnet-5`.
+- Official Claude Desktop connects local tools through MCP/desktop extensions rather than replacing its hosted model endpoint; use `tovyr mcp serve` for Tovyr tools, or an API-configurable desktop client for Tovyr model routing.
+- Kimi and other OpenAI-compatible clients (OpenCode, Hermes Agent, OpenClaw, Droid, Pi, Copilot CLI): base URL `http://127.0.0.1:11434/v1`, gateway token as a bearer API key, and a qualified model such as `openrouter::moonshotai/kimi-k3`.
+- Codex: configure `oss_provider = "tovyr"` with the same `/v1` base URL and `TOVYR_GATEWAY_TOKEN`; `/model` loads every connected Tovyr model.
+- ChatGPT Desktop: use its separate Codex view with `tovyr chatgpt`; the normal Chat and Work views use OpenAI-hosted models and cannot be redirected to a custom API endpoint. ChatGPT Apps/MCP can add tools and data, but do not replace the conversation model.
+
+Use a qualified `provider::model` id to select a specific upstream provider. The gateway keeps that id visible to the client and sends only the provider-native model id upstream. Providers and models are listed only after Tovyr has valid saved credentials (local providers are opt-in).
+### One-command app launchers
+
+The Node launcher can choose a connected provider/model before starting a compatible client:
+
+```text
+tovyr codex
+tovyr launch codex
+tovyr codex --provider openrouter --model openai/gpt-5
+tovyr chatgpt --provider openrouter --model openai/gpt-5
+tovyr claude
+tovyr claude --provider anthropic --model claude-sonnet-5
+tovyr providers list
+tovyr apps list
+tovyr apps status chatgpt
+tovyr apps doctor claude-desktop
+tovyr apps configure hermes-agent --provider openrouter --model moonshotai/kimi-k3
+tovyr apps disconnect <app>
+tovyr apps restore <app>
+```
+
+The application manager reports the boundary between model routing, MCP tools,
+and copyable endpoint recipes:
+
+| Client | Integration | Current state | Command |
+| --- | --- | --- | --- |
+| Codex CLI | Model routing | Ready | `tovyr codex` |
+| ChatGPT Desktop | Model routing in **Codex view only** | Ready when `OpenAI.Codex` AppX is installed | `tovyr chatgpt` |
+| Claude Code | Model routing | Ready when `claude` is on PATH | `tovyr claude` |
+| Claude Desktop | MCP tools | Tool-only; hosted model cannot be replaced | `tovyr mcp serve` |
+| OpenCode | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure opencode` |
+| Hermes Agent | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure hermes-agent` |
+| OpenClaw | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure openclaw` |
+| Droid | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure droid` |
+| Pi | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure pi` |
+| Kimi | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure kimi` |
+| GitHub Copilot CLI | MCP tools | Tool-only; GitHub controls its model | `tovyr mcp serve` |
+| Any OpenAI-compatible client | OpenAI-compatible endpoint | Manual setup | `tovyr apps configure openai-compatible` |
+
+Use `tovyr apps status [app]` for discovery, `tovyr apps doctor [app]` for a
+safe recovery command, and `tovyr apps list` to print the complete matrix.
+`configure` returns the loopback endpoint and a qualified `provider::model`
+identifier without writing third-party credentials. `disconnect` removes only
+Tovyr-managed metadata; `restore` restores only a backup previously recorded by
+Tovyr for that exact application target.
+
+`tovyr codex` starts a temporary loopback gateway and launches the official Codex CLI with `--oss --local-provider tovyr`. The launcher also overrides Codex's per-session `notify` hook (`notify=[]`) so a user-configured Windows turn-end sound does not make successful Tovyr responses sound like errors, and disables commonly unavailable optional MCP servers for that process so their startup/OAuth warnings do not look like gateway failures; direct `codex` runs keep the user's settings. `tovyr claude` does the same for Claude Code/CLI using the Anthropic Messages protocol. The gateway is stopped when the client exits unless a healthy gateway is already available.
+
+`tovyr chatgpt` is the one-command desktop route: it starts a managed loopback gateway and launches the installed ChatGPT Desktop package directly, avoiding the legacy CLI installer check. In its Codex composer, use `/model` to select any connected Tovyr model. Stop only that Tovyr-managed background gateway with `tovyr apps stop chatgpt`; a manually started `tovyr serve` is never stopped. This affects the Codex view only—not Chat or Work—and it does not write credentials into the desktop app's config.
+
+When stdin is not interactive (scripts, PowerShell pipes, or CI), the launcher uses Tovyr's active provider/model instead of waiting for a picker. Pass `--provider` and `--model` whenever a script should pin a specific choice.
+
+`configure` and `status` are read-only for external applications. Claude Desktop
+does not expose a supported arbitrary custom-model API endpoint; use Claude Code
+or another configurable Anthropic client for model routing. `tovyr chatgpt`
+launches the supported Codex-view route in ChatGPT Desktop; Chat and Work remain
+hosted-model experiences. Claude Desktop can still connect Tovyr tools through
+`tovyr mcp serve`.

@@ -1,6 +1,6 @@
 # Tovyr Source-Tree Consolidation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Consolidate Tovyr's live application code under `src/`, remove the Chrome extension and proven dead/generated material, and keep the supported CLI buildable.
 
@@ -34,7 +34,7 @@
 - Consumes: repository root resolved from `import.meta.url`.
 - Produces: a zero-exit `node scripts/check-source-layout.js` check and a `check:layout` package script.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create fixture directories in a temporary directory and invoke an exported
 `findLayoutViolations(root)` function. Assert that it reports a root-level
@@ -50,13 +50,13 @@ test('reports legacy source roots, chrome extension, and artifacts', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test scripts/check-source-layout.test.js`
 
 Expected: FAIL because `check-source-layout.js` does not exist.
 
-- [ ] **Step 3: Implement the check**
+- [x] **Step 3: Implement the check**
 
 Export `findLayoutViolations(root)` and guard CLI execution with an
 `import.meta.url` comparison. The forbidden directory set must contain the
@@ -67,7 +67,7 @@ artifact matchers must cover `*.log`, `*.bak`, root test-output `*.txt`, packed
 The CLI prints each violation and exits 1, or prints
 `Tovyr source layout is clean.` and exits 0.
 
-- [ ] **Step 4: Wire the check into package scripts and CI**
+- [x] **Step 4: Wire the check into package scripts and CI**
 
 Add:
 
@@ -77,7 +77,7 @@ Add:
 
 Run it in CI immediately after `check:brand`.
 
-- [ ] **Step 5: Verify the focused test**
+- [x] **Step 5: Verify the focused test**
 
 Run: `bun test scripts/check-source-layout.test.js`
 
@@ -95,7 +95,7 @@ Expected: PASS.
 - Consumes: current command registry and browser/web tooling boundaries.
 - Produces: no `chrome-extension/` tree and no reachable extension-only UI, native-host, setup, or launcher code.
 
-- [ ] **Step 1: Record all extension references**
+- [x] **Step 1: Record all extension references**
 
 Run:
 
@@ -107,23 +107,23 @@ Classify each result as extension-only, shared browser automation, historical
 documentation, or third-party compatibility. Do not remove local browser/web
 capabilities merely because they use Chromium or CDP.
 
-- [ ] **Step 2: Remove extension-only registrations and tests first**
+- [x] **Step 2: Remove extension-only registrations and tests first**
 
 Delete registrations for extension onboarding/setup and remove their dedicated
 tests. Run the closest command and tool tests and expect failures that identify
 remaining imports.
 
-- [ ] **Step 3: Delete extension-only modules and the extension tree**
+- [x] **Step 3: Delete extension-only modules and the extension tree**
 
 Delete `chrome-extension/` and the modules whose only consumers were removed in
 Step 2. Remove extension-only vendor shims only when no other import remains.
 
-- [ ] **Step 4: Remove user-facing extension claims**
+- [x] **Step 4: Remove user-facing extension claims**
 
 Update README, guide, help, and diagnostics copy so Tovyr does not advertise an
 extension, native host, or extension onboarding path that no longer exists.
 
-- [ ] **Step 5: Verify absence and shared browser behavior**
+- [x] **Step 5: Verify absence and shared browser behavior**
 
 Run:
 
@@ -146,23 +146,23 @@ Expected: no active extension references; independent browser/web tests pass.
 - Consumes: import references, package scripts/exports/files, CI configuration, and documentation links.
 - Produces: removal manifest containing only files with no verified consumer.
 
-- [ ] **Step 1: Prove each candidate is unreferenced**
+- [x] **Step 1: Prove each candidate is unreferenced**
 
 For each candidate, search imports, dynamic imports, filesystem string paths,
 package metadata, shell scripts, CI, and docs. Retain and move any candidate
 with a real consumer; do not delete it based on its name or writing style.
 
-- [ ] **Step 2: Delete obvious local artifacts**
+- [x] **Step 2: Delete obvious local artifacts**
 
 Resolve every target to an absolute path beneath the repository before deleting
 it. Add narrow ignore patterns for repeatable output artifacts.
 
-- [ ] **Step 3: Delete proven placeholder subsystems**
+- [x] **Step 3: Delete proven placeholder subsystems**
 
 Remove only candidates with zero verified consumers. Record retained exceptions
 in the implementation summary with their consumer.
 
-- [ ] **Step 4: Verify package and documentation references**
+- [x] **Step 4: Verify package and documentation references**
 
 Run `npm pack --dry-run --json` and search for deleted paths across tracked and
 untracked non-ignored files. Expected: no package input or maintained document
@@ -183,19 +183,19 @@ depends on a deleted path.
 - Consumes: existing ESM relative imports and `src/*` alias imports.
 - Produces: CLI entrypoint at `src/entrypoints/cli.tsx` and alias mapping `src/* -> ./src/*`.
 
-- [ ] **Step 1: Capture a pre-move validation baseline**
+- [x] **Step 1: Capture a pre-move validation baseline**
 
 Run the focused version commands, `npm run typecheck`, and a representative
 test subset. Save results outside the repository so migration failures can be
 distinguished from pre-existing failures.
 
-- [ ] **Step 2: Move complete dependency neighborhoods**
+- [x] **Step 2: Move complete dependency neighborhoods**
 
 Move each retained directory as a whole so internal relative imports continue
 to resolve. Merge into the existing `src/` only after moving or deleting its
 current Rust `main.rs` according to Task 3.
 
-- [ ] **Step 3: Update configuration roots**
+- [x] **Step 3: Update configuration roots**
 
 Set:
 
@@ -207,20 +207,20 @@ Set:
 Update explicit file lists to `src/...`; set Bun's alias to `./src/`; point
 preloads to `./src/build/preload.ts` and `./src/build/test-preload.ts`.
 
-- [ ] **Step 4: Update launch and build paths**
+- [x] **Step 4: Update launch and build paths**
 
 Every launcher and runtime builder must resolve `src/entrypoints/cli.tsx`.
 Update error messages that name the old path. Keep launcher `cwd` behavior
 unchanged so Bun loads root `bunfig.toml` before the CLI restores the user's
 invocation directory.
 
-- [ ] **Step 5: Repair explicit path strings**
+- [x] **Step 5: Repair explicit path strings**
 
 Search source, scripts, CI, Docker, package metadata, and maintained docs for
 old root paths. Update only paths affected by the move; do not rewrite unrelated
 language or behavior.
 
-- [ ] **Step 6: Run migration-focused validation**
+- [x] **Step 6: Run migration-focused validation**
 
 Run:
 
@@ -249,20 +249,20 @@ match the recorded baseline or are fixed before continuing.
 - Consumes: final retained repository shape and existing licensing statements.
 - Produces: concise project map, artifact policy, and non-misleading provenance notice.
 
-- [ ] **Step 1: Write the provenance notice**
+- [x] **Step 1: Write the provenance notice**
 
 State only confirmed facts: Tovyr is independently branded and maintained;
 third-party components remain governed by their own notices; restructuring does
 not change ownership or licensing; questions about legal status require legal
 review. Do not claim clean-room development unless documented evidence exists.
 
-- [ ] **Step 2: Update repository maps and commands**
+- [x] **Step 2: Update repository maps and commands**
 
 Change source paths to `src/...`, remove Chrome-extension instructions, and
 document `npm run check:layout`. Keep supported Tovyr behavior descriptions
 unchanged.
 
-- [ ] **Step 3: Verify naming and stale paths**
+- [x] **Step 3: Verify naming and stale paths**
 
 Run:
 
@@ -284,7 +284,7 @@ Expected: path mentions use `src/...`; no active Chrome-extension claims remain.
 - Consumes: completed Tasks 1–5.
 - Produces: verified source-tree migration and a concise list of pre-existing failures, if any.
 
-- [ ] **Step 1: Run static and layout checks**
+- [x] **Step 1: Run static and layout checks**
 
 ```powershell
 npm run check:brand
@@ -293,14 +293,14 @@ npm run check:dead-ui
 npm run typecheck
 ```
 
-- [ ] **Step 2: Run tests and runtime build**
+- [x] **Step 2: Run tests and runtime build**
 
 ```powershell
 npm test
 npm run build:runtime
 ```
 
-- [ ] **Step 3: Run launcher and package smoke checks**
+- [x] **Step 3: Run launcher and package smoke checks**
 
 ```powershell
 bun run src/entrypoints/cli.tsx --version
@@ -308,12 +308,12 @@ node bin/tovyr.js --version
 npm run publish:npm:dry-run
 ```
 
-- [ ] **Step 4: Inspect final Git state**
+- [x] **Step 4: Inspect final Git state**
 
 Confirm that deletions and moves are limited to the approved scope, no secret
 files are staged, and unrelated pre-existing modifications remain intact.
 
-- [ ] **Step 5: Report results**
+- [x] **Step 5: Report results**
 
 Summarize the final root shape, removed subsystems/artifacts, retained exceptions,
 configuration changes, and the exact pass/fail result of every validation command.

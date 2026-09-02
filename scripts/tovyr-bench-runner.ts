@@ -5,13 +5,13 @@
 import {
   formatBenchCompareHuman,
   formatBenchReportHuman,
-} from '../services/tovyr/benchmark/report.js'
+} from '../src/services/tovyr/benchmark/report.js'
 import {
   loadBenchmarkReport,
   runBenchmark,
   saveBenchmarkReport,
-} from '../services/tovyr/benchmark/runner.js'
-import { BENCH_SUITES } from '../services/tovyr/benchmark/suites.js'
+} from '../src/services/tovyr/benchmark/runner.js'
+import { BENCH_SUITES } from '../src/services/tovyr/benchmark/suites.js'
 
 const args = process.argv.slice(2)
 const json = args.includes('--json') || process.env.TOVYR_JSON === '1'
@@ -62,7 +62,7 @@ const sub = args[0]
 
 if (sub === 'list') {
   const { OFFLINE_CASES, LIVE_CASES } = await import(
-    '../services/tovyr/benchmark/suites.js'
+    '../src/services/tovyr/benchmark/suites.js'
   )
   console.log('Offline cases:')
   for (const c of OFFLINE_CASES) {

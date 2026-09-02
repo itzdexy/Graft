@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Tovyr</title>
+  <defs>
+    <linearGradient id="orbit" x1="32" y1="32" x2="224" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#09090b"/>
+  <path d="M128 42 214 128 128 214 42 128Z" fill="none" stroke="url(#orbit)" stroke-width="15" stroke-linejoin="round"/>
+  <circle cx="128" cy="128" r="35" fill="url(#orbit)"/>
+  <path d="M25 142c39 24 163 24 206-27" fill="none" stroke="#e4e4e7" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="214" cy="119" r="8" fill="#22d3ee"/>
+</svg>

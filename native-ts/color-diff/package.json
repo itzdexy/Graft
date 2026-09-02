@@ -1,6 +1,0 @@
-{
-  "name": "color-diff-napi",
-  "version": "0.0.0-tovyr-ts",
-  "type": "module",
-  "main": "./index.ts"
-}
