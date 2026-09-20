@@ -28,6 +28,8 @@ Reports and screenshots are saved to `.graft/browser/` in the project. Keep this
 
 Response text streams into the conversation. Live thinking uses one compact preview. Search and browser activity show colored site badges and domain names from observed tool results. The terminal version uses text badges rather than image favicons. Reduced motion keeps the status readable without animation.
 
+Web search distinguishes unavailable service from an empty result, shares a 20-second deadline across its fallback requests, and propagates cancellation. Search snippets are leads; open the linked pages before relying on detailed claims. Source URLs are deduplicated, and snippets stay attached to their own result.
+
 ## Project learning
 
 Graft keeps local project preferences and fixed lessons from tool failures. These guide later prompts; they do not retrain model weights or automatically rewrite the application. Automatic observations store only lesson identifiers and counters, without tool inputs, outputs, or conversation text.

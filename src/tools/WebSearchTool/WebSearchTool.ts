@@ -298,6 +298,7 @@ export const WebSearchTool = buildTool({
         })
       }
       const local = await runLocalWebSearch(query, context.abortController.signal)
+      if (local.status === 'unavailable') throw new Error('Web search is unavailable or timed out. No reliable result was obtained; try a known source URL or retry later.')
       if (onProgress) {
         onProgress({
           toolUseID: 'search-progress-2',

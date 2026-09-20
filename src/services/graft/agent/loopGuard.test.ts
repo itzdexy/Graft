@@ -134,6 +134,22 @@ describe('loopGuard', () => {
     expect(a).toBe(b)
     expect(a).not.toBe(toolCallSignature('Bash', { command: 'npm run lint' }))
   })
+  test('corrected edits and long commands do not count as identical failed attempts', () => {
+    const session = baseSession()
+    recordAgentToolCall(session, { toolName: 'Edit', input: { file_path: 'app.ts', old_string: 'old', new_string: 'bad' }, ok: false })
+    recordAgentToolCall(session, { toolName: 'Edit', input: { file_path: 'app.ts', old_string: 'old', new_string: 'bad' }, ok: false })
+    expect(recordAgentToolCall(session, { toolName: 'Edit', input: { file_path: 'app.ts', old_string: 'actual', new_string: 'fixed' }, ok: false }).allowed).toBe(true)
+    expect(toolCallSignature('Bash', { command: 'x'.repeat(250) + 'a' })).not.toBe(toolCallSignature('Bash', { command: 'x'.repeat(250) + 'b' }))
+  })
+  test('signatures ignore object key order and do not retain tool input text', () => {
+    const first = toolCallSignature('Tool', { b: { y: 2, x: 1 }, a: 'private-data' })
+    expect(first).toBe(toolCallSignature('Tool', { a: 'private-data', b: { x: 1, y: 2 } }))
+    expect(first).not.toContain('private-data')
+  })
+  test('short meaningful answers are not classified as empty', () => {
+    expect(isEmptyOrInvalidModelOutput('Done.')).toBe(false)
+    expect(isEmptyOrInvalidModelOutput('42')).toBe(false)
+  })
 })
 
 describe('sessionSummary', () => {

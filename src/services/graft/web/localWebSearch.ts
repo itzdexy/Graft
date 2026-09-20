@@ -12,7 +12,14 @@ export type LocalSearchResult = {
   hits: LocalSearchHit[]
   durationSeconds: number
   provider: 'duckduckgo' | 'duckduckgo-instant'
+  status?: 'ok' | 'empty' | 'unavailable'
 }
+
+type SearchTransport = (url: string, signal: AbortSignal) => Promise<unknown>
+const requestSearch: SearchTransport = async (url, signal) => (await axios.get(url, {
+  signal, timeout: SEARCH_TIMEOUT_MS, maxRedirects: 5, maxContentLength: 2_000_000,
+  headers: { 'User-Agent': getWebFetchUserAgent() },
+})).data
 
 const SEARCH_TIMEOUT_MS = 20_000
 const MAX_HITS = 8
@@ -24,8 +31,13 @@ const MAX_HITS = 8
 export async function runLocalWebSearch(
   query: string,
   signal?: AbortSignal,
+  transport: SearchTransport = requestSearch,
 ): Promise<LocalSearchResult> {
+  signal?.throwIfAborted()
   const start = performance.now()
+  const deadline = AbortSignal.timeout(SEARCH_TIMEOUT_MS)
+  const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline
+  let failed = false
   const trimmed = query.trim()
   if (trimmed.length < 2) {
     return {
@@ -33,26 +45,31 @@ export async function runLocalWebSearch(
       hits: [],
       durationSeconds: 0,
       provider: 'duckduckgo',
+      status: 'empty',
     }
   }
 
   // Prefer HTML results (richer). Fall back to Instant Answer API.
   try {
-    const hits = await searchDuckDuckGoHtml(trimmed, signal)
+    const hits = parseDuckDuckGoHtml(String(await transport(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(trimmed)}`, requestSignal)))
     if (hits.length > 0) {
       return {
         query: trimmed,
         hits: hits.slice(0, MAX_HITS),
         durationSeconds: (performance.now() - start) / 1000,
         provider: 'duckduckgo',
+        status: 'ok',
       }
     }
   } catch {
-    // fall through
+    signal?.throwIfAborted()
+    failed = true
   }
 
   try {
-    const hits = await searchDuckDuckGoInstant(trimmed, signal)
+    requestSignal.throwIfAborted()
+    const data = await transport(`https://api.duckduckgo.com/?q=${encodeURIComponent(trimmed)}&format=json&no_html=1&skip_disambig=1`, requestSignal)
+    const hits = parseDuckDuckGoInstant(data)
     // Empty Instant Answer (no Abstract / RelatedTopics) is a hard miss —
     // do not pretend we searched successfully when HTML SERP was also empty.
     if (hits.length > 0) {
@@ -61,10 +78,12 @@ export async function runLocalWebSearch(
         hits: hits.slice(0, MAX_HITS),
         durationSeconds: (performance.now() - start) / 1000,
         provider: 'duckduckgo-instant',
+        status: 'ok',
       }
     }
   } catch {
-    // both backends failed
+    signal?.throwIfAborted()
+    failed = true
   }
 
   return {
@@ -72,45 +91,26 @@ export async function runLocalWebSearch(
     hits: [],
     durationSeconds: (performance.now() - start) / 1000,
     provider: 'duckduckgo',
+    status: failed ? 'unavailable' : 'empty',
   }
-}
-
-async function searchDuckDuckGoHtml(
-  query: string,
-  signal?: AbortSignal,
-): Promise<LocalSearchHit[]> {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
-  const response = await axios.get<string>(url, {
-    signal,
-    timeout: SEARCH_TIMEOUT_MS,
-    responseType: 'text',
-    headers: {
-      Accept: 'text/html',
-      'User-Agent': getWebFetchUserAgent(),
-    },
-    maxRedirects: 5,
-  })
-
-  return parseDuckDuckGoHtml(response.data)
 }
 
 /** Parse DuckDuckGo HTML SERP into title/url/snippet triples. */
 export function parseDuckDuckGoHtml(html: string): LocalSearchHit[] {
   const hits: LocalSearchHit[] = []
   // Each result block: result__a link + optional result__snippet
-  const resultRe =
-    /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
-  let match: RegExpExecArray | null
-  while ((match = resultRe.exec(html)) !== null) {
-    const rawHref = match[1] ?? ''
+  const results = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(match => /\bclass\s*=\s*["'][^"']*\bresult__a\b[^"']*["']/i.test(match[1]!))
+  for (let i = 0; i < results.length; i++) {
+    const match = results[i]!
+    const rawHref = decodeBasicHtml(match[1]?.match(/\bhref\s*=\s*["']([^"']*)["']/i)?.[1] ?? '')
     const title = decodeBasicHtml(stripTags(match[2] ?? '')).trim()
     const url = unwrapDuckDuckGoRedirect(rawHref)
-    if (!url || !title || !/^https?:\/\//i.test(url)) continue
+    if (!url || !title || hits.some(hit => hit.url === url)) continue
 
     // Snippet: look ahead a bit for result__snippet
-    const window = html.slice(match.index, match.index + 1200)
+    const window = html.slice(match.index! + match[0].length, results[i + 1]?.index ?? html.length)
     const snipMatch = window.match(
-      /class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|td|div)/i,
+      /class=["'][^"']*result__snippet[^"']*["'][^>]*>([\s\S]*?)<\/(?:a|td|div)/i,
     )
     const snippet = snipMatch
       ? decodeBasicHtml(stripTags(snipMatch[1] ?? '')).trim()
@@ -133,26 +133,17 @@ function unwrapDuckDuckGoRedirect(href: string): string {
           ? `https://duckduckgo.com${href}`
           : href
     const parsed = new URL(absolute)
-    const uddg = parsed.searchParams.get('uddg')
-    if (uddg) return decodeURIComponent(uddg)
-    if (parsed.hostname.includes('duckduckgo.com')) {
-      const uddg2 = parsed.searchParams.get('uddg')
-      if (uddg2) return decodeURIComponent(uddg2)
-    }
-    return absolute
+    const uddg = (parsed.hostname === 'duckduckgo.com' || parsed.hostname.endsWith('.duckduckgo.com')) && parsed.searchParams.get('uddg')
+    const target = uddg ? new URL(uddg) : parsed
+    return /^https?:$/.test(target.protocol) && !target.username && !target.password ? target.href : ''
   } catch {
-    return href
+    return ''
   }
 }
 
-async function searchDuckDuckGoInstant(
-  query: string,
-  signal?: AbortSignal,
-): Promise<LocalSearchHit[]> {
-  const url =
-    `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}` +
-    `&format=json&no_html=1&skip_disambig=1`
-  const response = await axios.get<{
+function parseDuckDuckGoInstant(raw: unknown): LocalSearchHit[] {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid search response')
+  const data = raw as {
     AbstractText?: string
     AbstractURL?: string
     Heading?: string
@@ -162,14 +153,9 @@ async function searchDuckDuckGoInstant(
       Topics?: Array<{ Text?: string; FirstURL?: string }>
     }>
     Results?: Array<{ Text?: string; FirstURL?: string }>
-  }>(url, {
-    signal,
-    timeout: SEARCH_TIMEOUT_MS,
-    headers: { Accept: 'application/json', 'User-Agent': getWebFetchUserAgent() },
-  })
+  }
 
   const hits: LocalSearchHit[] = []
-  const data = response.data
   if (data.AbstractURL && (data.Heading || data.AbstractText)) {
     hits.push({
       title: data.Heading || data.AbstractURL,
@@ -192,7 +178,13 @@ async function searchDuckDuckGoInstant(
       }
     }
   }
-  return hits
+  const seen = new Set<string>()
+  return hits.flatMap(hit => {
+    const url = unwrapDuckDuckGoRedirect(hit.url)
+    if (!url || seen.has(url)) return []
+    seen.add(url)
+    return [{ ...hit, url }]
+  })
 }
 
 function stripTags(s: string): string {

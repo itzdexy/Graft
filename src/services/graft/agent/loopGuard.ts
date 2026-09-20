@@ -3,6 +3,7 @@ import type {
   AgentLoopStopReason,
   AgentSession,
 } from './types.js'
+import { createHash } from 'node:crypto'
 import {
   AGENT_DEFAULT_MAX_EMPTY_OUTPUTS,
   AGENT_DEFAULT_MAX_REPEATED_FAILURES,
@@ -63,33 +64,23 @@ export function getSessionLimits(session: AgentSession): {
   }
 }
 
-/** Stable fingerprint for loop detection (tool + salient input fields). */
+/** Compare complete tool inputs without retaining their contents in session state. */
 export function toolCallSignature(
   toolName: string,
   input: Record<string, unknown>,
 ): string {
-  const parts: string[] = [toolName]
-  const keys = ['command', 'file_path', 'path', 'pattern', 'query', 'url', 'target_file']
-  for (const key of keys) {
-    const val = input[key]
-    if (typeof val === 'string' && val.trim()) {
-      parts.push(`${key}=${val.trim().slice(0, 200)}`)
+  const canonical = JSON.stringify(input, (_key, value) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]]))
     }
-  }
-  if (parts.length === 1) {
-    try {
-      parts.push(JSON.stringify(input).slice(0, 300))
-    } catch {
-      parts.push('(unserializable)')
-    }
-  }
-  return parts.join('|')
+    return value
+  })
+  return `${toolName}:${createHash('sha256').update(canonical).digest('hex')}`
 }
 
 export function isEmptyOrInvalidModelOutput(text: string): boolean {
   const trimmed = text.trim()
   if (!trimmed) return true
-  if (trimmed.length < 8) return true
   const lower = trimmed.toLowerCase()
   if (LEAKED_TOOL_MARKERS.some(m => lower.includes(m)) && trimmed.length < 120) {
     return true
