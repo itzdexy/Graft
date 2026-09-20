@@ -1,6 +1,6 @@
 # Installation details
 
-Use the [README installers](../README.md). Node.js 22+, Bun, and Git must be installed first.
+Use the [README installers](../README.md). Node.js 22+, Bun, Git, and ripgrep (`rg`) must be installed first. Graft's source distribution uses ripgrep from PATH for Glob/Grep; `graft doctor` checks its availability.
 
 ## Update
 

@@ -5,6 +5,9 @@ param(
   [switch]$SkipDependencies
 )
 $ErrorActionPreference = 'Stop'
+if (-not (Get-Command rg -CommandType Application -ErrorAction SilentlyContinue)) {
+  throw 'Ripgrep (rg) is required for file search. Install ripgrep and add it to PATH, then reopen PowerShell and rerun this installer.'
+}
 foreach ($name in @('node', 'bun')) {
   if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
     throw "$name is required. Install Node.js 22+ and Bun from https://nodejs.org and https://bun.sh, then reopen PowerShell."

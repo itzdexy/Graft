@@ -12,7 +12,7 @@ The screenshot uses app-rendered components and simulated demo content, not a li
 
 ## Install
 
-Requires **Node.js 22+**, **Bun**, and **Git** on Windows, macOS, or Linux (x64 / ARM64). Get them from [nodejs.org](https://nodejs.org/), [bun.sh](https://bun.sh/), and [git-scm.com](https://git-scm.com/).
+Requires **Node.js 22+**, **Bun**, **Git**, and **ripgrep (`rg`)** on Windows, macOS, or Linux (x64 / ARM64). Get them from [nodejs.org](https://nodejs.org/), [bun.sh](https://bun.sh/), [git-scm.com](https://git-scm.com/), and [ripgrep](https://github.com/BurntSushi/ripgrep#installation). File search uses `rg` from PATH.
 
 ### Windows — PowerShell
 

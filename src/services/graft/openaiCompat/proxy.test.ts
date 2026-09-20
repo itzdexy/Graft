@@ -14,6 +14,26 @@ const sample: OpenAiCompatProxyConfig = {
   upstreamApiKey: 'nvapi-test',
 }
 
+test('a stalled connection reports a bounded timeout without automatic retry', async () => {
+  const previous = process.env.GRAFT_CONNECT_TIMEOUT_MS
+  process.env.GRAFT_CONNECT_TIMEOUT_MS = '100'
+  const upstream = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch() {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    return Response.json({ choices: [] })
+  } })
+  try {
+    const base = ensureOpenAiCompatProxySync({ providerId: 'nvidia_nim', upstreamBaseUrl: `http://127.0.0.1:${upstream.port}/v1`, upstreamApiKey: 'fixture-only' })
+    const response = await fetch(`${base}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'fixture-model', max_tokens: 32, stream: true, messages: [{ role: 'user', content: 'Hello' }] }) })
+    expect(response.status).toBe(504)
+    expect(response.headers.get('x-should-retry')).toBe('false')
+    expect((await response.json()).error.message).toContain('did not begin')
+  } finally {
+    stopOpenAiCompatProxy(); upstream.stop(true)
+    if (previous === undefined) delete process.env.GRAFT_CONNECT_TIMEOUT_MS
+    else process.env.GRAFT_CONNECT_TIMEOUT_MS = previous
+  }
+})
+
 test('a blank fallback response is rejected and a later real answer succeeds', async () => {
   let answer = '\n'
   const upstream = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => Response.json({choices: [{message: {role: 'assistant', content: answer}, finish_reason: 'stop'}]}) })

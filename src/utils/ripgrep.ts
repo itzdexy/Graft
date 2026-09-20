@@ -5,6 +5,8 @@ import { homedir } from 'os'
 import * as path from 'path'
 import { logEvent } from 'src/services/analytics/index.js'
 import { fileURLToPath } from 'url'
+import { existsSync } from 'node:fs'
+import { findSystemRipgrep } from '../../scripts/graft-ripgrep.js'
 import { isInBundledMode } from './bundledMode.js'
 import { logForDebugging } from './debug.js'
 import { isEnvDefinedFalsy } from './envUtils.js'
@@ -61,7 +63,10 @@ const getRipgrepConfig = memoize((): RipgrepConfig => {
       ? path.resolve(rgRoot, `${process.arch}-win32`, 'rg.exe')
       : path.resolve(rgRoot, `${process.arch}-${process.platform}`, 'rg')
 
-  return { mode: 'builtin', command, args: [] }
+  if (existsSync(command)) return { mode: 'builtin', command, args: [] }
+  const system = findSystemRipgrep()
+  if (system) return { mode: 'system', command: system, args: ['--no-config'] }
+  throw new Error('Ripgrep (rg) is missing. Install ripgrep and add it to PATH, then restart Graft. File search cannot run until rg is available.')
 })
 
 export function ripgrepCommand(): {

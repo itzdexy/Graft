@@ -210,9 +210,12 @@ async function handleMessages(
     toolCount: openAiBody.tools?.length ?? 0,
     messageCount: openAiBody.messages.length,
   })
-  const upstreamSignal = req.signal
-    ? AbortSignal.any([req.signal, AbortSignal.timeout(600_000)])
-    : AbortSignal.timeout(600_000)
+  const configuredConnectMs = Number(process.env.GRAFT_CONNECT_TIMEOUT_MS)
+  const connectMs = Number.isFinite(configuredConnectMs) && configuredConnectMs >= 100
+    ? Math.min(configuredConnectMs, 600_000) : 30_000
+  const connection = new AbortController()
+  const connectionTimer = setTimeout(() => connection.abort(), connectMs)
+  const upstreamSignal = AbortSignal.any([req.signal, connection.signal, AbortSignal.timeout(600_000)])
   let upstream: Response
   try {
     upstream = await fetch(openAiChatCompletionsUrl(config.upstreamBaseUrl), {
@@ -226,6 +229,11 @@ async function handleMessages(
       signal: upstreamSignal,
     })
   } catch (error) {
+    if (connection.signal.aborted && !req.signal.aborted) {
+      const response = anthropicError(504, `The provider did not begin its response within ${connectMs / 1000}s. Retry or switch models with /model. For slow models, increase GRAFT_CONNECT_TIMEOUT_MS.`, 'api_error')
+      response.headers.set('x-should-retry', 'false')
+      return response
+    }
     const msg =
       error instanceof Error ? error.message : 'Upstream chat request failed'
     const errorName = error instanceof Error ? error.name : undefined
@@ -239,6 +247,8 @@ async function handleMessages(
       isAbort ? 499 : 502,
       classified.userMessage || `OpenAI-compat upstream: ${msg}`,
     )
+  } finally {
+    clearTimeout(connectionTimer)
   }
 
   if (!upstream.ok) {

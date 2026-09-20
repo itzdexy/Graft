@@ -16,6 +16,7 @@ import { getGraftHome } from './graft-home.js'
 import { summarizeInstallPathState } from './graft-install-checks.js'
 import { graftWarmNeeded } from './graft-warm.js'
 import { formatAgentLimitsSummary } from './graft-agent-limits.js'
+import { findSystemRipgrep } from './graft-ripgrep.js'
 import { listAppAdapters } from './graft-apps/catalog.js'
 import {
   detectGraftPlatform,
@@ -338,6 +339,9 @@ if (cliEntry) {
 }
 
 const bun = resolveBunExecutable()
+const rg = findSystemRipgrep()
+if (rg) ok('Ripgrep', rg)
+else fail('Ripgrep', 'rg is missing from PATH; source installs need ripgrep for Glob/Grep.')
 if (launcherOnly) {
   if (bun !== 'bun' && existsSync(bun)) {
     ok('Bun (optional)', `${bun} — only needed for source install`)

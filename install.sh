@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+command -v rg >/dev/null || { echo 'Ripgrep (rg) is required for file search. Install ripgrep and add it to PATH first.' >&2; exit 1; }
 
 source_path=""
 if [[ "${1:-}" == "--source" && -n "${2:-}" ]]; then
