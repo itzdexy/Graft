@@ -23,6 +23,14 @@ import {
 } from './utils.js'
 import { isGraftRuntime } from '../../utils/graftRuntime.js'
 import { selectGraftWebContent } from '../../services/graft/web/contentSelection.js'
+import { isPrivateBrowserHost } from '../../services/graft/browser/urlSafety.js'
+
+export function isRoutinePublicWebRead(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    return /^https?:$/.test(url.protocol) && !url.username && !url.password && url.hostname.includes('.') && !isPrivateBrowserHost(url.hostname)
+  } catch { return false }
+}
 
 const PROCESSED_CACHE_TTL_MS = 15 * 60 * 1000
 const processedCache = new Map<
@@ -130,21 +138,6 @@ export const WebFetchTool = buildTool({
     const appState = context.getAppState()
     const permissionContext = appState.toolPermissionContext
 
-    // Check if the hostname is in the preapproved list
-    try {
-      const { url } = input as { url: string }
-      const parsedUrl = new URL(url)
-      if (isPreapprovedHost(parsedUrl.hostname, parsedUrl.pathname)) {
-        return {
-          behavior: 'allow',
-          updatedInput: input,
-          decisionReason: { type: 'other', reason: 'Preapproved host' },
-        }
-      }
-    } catch {
-      // If URL parsing fails, continue with normal permission checks
-    }
-
     // Check for a rule specific to the tool input (matching hostname)
     const ruleContent = webFetchToolInputToPermissionRuleContent(input)
 
@@ -197,6 +190,12 @@ export const WebFetchTool = buildTool({
       }
     }
 
+    try {
+      const url = new URL(input.url)
+      if (isPreapprovedHost(url.hostname, url.pathname) || (isGraftRuntime() && isRoutinePublicWebRead(input.url))) {
+        return { behavior: 'allow', updatedInput: input, decisionReason: { type: 'other', reason: 'Read-only public web request' } }
+      }
+    } catch { /* Invalid URLs remain subject to validation. */ }
     return {
       behavior: 'ask',
       message: `${getAssistantName()} requested permissions to use ${WebFetchTool.name}, but you haven't granted it yet.`,

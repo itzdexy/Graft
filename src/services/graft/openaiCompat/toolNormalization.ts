@@ -228,5 +228,38 @@ export function normalizeToolArguments(
     }
     return out
   }
+  if (canonical === 'WebFetch') {
+    const out = { ...raw }
+    if (out.url === undefined) out.url = out.target ?? out.uri ?? out.link
+    if (typeof out.url === 'string') out.url = normalizeWebUrl(out.url)
+    if (out.prompt === undefined) out.prompt = 'Return the relevant page content and its source URL.'
+    for (const key of ['target', 'uri', 'link']) delete out[key]
+    if (out.action === 'read' || out.action === 'fetch') delete out.action
+    return out
+  }
+  if (canonical === 'WebSearch') {
+    const out = { ...raw }
+    if (out.query === undefined) out.query = out.q ?? out.search_query ?? out.target
+    for (const key of ['q', 'search_query', 'target']) delete out[key]
+    if (out.action === 'search') delete out.action
+    return out
+  }
   return raw
+}
+
+/** Add HTTPS only to a recognizable hostname, never to a local path or other scheme. */
+export function normalizeWebUrl(raw: string): string {
+  const value = raw.trim()
+  if (/^https?:\/\//i.test(value)) return value
+  if (/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s\\]*)?$/i.test(value)) return `https://${value}`
+  return value
+}
+
+export function normalizeWebToolCall(name: string, input: Record<string, unknown>): { name: string; input: Record<string, unknown> } {
+  const canonical = normalizeToolName(name)
+  const normalized = normalizeToolArguments(canonical, input)
+  if (canonical === 'Read' && typeof normalized.file_path === 'string' && /^https?:\/\//i.test(normalized.file_path.trim())) {
+    return { name: 'WebFetch', input: normalizeToolArguments('WebFetch', { url: normalized.file_path }) }
+  }
+  return { name: canonical, input: normalized }
 }

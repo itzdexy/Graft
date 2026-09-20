@@ -77,7 +77,7 @@ import {
   validateGraftFileToolPath,
 } from '../graft/tools/safety.js'
 import { maybeCheckpointBeforeEdit } from '../graft/git/editHook.js'
-import { normalizeToolArguments } from '../graft/openaiCompat/toolNormalization.js'
+import { normalizeToolArguments, normalizeWebToolCall } from '../graft/openaiCompat/toolNormalization.js'
 import { noteCodeEditForVerify } from '../graft/verify/editHook.js'
 import {
   AbortError,
@@ -372,6 +372,12 @@ export async function* runToolUse(
   canUseTool: CanUseToolFn,
   toolUseContext: ToolUseContext,
 ): AsyncGenerator<MessageUpdateLazy, void> {
+  if (isGraftRuntime() && toolUse.input && typeof toolUse.input === 'object' && !Array.isArray(toolUse.input)) {
+    const routed = normalizeWebToolCall(toolUse.name, toolUse.input as Record<string, unknown>)
+    if (routed.name === 'WebFetch' && findToolByName(toolUseContext.options.tools, routed.name)) {
+      toolUse = { ...toolUse, ...routed }
+    }
+  }
   const toolName = toolUse.name
   // First try to find in the available tools (what the model sees)
   let tool = findToolByName(toolUseContext.options.tools, toolName)

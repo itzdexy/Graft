@@ -419,6 +419,9 @@ export const FileReadTool = buildTool({
   },
   renderToolUseErrorMessage,
   async validateInput({ file_path, pages }, toolUseContext: ToolUseContext) {
+    if (/^https?:[\\/]/i.test(file_path.trim())) {
+      return { result: false, message: 'Read accepts local file paths. Use WebFetch with this URL to read a website.', errorCode: 10 }
+    }
     // Validate pages parameter (pure string parsing, no I/O)
     if (pages !== undefined) {
       const parsed = parsePDFPageRange(pages)
