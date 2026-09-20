@@ -2206,16 +2206,6 @@ function PromptInput({
       !isModalOverlayActive && isFastModeEnabled() && isFastModeAvailable(),
   })
 
-  useKeybinding(
-    'app:toggleHelp',
-    () => {
-      if (!isGraftRuntime()) return
-      logEvent('tengu_help_toggled', {})
-      setHelpOpen(true)
-    },
-    { context: 'Global', isActive: !isModalOverlayActive },
-  )
-
   // Quick Open / Global Search. Hook calls are unconditional (Rules of Hooks);
   // the handler body is feature()-gated so the setState calls and component
   // references get tree-shaken in external builds.

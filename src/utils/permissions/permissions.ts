@@ -1176,6 +1176,10 @@ async function hasPermissionsToUseToolInner(
       input,
     )
     if (tierBlock) {
+      if (tierBlock.behavior === 'allow') {
+        const ruleBlock = await checkRuleBasedPermissions(tool, input, context)
+        if (ruleBlock) return ruleBlock
+      }
       return tierBlock
     }
   }

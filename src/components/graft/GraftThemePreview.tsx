@@ -67,7 +67,7 @@ export function GraftThemePreview(): ReactNode {
       </Box>
       <Box flexDirection="row" justifyContent="space-between" width="100%">
         <Text color="inactive" dimColor>
-          <Text color="graftPrimary" bold>?</Text> help{'  ·  '}
+          <Text color="graftPrimary" bold>/help</Text> help{'  ·  '}
           <Text color="graftPrimary" bold>/</Text> commands{'  ·  '}
           <Text color="graftPrimary" bold>Up</Text> history
         </Text>

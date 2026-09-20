@@ -135,7 +135,7 @@ export function resolveCommandDiscoveryCollisions(
 export const IMPLEMENTED_KEYBINDINGS = resolveCommandDiscoveryShortcuts({
   palette: 'ctrl+p',
   mode: 'shift+tab',
-  help: '?',
+  help: undefined,
   dismiss: 'esc',
 })
 
@@ -153,9 +153,7 @@ export function useResolvedCommandDiscoveryShortcuts(): readonly ImplementedKeyb
   const mode = keybindings
     ? keybindings.getDisplayText('chat:cycleMode', 'Chat')
     : 'shift+tab'
-  const help = keybindings
-    ? keybindings.getDisplayText('app:toggleHelp', 'Global')
-    : '?'
+  const help = undefined
   const dismiss = keybindings
     ? keybindings.getDisplayText('help:dismiss', 'Help')
     : 'esc'

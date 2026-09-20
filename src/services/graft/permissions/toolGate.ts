@@ -1,4 +1,4 @@
-import type { PermissionResult } from '../../../utils/permissions/PermissionResult.js'
+import type { PermissionDecision } from '../../../utils/permissions/PermissionResult.js'
 import type { PermissionMode } from '../../../types/permissions.js'
 import { isAbsolute, relative, sep } from 'node:path'
 import { isGraftRuntime } from '../../../utils/graftRuntime.js'
@@ -20,6 +20,7 @@ import {
   matchSecretPath,
 } from './secretPaths.js'
 import { matchDestructiveShellCommand } from './destructiveShell.js'
+import { isRoutineDirectoryInspection } from './routineInspection.js'
 
 const TIER_RANK: Record<GraftPermissionTier, number> = {
   read_only: 0,
@@ -112,7 +113,7 @@ function isWithinWorkspace(filePath: string): boolean {
 function allowDecision(
   permissionMode: PermissionMode,
   input?: unknown,
-): PermissionResult {
+): PermissionDecision {
   return {
     behavior: 'allow',
     updatedInput:
@@ -140,7 +141,7 @@ export function getGraftTierToolBlock(
   toolName: string,
   permissionMode: PermissionMode,
   input?: unknown,
-): PermissionResult | null {
+): PermissionDecision | null {
   if (!isGraftRuntime()) return null
   if (permissionMode === 'bypassPermissions') return null
 
@@ -264,7 +265,10 @@ export function getGraftTierToolBlock(
       return allowDecision(permissionMode, input)
     }
 
-    // read_only (plan): shell stays gated regardless of what it does.
+    // Directory inspection is read-only in plan mode as well.
+    if (command && isRoutineDirectoryInspection(command)) return allowDecision(permissionMode, input)
+
+    // Other shell commands still need approval in read-only mode.
     if (rank < TIER_RANK.auto_edit) {
       return {
         behavior: 'ask',

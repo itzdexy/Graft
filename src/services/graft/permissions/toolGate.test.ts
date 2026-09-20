@@ -251,8 +251,8 @@ describe('everyday shell commands do not interrupt', () => {
     expect(block?.behavior).toBe('ask')
   })
 
-  test('plan mode still refuses to run shell at all', () => {
-    const block = getGraftTierToolBlock('Bash', 'plan', { command: 'ls' })
+  test('plan mode still requires approval for commands beyond directory inspection', () => {
+    const block = getGraftTierToolBlock('Bash', 'plan', { command: 'npm run build' })
     expect(block?.behavior).toBe('ask')
     expect(block?.message).toContain('Plan mode')
   })
