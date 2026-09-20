@@ -27,15 +27,15 @@ describe('formatThinkingDuration', () => {
 })
 
 describe('formatThinkingHeader', () => {
-  test('a finished block collapses to a plus and its duration', () => {
+  test('a finished block uses a disclosure chevron and its duration', () => {
     expect(formatThinkingHeader({ state: 'collapsed', elapsedMs: 16_300 })).toEqual(
-      { marker: '+', label: 'Thought: 16.3s' },
+      { marker: '›', label: 'Thought: 16.3s' },
     )
   })
 
   test('expanding flips the marker but keeps the label', () => {
     expect(formatThinkingHeader({ state: 'expanded', elapsedMs: 16_300 })).toEqual(
-      { marker: '-', label: 'Thought: 16.3s' },
+      { marker: '⌄', label: 'Thought: 16.3s' },
     )
   })
 
@@ -48,7 +48,7 @@ describe('formatThinkingHeader', () => {
 
   test('an unmeasured block omits the number rather than inventing 0.0s', () => {
     expect(formatThinkingHeader({ state: 'collapsed' })).toEqual({
-      marker: '+',
+      marker: '›',
       label: 'Thought',
     })
   })

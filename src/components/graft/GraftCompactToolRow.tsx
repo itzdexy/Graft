@@ -4,7 +4,6 @@ import {
   buildToolPresentation,
   formatDuration,
   shouldExpandTool,
-  toolCategoryGlyph,
   type ToolDetailMode,
   type ToolPresentationStatus,
   type ToolRisk,
@@ -19,7 +18,6 @@ import {
   commandRiskGlyph,
 } from '../../services/graft/dx/commandRisk.js'
 
-import figures from 'figures'
 
 type Props = {
   toolName: string
@@ -43,12 +41,12 @@ type Props = {
 }
 
 const STATUS_GLYPH: Record<ToolPresentationStatus, string> = {
-  queued: figures.circle,
-  'waiting-approval': figures.warning,
-  running: figures.bullet,
-  succeeded: figures.tick,
-  failed: figures.cross,
-  cancelled: figures.line,
+  queued: '·',
+  'waiting-approval': '?',
+  running: '›',
+  succeeded: '·',
+  failed: '!',
+  cancelled: '–',
 }
 
 /** Shared lifecycle row used by shell, file, web, MCP, and agent tools. */
@@ -84,7 +82,6 @@ export const GraftCompactToolRow = memo(function GraftCompactToolRow({
     matchCount,
     risk,
   })
-  const categoryIcon = !line ? `${toolCategoryGlyph(tool.category)} ` : ''
   const expanded = shouldExpandTool(tool, detailMode)
   const isActive = status === 'queued' || status === 'running'
   const failed = status === 'failed'
@@ -133,7 +130,7 @@ export const GraftCompactToolRow = memo(function GraftCompactToolRow({
     >
       <Box flexDirection="row" width="100%" gap={1}>
         <Text color={color} bold={isActive || failed || waiting} dimColor={settled}>
-          {riskGlyph || line?.prefix || STATUS_GLYPH[status]}
+          {riskGlyph ? '!' : STATUS_GLYPH[status]}
         </Text>
         <Text wrap="truncate-end" inverse={selected}>
           <Text
@@ -141,7 +138,6 @@ export const GraftCompactToolRow = memo(function GraftCompactToolRow({
             bold={isActive}
             dimColor={settled}
           >
-            {categoryIcon}
             {line?.text ?? formatToolLabel(tool.label, tool.inputSummary)}
           </Text>
           {commandRisk.label ? (
@@ -159,7 +155,7 @@ export const GraftCompactToolRow = memo(function GraftCompactToolRow({
         <Box paddingLeft={2} flexDirection="column">
           {tool.resultSummary || failed ? (
             <Text color={failed ? 'error' : 'subtle'} wrap="truncate-end">
-              {failed ? '! ' : '↳ '}
+              {failed ? '! ' : ''}
               {/* A failure with no result text still has to say so — silently
                   rendering an empty row is how `✗ Glob "*"` came to mean
                   nothing at all. */}

@@ -71,7 +71,7 @@ export function formatThinkingHeader(input: {
     // now show the same shape.
     return { marker: '◐', label: 'Thinking' }
   }
-  const marker = input.state === 'expanded' ? '-' : '+'
+  const marker = input.state === 'expanded' ? '⌄' : '›'
   // A finished block with no measured duration still gets a header; omitting
   // the number is better than inventing 0.0s.
   const label =
