@@ -35,11 +35,20 @@ describe('motion config', () => {
     expect(isMotionEnabled()).toBe(false)
   })
 
-  test('CI gets no motion', () => {
+  test('CI without an interactive launcher gets no motion', () => {
     clearGuards()
-    process.env.GRAFT_FORCE_INTERACTIVE = '1'
     process.env.CI = 'true'
     // A spinner in CI is escape sequences written to a log nobody watches.
+    expect(isMotionEnabled()).toBe(false)
+  })
+
+  test('interactive launcher overrides inherited CI but respects explicit motion disable', () => {
+    clearGuards()
+    process.env.CI = '1'
+    process.env.GRAFT_FORCE_INTERACTIVE = '1'
+    expect(isMotionEnabled()).toBe(true)
+    expect(motionInterval()).toBe(MOTION_FRAME_MS)
+    process.env.GRAFT_NO_MOTION = '1'
     expect(isMotionEnabled()).toBe(false)
   })
 

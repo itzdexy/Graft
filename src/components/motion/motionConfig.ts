@@ -31,12 +31,12 @@ function envSaysOff(): boolean {
  */
 export function isMotionEnabled(): boolean {
   if (envSaysOff()) return false
-  // CI and non-interactive runs: nobody is watching a frame counter.
-  if (process.env.CI) return false
   if (process.env.NODE_ENV === 'test') return false
   // A launcher may force interactive mode where isTTY is unreliable (Windows
   // + Bun), so an explicit force wins over the isTTY probe.
   if (process.env.GRAFT_FORCE_INTERACTIVE === '1') return true
+  // An inherited user-level CI flag must not disable an explicitly interactive UI.
+  if (process.env.CI) return false
   return Boolean(process.stdout.isTTY)
 }
 

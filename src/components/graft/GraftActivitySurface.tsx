@@ -3,6 +3,7 @@ import { useInterval } from '../../ink/hooks/use-interval.js'
 import {
   MOTION_FRAME_MS,
   motionInterval,
+  isMotionEnabled,
 } from '../motion/motionConfig.js'
 import { Box, Text } from '../../ink.js'
 import type { GraftTurnActivity } from '../../services/graft/dx/turnActivity.js'
@@ -164,7 +165,7 @@ export function GraftActivitySurface({
 }): ReactNode {
   const configuredReducedMotion =
     useAppState(state => state.settings.prefersReducedMotion) ?? false
-  const reducedMotion = reducedMotionOverride ?? configuredReducedMotion
+  const reducedMotion = (reducedMotionOverride ?? configuredReducedMotion) || !isMotionEnabled()
   const { columns } = useTerminalSize()
   const [frame, setFrame] = useState(0)
   const hosts = activity.sourceHosts ?? []

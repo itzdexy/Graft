@@ -22,7 +22,7 @@ test('the only activity row drives its own animation clock while waiting for a p
     startedAt: 0, updatedAt: 0, evidence: [],
   }} /></ClockContext.Provider>, {
     columns: 100, withAppState: true, settleMs: 30,
-    env: { NODE_ENV: 'production', CI: undefined, GRAFT_FORCE_INTERACTIVE: '1', GRAFT_NO_MOTION: '0' },
+    env: { NODE_ENV: 'production', CI: '1', GRAFT_FORCE_INTERACTIVE: '1', GRAFT_NO_MOTION: '0' },
     interact: () => {
       if ([...subscribers.values()].some(Boolean)) {
         now = 120
