@@ -255,7 +255,7 @@ function MessageImpl({
             message={message}
             inProgressToolUseIDs={inProgressToolUseIDs}
             lookups={lookups}
-            expanded={expanded || verbose || isTranscriptMode}
+            expanded={expanded || isTranscriptMode}
           />
         </OffscreenFreeze>
       ) : (

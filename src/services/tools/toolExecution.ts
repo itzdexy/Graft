@@ -1,4 +1,5 @@
 import { feature } from '../../utils/features.js'
+import { isExplanationRequest, latestUserRequest, recordLesson } from '../graft/learning.js'
 import type {
   ContentBlockParam,
   ToolResultBlockParam,
@@ -718,11 +719,15 @@ async function checkPermissionsAndCallTool(
   }
 
   // Validate input values. Each tool has its own validation logic
-  const isValidCall = await tool.validateInput?.(
+  const explanationOnly = isGraftRuntime() && isExplanationRequest(latestUserRequest(toolUseContext.messages ?? []))
+  const blockedExplanationAction = explanationOnly && !tool.isReadOnly(parsedInput.data)
+  if (blockedExplanationAction) recordLesson(getCwd(), 'explain')
+  const isValidCall = blockedExplanationAction ? { result: false, errorCode: 10, message: 'This request asks for an explanation only. Use read-only tools and answer from the files already inspected. Do not create or modify files or run shell actions.' } : await tool.validateInput?.(
     parsedInput.data,
     toolUseContext,
   )
   if (isValidCall?.result === false) {
+    if (isGraftRuntime()) recordLesson(getCwd(), 'failure')
     logForDebugging(
       `${tool.name} tool validation error: ${isValidCall.message?.slice(0, 200)}`,
     )
@@ -1750,6 +1755,7 @@ async function checkPermissionsAndCallTool(
     }
 
     if (!(error instanceof AbortError)) {
+      if (isGraftRuntime()) recordLesson(getCwd(), 'failure')
       const errorMsg = errorMessage(error)
       const logErrorMsg = isGraftRuntime()
         ? formatToolErrorForLog(tool.name, error)

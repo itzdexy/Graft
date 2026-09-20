@@ -152,6 +152,7 @@ import graftAgent from './commands/graft/agent.js'
 import graftSuperthink from './commands/graft/superthink.js'
 import graftRepo from './commands/graft/repo.js'
 import graftMemory from './commands/graft/memory.js'
+import graftLearn from './commands/graft/learn.js'
 import graftBrowser from './commands/graft/browser.js'
 import graftComputer from './commands/graft/computer.js'
 import graftDeepResearch from './commands/graft/deep-research.js'
@@ -383,6 +384,7 @@ const COMMANDS = memoize((): Command[] => {
         graftSuperthink,
         graftRepo,
         graftMemory,
+        graftLearn,
         graftBrowser,
         graftComputer,
         graftDeepResearch,

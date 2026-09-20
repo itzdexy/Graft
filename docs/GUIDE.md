@@ -28,6 +28,14 @@ Reports and screenshots are saved to `.graft/browser/` in the project. Keep this
 
 Response text streams into the conversation. Live thinking uses one compact preview. Search and browser activity show colored site badges and domain names from observed tool results. The terminal version uses text badges rather than image favicons. Reduced motion keeps the status readable without animation.
 
+## Project learning
+
+Graft keeps local project preferences and fixed lessons from tool failures. These guide later prompts; they do not retrain model weights or automatically rewrite the application. Automatic observations store only lesson identifiers and counters, without tool inputs, outputs, or conversation text.
+
+Use `/learn remember Prefer concise explanations` to save a preference, `/learn list` to inspect it, `/learn forget 1` to remove a preference, and `/learn clear` to clear this project's preferences and observations. `/learn off` disables automatic observations and prompt use; `/learn on` restores them. Preferences are sent to the active model when learning is on. Store no confidential information in preferences. Data stays under your local `.graft/learning` directory and is excluded from the public source export.
+
+Clear folder-explanation requests use read-only tools. Graft starts with the README and manifest and is instructed to answer without scanning every file. Read/search batches stay collapsed until expanded explicitly; failed tools show their reported error when available.
+
 ## Installation and support
 
 See the [README](../README.md) for installation and [INSTALL.md](INSTALL.md) for updates, troubleshooting, and removal. This source preview does not claim that every imported experimental feature or every provider has been verified.

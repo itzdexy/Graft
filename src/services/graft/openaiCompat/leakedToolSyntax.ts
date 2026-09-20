@@ -289,7 +289,7 @@ export function recoverNativeToolCalls(text: string): {
 }
 
 /** Run all native-text tool recovery passes (deduped by tool name + input). */
-export function recoverAllLeakedToolCalls(text: string): {
+export function recoverAllLeakedToolCalls(text: string, allowNarratedWrites = true): {
   cleanText: string
   toolUses: RecoveredToolUse[]
 } {
@@ -315,9 +315,11 @@ export function recoverAllLeakedToolCalls(text: string): {
   cleanText = native.cleanText
   append(native.toolUses)
 
-  const narrated = recoverNarratedFileWrites(cleanText)
-  cleanText = narrated.cleanText
-  append(narrated.toolUses)
+  if (allowNarratedWrites) {
+    const narrated = recoverNarratedFileWrites(cleanText)
+    cleanText = narrated.cleanText
+    append(narrated.toolUses)
+  }
 
   return { cleanText, toolUses: merged }
 }

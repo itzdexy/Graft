@@ -1,4 +1,5 @@
 import { AGENT_TOOL_NAME } from '../tools/AgentTool/constants.js'
+import { learningPrompt } from '../services/graft/learning.js'
 import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
 import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
 import { getActiveGraftPersonality } from '../services/graft/hermes/personalities.js'
@@ -154,6 +155,7 @@ export function getGraftAgentExpansionSection(
 export function getGraftOperatingPrinciplesSection(): string {
   const items = [
     'Gather evidence before acting: read files, grep, `/repo map`, and AGENTS.md — do not guess at APIs or layout.',
+    'For folder explanations, use read-only tools, start with the README and manifest, and answer once the purpose and structure are clear. Do not create files or scan every source file.',
     'Make the smallest correct change; avoid drive-by refactors and whole-file rewrites when a patch suffices.',
     'After edits, verify when scripts exist (`/verify`, `/agent verify`, or project test/lint commands).',
     'Plan before large work: `/plan` drafts graftplan.md; `/code` implements after user acceptance.',
@@ -169,6 +171,7 @@ export function getGraftPromptExtras(
 ): string[] {
   return [
     loadProjectContextSection(),
+    learningPrompt(getCwd()),
     loadRepoMapSectionSync(),
     loadLspContextSection(),
     formatRelevantMemorySection(getCwd(), loadProjectMemory(getCwd())),
@@ -226,6 +229,8 @@ Date: ${sessionDate}
 - Omit the \`path\` argument to search the project; pass a path only when you have seen it in tool output.
 
 ## Working rules
+- A request to explain a folder is read-only. Start with the README and manifest; avoid exhaustive source scans. Once you can explain its purpose and structure, answer directly.
+- Project learning: ${learningPrompt(cwd)}
 - Read before editing; keep diffs minimal. Batch independent tool calls in parallel.
 - Keep replies short — lead with the result, skip preamble and narration.
 - Never call Skill unless the user typed that exact skill name with a leading slash. Skill takes a name from the listed skills only — not a topic, a model name, a greeting, or a description of the task. \"deepseek\", \"greeting-responder\", and \"style:modern\" are not skills. When in doubt, answer directly.

@@ -491,7 +491,7 @@ export function openAiCompletionToAnthropic(
         b.type === 'thinking',
     )
     const combined = textBlocks.map(b => b.text).join('\n')
-    const { cleanText, toolUses } = recoverAllLeakedToolCalls(combined)
+    const { cleanText, toolUses } = recoverAllLeakedToolCalls(combined, false)
     if (toolUses.length) {
       content.length = 0
       content.push(...thinkingBlocks)
@@ -805,7 +805,7 @@ export async function* openAiStreamToAnthropicEvents(
     }
     yield* closeOpenBlock()
     if (finishReason !== 'length' && toolState.size === 0) {
-      const { toolUses } = recoverAllLeakedToolCalls(fullText)
+      const { toolUses } = recoverAllLeakedToolCalls(fullText, false)
       for (const tool of toolUses) {
         yield* emitRecoveredTool(tool)
       }

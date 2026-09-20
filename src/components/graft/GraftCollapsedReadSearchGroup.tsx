@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { extractToolResultPreview } from '../../services/graft/dx/toolResultText.js'
 import { Box, Text } from '../../ink.js'
 import type { CollapsedReadSearchGroup } from '../../types/message.js'
 import type { buildMessageLookups } from '../../utils/messages.js'
@@ -114,6 +115,7 @@ export function GraftCollapsedReadSearchGroup({
                 input={tu.input}
                 inProgress={inProgress}
                 ok={ok}
+                resultPreview={extractToolResultPreview(lookups.toolResultByToolUseID?.get(tu.id), tu.id)}
               />
             )
           })
@@ -130,6 +132,7 @@ export function GraftCollapsedReadSearchGroup({
                 input={tu.input}
                 inProgress={inProgress}
                 ok={ok}
+                resultPreview={extractToolResultPreview(lookups.toolResultByToolUseID?.get(tu.id), tu.id)}
               />
             )
           })}

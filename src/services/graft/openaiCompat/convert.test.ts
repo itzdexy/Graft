@@ -6,6 +6,12 @@ import {
 } from './convert.js'
 
 describe('openaiCompat convert', () => {
+  test('a narrated code example remains text rather than becoming a file write', () => {
+    const content = 'Example index.html:\n```html\n<html><body>Example</body></html>\n```'
+    const result = openAiCompletionToAnthropic({ choices: [{ message: { role: 'assistant', content }, finish_reason: 'stop' }] }, 'example-model')
+    expect(result.stop_reason).toBe('end_turn')
+    expect(result.content).toEqual([{ type: 'text', text: content }])
+  })
   test('Lightning defaults to fast replies while allowing explicit thinking opt-in', () => {
     const previous = process.env.GRAFT_ENABLE_MODEL_THINKING
     const body = { model: 'nvidia/nemotron-3.5-lightning-30b-a3b', max_tokens: 8192, messages: [{role: 'user' as const, content: 'Hello'}] }
