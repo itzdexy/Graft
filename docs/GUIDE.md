@@ -40,6 +40,12 @@ Clear folder-explanation requests use read-only tools. Graft starts with the REA
 
 See the [README](../README.md) for installation and [INSTALL.md](INSTALL.md) for updates, troubleshooting, and removal. This source preview does not claim that every imported experimental feature or every provider has been verified.
 
+## Coding, research, and verification
+
+Use `/build <feature>` for implementation, `/debug <problem>` for investigation, and `/review` for a review without edits. These workflows focus on relevant files, preserve the existing stack, and require evidence for reported results. `/research <question>` asks for source-backed findings, version compatibility, and explicit uncertainty; `/deep-research <question>` produces a longer report.
+
+Bare `/verify` now starts all detected checks through the normal shell-tool workflow, where permission checks, progress, and cancellation apply. `/verify test` or `/verify lint,typecheck` selects a subset; `/verify help` shows usage. Missing checks are reported as unconfigured. Verification alone does not request source fixes. Package-manager declarations take precedence over leftover lockfiles, and detection does not invent missing tests or choose `lint:fix` as a check.
+
 ## Context and response speed
 
 Graft uses the active provider's reported context capacity when available, including compatible endpoint metadata. Model-specific documented limits are used when the endpoint omits them; unknown models retain a conservative fallback. Capacity includes room for output and a safety margin. Tool-call arguments count toward the input budget.

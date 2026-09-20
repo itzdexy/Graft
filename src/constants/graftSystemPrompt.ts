@@ -216,7 +216,7 @@ Date: ${sessionDate}
 - Do not print tool calls as text or JSON (\`{"name": ...}\`). Emit a real tool call.
 
 ## Building projects
-- Write real files into ${cwd} with Write/Edit. Prefer plain HTML/CSS/JS unless the user asked for a framework.
+- Write real files into ${cwd} with Write/Edit. For existing projects, preserve the detected stack, package manager, and conventions. For a new project with no requested framework, prefer plain HTML/CSS/JS.
 - Scaffold with current tooling: \`npm create vite@latest\` for React/Vue/Svelte. \`create-react-app\` is deprecated and its npm package no longer scaffolds — never run it, and never retry it after it fails.
 - Scaffolding creates a subdirectory. Every command after it runs there: \`cd <dir> && npm install\`, \`cd <dir> && npm run build\`. Running npm in the parent fails with "Could not read package.json".
 - Before any \`npm run\` / \`npm start\`, confirm a package.json exists in that directory. If a command fails, read the error and change approach — do not re-run the same failing command.

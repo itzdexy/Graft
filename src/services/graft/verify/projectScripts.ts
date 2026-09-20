@@ -24,12 +24,17 @@ const SCRIPT_KIND_MAP: Array<{
   keys: string[]
 }> = [
   { kind: 'typecheck', keys: ['typecheck', 'check:types', 'tsc', 'types'] },
-  { kind: 'lint', keys: ['lint', 'eslint', 'lint:fix'] },
+  { kind: 'lint', keys: ['lint', 'eslint'] },
   { kind: 'test', keys: ['test', 'test:unit', 'test:ci', 'unit'] },
   { kind: 'build', keys: ['build', 'compile', 'dist'] },
 ]
 
 export function detectPackageManager(cwd: string): PackageManager {
+  try {
+    const declared = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')).packageManager
+    const match = typeof declared === 'string' && /^(npm|pnpm|yarn|bun)@\S+$/.exec(declared)
+    if (match) return match[1] as PackageManager
+  } catch { /* Fall back to lockfiles when no valid declaration exists. */ }
   if (existsSync(join(cwd, 'bun.lock')) || existsSync(join(cwd, 'bun.lockb'))) {
     return 'bun'
   }
@@ -97,19 +102,10 @@ function detectNodeScripts(cwd: string): ProjectScripts | null {
 
   for (const { kind, keys } of SCRIPT_KIND_MAP) {
     if (usedKinds.has(kind)) continue
-    const key = keys.find(k => scripts[k] !== undefined)
+    const key = keys.find(k => typeof scripts[k] === 'string' && scripts[k]!.trim().length > 0)
     if (!key) continue
     checks.push(checkFromScript(pm, kind, key, scripts[key]!))
     usedKinds.add(kind)
-  }
-
-  if (!checks.length && scripts.test === undefined && existsSync(join(cwd, 'node_modules'))) {
-    checks.push({
-      kind: 'test',
-      label: `${pm} test (fallback)`,
-      command: pm === 'npm' ? 'npm' : pm,
-      args: pm === 'yarn' ? ['test'] : pm === 'npm' ? ['test'] : ['test'],
-    })
   }
 
   return { packageManager: pm, checks, source: 'package.json' }

@@ -1,10 +1,7 @@
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.js'
 import type { AgentSession } from '../agent/types.js'
-import {
-  formatVerificationReport,
-  getVerifyCommandsForPrompt,
-  runVerification,
-} from './VerifyEngine.js'
+import { getVerifyCommandsForPrompt } from './VerifyEngine.js'
+import { detectProjectScripts, formatProjectScripts, type VerifyCheckKind } from './projectScripts.js'
 
 export type AutoFixOptions = {
   maxRounds?: number
@@ -56,38 +53,23 @@ export async function verifyPromptForCwd(
   cwd: string,
   kinds?: string,
 ): Promise<ContentBlockParam[]> {
-  const kindList = kinds
-    ?.split(/[,\s]+/)
-    .map(k => k.trim().toLowerCase())
-    .filter(Boolean) as Array<'typecheck' | 'lint' | 'test' | 'build'> | undefined
-
-  const report = await runVerification(cwd, {
-    kinds: kindList?.length ? kindList : undefined,
-    stopOnFirstFailure: false,
-  })
-  const formatted = formatVerificationReport(report)
-
-  if (report.allPassed) {
-    return [
-      {
-        type: 'text',
-        text: `${formatted}\n\nTell the user verification passed. No further action unless they want more checks.`,
-      },
-    ]
-  }
-
-  return [
-    {
-      type: 'text',
-      text: [
-        formatted,
-        '',
-        '## Next',
-        'Fix the failures above. Use Read/Edit and re-run verify commands.',
-        'When done, user can run `/verify` again or `/agent autofix`.',
-      ].join('\n'),
-    },
-  ]
+  const requested = [...new Set(kinds?.toLowerCase().split(/[,\s]+/).filter(Boolean) ?? [])]
+  const allowed = ['typecheck', 'lint', 'test', 'build']
+  const invalid = requested.filter(kind => !allowed.includes(kind))
+  if (invalid.length) return [{ type: 'text', text: `Unknown verification kind: ${invalid.join(', ')}. Use /verify [typecheck|lint|test|build]. Do not run checks for this invalid request.` }]
+  const scripts = detectProjectScripts(cwd)
+  const checks = scripts.checks.filter(check => !requested.length || requested.includes(check.kind))
+  const missing = requested.filter(kind => !checks.some(check => check.kind === kind))
+  return [{ type: 'text', text: [
+    '# Verify this project',
+    `Working directory: ${JSON.stringify(cwd)}`,
+    formatProjectScripts({ ...scripts, checks }),
+    missing.length ? `Not configured: ${missing.join(', ')}. Report these as skipped, not passed.` : '',
+    checks.length ? 'Run each detected command through the normal shell tool in the working directory above. Respect the active permission mode and cancellation. Do not execute in a different project directory.' : 'No matching checks are configured. Report that verification was not run; do not invent fallback commands.',
+    'Inspect the script definitions before running them. A check may invoke project-defined code; do not run deployment, publishing, destructive, or fix scripts as verification.',
+    'Report each command, exit status, and the useful failure output. Preserve both stdout and stderr. A timeout, cancellation, skipped check, or missing command is not a pass.',
+    'Verification alone does not authorize source changes. Report failures and distinguish pre-existing issues where evidence allows. If the user also requested fixes, make targeted changes and rerun the affected checks.',
+  ].filter(Boolean).join('\n') }]
 }
 
 export function autoFixRounds(session: AgentSession): number {

@@ -5,7 +5,7 @@ import { getCwd } from '../../utils/cwd.js'
 
 function parseVerifyArgs(args: string): { kinds: string; help: boolean } {
   const trimmed = args.trim()
-  if (!trimmed || trimmed === 'help' || trimmed === '?') {
+  if (trimmed === 'help' || trimmed === '?') {
     return { kinds: '', help: true }
   }
   return { kinds: trimmed, help: false }
