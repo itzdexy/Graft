@@ -1,16 +1,13 @@
-export const PRODUCT_URL = 'https://freemodel.dev'
+export const PRODUCT_URL = 'https://github.com/itzdexy/Graft'
 
-export const PRODUCT_NAME = 'Tovyr'
+export const PRODUCT_NAME = 'Graft'
 
-// Tovyr Remote session URLs
+// Remote-session endpoints are third-party integrations, not the Graft product site.
 export const CLAUDE_AI_BASE_URL = 'https://claude.ai'
 export const CLAUDE_AI_STAGING_BASE_URL = 'https://claude-ai.staging.ant.dev'
 export const CLAUDE_AI_LOCAL_BASE_URL = 'http://localhost:4000'
 
-/**
- * Determine if we're in a staging environment for remote sessions.
- * Checks session ID format and ingress URL.
- */
+/** Determine whether an existing remote session uses the staging endpoint. */
 export function isRemoteSessionStaging(
   sessionId?: string,
   ingressUrl?: string,
@@ -21,10 +18,7 @@ export function isRemoteSessionStaging(
   )
 }
 
-/**
- * Determine if we're in a local-dev environment for remote sessions.
- * Checks session ID format (e.g. `session_local_...`) and ingress URL.
- */
+/** Determine whether an existing remote session uses a local endpoint. */
 export function isRemoteSessionLocal(
   sessionId?: string,
   ingressUrl?: string,
@@ -35,9 +29,7 @@ export function isRemoteSessionLocal(
   )
 }
 
-/**
- * Get the base URL for Tovyr AI based on environment.
- */
+/** Resolve the remote-session endpoint; function name is kept for import compatibility. */
 export function getTovyrWebBaseUrl(
   sessionId?: string,
   ingressUrl?: string,
@@ -51,19 +43,7 @@ export function getTovyrWebBaseUrl(
   return CLAUDE_AI_BASE_URL
 }
 
-/**
- * Get the full session URL for a remote session.
- *
- * The cse_→session_ translation is a temporary shim gated by
- * tengu_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
- * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the tovyr web
- * frontend currently routes on `session_*` (compat/convert.go:27 validates
- * TagSession). Same UUID body, different tag prefix. Once the server tags by
- * environment_kind and the frontend accepts `cse_*` directly, flip the gate
- * off. No-op for IDs already in `session_*` form. See toCompatSessionId in
- * src/bridge/sessionIdCompat.ts for the canonical helper (lazy-required here
- * to keep constants/ leaf-of-DAG at module-load time).
- */
+/** Build a remote-session URL with the existing session-ID compatibility shim. */
 export function getRemoteSessionUrl(
   sessionId: string,
   ingressUrl?: string,

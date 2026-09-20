@@ -1,10 +1,12 @@
-# Graft (current CLI: `tovyr`)
+# Graft
 
-Graft is a terminal-native AI coding agent. The repository has been renamed to Graft, but the current v1.3.6 runtime, npm package metadata, and executable still use **Tovyr** identifiers. The working command is `tovyr`, **not** `graft`.
+**v1.4.0** · Terminal-native AI coding agent.
+
+This repository contains the source for Graft and its Bun-powered interactive CLI. The public command is `graft`.
 
 ## Install from source
 
-Requires [Bun](https://bun.sh/) and Node.js 18+.
+Requires Node.js 18+, npm, and [Bun](https://bun.sh/).
 
 ```bash
 git clone https://github.com/itzdexy/Graft.git
@@ -14,35 +16,52 @@ bun run build
 npm install -g .
 ```
 
-Open a new terminal after installation on Windows if the command is not found.
-
-## Quick start
+Start a new terminal on Windows if the command is not on PATH, then check:
 
 ```bash
-tovyr setup
-tovyr auth login --key YOUR_API_KEY
-cd path/to/your-project
-tovyr
+graft --version
 ```
 
-Configure a supported model provider with your own key. Be aware that commands containing credentials may be retained in shell history. Launch the agent inside the project you intend to work on, not from your home directory.
+Run Graft from a project directory rather than your home directory:
 
-## Commands
+```bash
+cd path/to/your-project
+graft
+```
+
+This source-install guide does not imply that Graft has already been published to the npm registry.
+
+## Set up a provider
+
+```bash
+graft setup
+graft auth login --key YOUR_API_KEY
+graft provider list
+```
+
+Never commit credentials or paste real keys into issue reports. API-key support and model availability depend on your provider.
+
+## Useful commands
 
 | Command | Purpose |
 | --- | --- |
-| `tovyr` | Start the interactive agent |
-| `tovyr --help` | Show CLI help |
-| `tovyr --version` | Show version |
-| `tovyr setup` | Check setup |
-| `tovyr provider list` | Show configured providers |
-| `tovyr provider use <id>` | Select a provider |
-| `tovyr doctor` | Check runtime compatibility |
+| `graft` | Start interactive mode |
+| `graft --help` | Show command help |
+| `graft --version` | Show version |
+| `graft setup` | Check your installation |
+| `graft doctor` | Run diagnostics |
+| `graft provider list` | List providers |
+| `graft provider use <id>` | Change provider |
+| `graft -p "prompt"` | Non-interactive prompt |
 
-For agent modes, model selection, configuration, and troubleshooting, read the [full user guide](docs/GUIDE.md). See [SAFETY.md](docs/SAFETY.md) for documented permissions and safeguards.
+## Develop
 
-The Graft name change is not yet a complete CLI/package rename; this document deliberately uses the executable and configuration names that currently exist.
+```bash
+bun install
+bun run dev
+bun test
+bun run typecheck
+bun run lint
+```
 
-## License
-
-[MIT](LICENSE). See [NOTICE](NOTICE) for provenance and third-party licensing context.
+The application entrypoint is `src/entrypoints/cli.tsx`. See the [repository README](README.md), [LICENSE](LICENSE), and [NOTICE](NOTICE).

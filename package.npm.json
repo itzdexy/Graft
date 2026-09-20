@@ -1,21 +1,20 @@
 {
-  "name": "tovyr",
-  "version": "1.3.6",
-  "description": "Tovyr — a fast, polished AI coding agent for your terminal",
+  "name": "@itzdexy/graft",
+  "version": "1.4.0",
+  "description": "Graft — an AI coding agent for your terminal",
   "type": "module",
   "license": "MIT",
-  "author": "itsdexy",
+  "author": "itzdexy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itzdexy/Tovyr.git"
+    "url": "git+https://github.com/itzdexy/Graft.git"
   },
   "bugs": {
-    "url": "https://github.com/itzdexy/Tovyr/issues"
+    "url": "https://github.com/itzdexy/Graft/issues"
   },
-  "homepage": "https://github.com/itzdexy/Tovyr#readme",
+  "homepage": "https://github.com/itzdexy/Graft#readme",
   "keywords": [
-    "tovyr",
-    "tovyrcode",
+    "graft",
     "ai",
     "coding-agent",
     "cli",
@@ -26,9 +25,10 @@
     "node": ">=18"
   },
   "bin": {
-    "tovyr": "./bin/tovyr.js"
+    "graft": "./bin/graft.js"
   },
   "files": [
+    "bin/graft.js",
     "bin/tovyr.js",
     "bin/tovyr.cmd",
     "bin/tovyr.ps1",
@@ -60,7 +60,7 @@
   ],
   "scripts": {
     "postinstall": "node scripts/tovyr-postinstall.js",
-    "prepublishOnly": "node -e \"const fs=require('fs');['bin/tovyr.js','docs/GUIDE.md'].forEach(p=>fs.accessSync(p));\""
+    "prepublishOnly": "node -e \"const fs=require('fs');['bin/graft.js','bin/tovyr.js','docs/GUIDE.md'].forEach(p=>fs.accessSync(p));\""
   },
   "dependencies": {
     "@faker-js/faker": "^10.5.0",
