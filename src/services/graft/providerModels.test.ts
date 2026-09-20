@@ -5,11 +5,17 @@ import {
   parseGeminiModelDescriptors,
   parseModelListPayload,
   parseOpenAiModelsList,
+  parseOpenAiModelDescriptors,
   payloadHasOpenAiModelMetadata,
   resetProviderModelCache,
 } from './providerModels.js'
 
 describe('buildOpenAiModelListCandidateUrls', () => {
+  test('recognizes context capacity fields from compatible endpoints', () => {
+    for (const field of ['context_length', 'context_window', 'max_model_len', 'max_input_tokens']) {
+      expect(parseOpenAiModelDescriptors({data: [{id: 'example', [field]: 262144}]})[0]?.contextTokens).toBe(262144)
+    }
+  })
   test('does not duplicate the v1 segment when a provider base already ends in v1', () => {
     expect(
       buildOpenAiModelListCandidateUrls([

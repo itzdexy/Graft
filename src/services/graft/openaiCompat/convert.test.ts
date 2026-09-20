@@ -6,6 +6,19 @@ import {
 } from './convert.js'
 
 describe('openaiCompat convert', () => {
+  test('Lightning defaults to fast replies while allowing explicit thinking opt-in', () => {
+    const previous = process.env.GRAFT_ENABLE_MODEL_THINKING
+    const body = { model: 'nvidia/nemotron-3.5-lightning-30b-a3b', max_tokens: 8192, messages: [{role: 'user' as const, content: 'Hello'}] }
+    try {
+      delete process.env.GRAFT_ENABLE_MODEL_THINKING
+      expect(anthropicRequestToOpenAi(body, 'nvidia_nim').chat_template_kwargs).toEqual({ enable_thinking: false })
+      process.env.GRAFT_ENABLE_MODEL_THINKING = '1'
+      expect(anthropicRequestToOpenAi(body, 'nvidia_nim').chat_template_kwargs).toEqual({ enable_thinking: true })
+    } finally {
+      if (previous === undefined) delete process.env.GRAFT_ENABLE_MODEL_THINKING
+      else process.env.GRAFT_ENABLE_MODEL_THINKING = previous
+    }
+  })
   test('uses Nemotron tool mode without leaking reasoning traces', () => {
     const openAi = anthropicRequestToOpenAi({
       model: 'nvidia/nemotron-3-nano-30b-a3b',

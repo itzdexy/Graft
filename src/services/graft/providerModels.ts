@@ -97,7 +97,8 @@ export function parseOpenAiModelDescriptors(payload: unknown): ModelDescriptor[]
         : typeof (item.top_provider as { context_length?: unknown } | undefined)
               ?.context_length === 'number'
           ? ((item.top_provider as { context_length: number }).context_length)
-          : null
+          : ([item.context_window, item.max_model_len, item.max_input_tokens]
+              .find((value): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 1000) ?? null)
 
     const pricing = parseModelPricing(item.pricing)
     const supportsTools = parseSupportsTools({

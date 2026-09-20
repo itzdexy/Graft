@@ -228,6 +228,7 @@ function contentToOpenAiParts(
 
 export function anthropicRequestToOpenAi(
   body: AnthropicMessagesRequest,
+  providerId = getActiveProviderId(),
 ): {
   model: string
   max_tokens: number
@@ -327,7 +328,7 @@ export function anthropicRequestToOpenAi(
     }
   }
 
-  const caps = resolveModelCapabilities(body.model, getActiveProviderId())
+  const caps = resolveModelCapabilities(body.model, providerId)
   const includeTools = Boolean(body.tools?.length) && caps.toolCalling
   // NIM GLM / DeepSeek-R1 default enable_thinking=true and burn 30–90s of CoT
   // before any visible tokens. Force off unless the user opts back in.
@@ -338,8 +339,8 @@ export function anthropicRequestToOpenAi(
   // Casual / no-tools turns do not need 32k completion budgets — smaller caps
   // cut TTFT and stop runaway CoT if a provider ignores enable_thinking.
   const maxTokens = includeTools
-    ? capAnthropicMaxTokensForGraftModel(body)
-    : Math.min(capAnthropicMaxTokensForGraftModel(body), 2048)
+    ? capAnthropicMaxTokensForGraftModel(body, providerId)
+    : Math.min(capAnthropicMaxTokensForGraftModel(body, providerId), 2048)
 
   return {
     model: body.model,

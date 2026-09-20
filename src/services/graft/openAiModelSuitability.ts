@@ -22,7 +22,7 @@ export function isAgentSuitableOpenAiModel(modelId: string): boolean {
 export function modelUsesOpenAiThinkingKwargs(modelId: string): boolean {
   const id = modelId.toLowerCase()
   return (
-    /\b(glm|deepseek-r1|reasoner|qwq|nemotron-3-nano)\b/.test(id) ||
+    /\b(glm|deepseek-r1|reasoner|qwq|nemotron-3-nano|nemotron-3\.5-lightning)\b/.test(id) ||
     id.startsWith('z-ai/')
   )
 }

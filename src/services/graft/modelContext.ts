@@ -95,6 +95,9 @@ export function inferContextWindowFromModelId(modelId: string): number | null {
   if (id.includes('nemotron-3-nano-30b-a3b')) {
     return 262_144
   }
+  // NVIDIA NIM's published Lightning context limit; live endpoint metadata wins.
+  // https://docs.nvidia.com/nim/large-language-models/2.0.10/get-started/advanced/get-started-nemotron-3.5-lightning.html
+  if (id.includes('nemotron-3.5-lightning-30b-a3b')) return 262_144
   if (id.includes('kimi-k3') || id.includes('kimi-k2.7')) {
     return 256_000
   }
@@ -278,6 +281,10 @@ function blocksToText(
         if (typeof block.content === 'string') return block.content
         if (Array.isArray(block.content)) return blocksToText(block.content)
       }
+      if (block.type === 'tool_use') {
+        const tool = block as { name?: string; input?: unknown }
+        return `${tool.name ?? ''} ${JSON.stringify(tool.input ?? {})}`
+      }
       return ''
     })
     .filter(Boolean)
@@ -308,7 +315,7 @@ export function estimateAnthropicRequestInputTokens(
     add(JSON.stringify(body.tools))
   }
 
-  return Math.max(1, Math.ceil(chars / 3.5))
+  return Math.max(1, Math.ceil(chars / 3.5) + body.messages.length * 8)
 }
 
 /** Ensure max_tokens + input fit inside the model context window. */
@@ -334,7 +341,7 @@ export function capAnthropicMaxTokensForGraftModel(
 ): number {
   const contextWindow = getGraftModelContextWindow(body.model, providerId)
   const inputTokens = estimateAnthropicRequestInputTokens(body)
-  const { upperLimit } = getGraftMaxOutputLimits(contextWindow)
+  const { upperLimit } = getGraftMaxOutputLimitsForModel(body.model, providerId)
   const requested = Math.min(body.max_tokens, upperLimit)
   return capMaxTokensForContextWindow(requested, contextWindow, inputTokens)
 }

@@ -31,3 +31,9 @@ Response text streams into the conversation. Live thinking uses one compact prev
 ## Installation and support
 
 See the [README](../README.md) for installation and [INSTALL.md](INSTALL.md) for updates, troubleshooting, and removal. This source preview does not claim that every imported experimental feature or every provider has been verified.
+
+## Context and response speed
+
+Graft uses the active provider's reported context capacity when available, including compatible endpoint metadata. Model-specific documented limits are used when the endpoint omits them; unknown models retain a conservative fallback. Capacity includes room for output and a safety margin. Tool-call arguments count toward the input budget.
+
+Nemotron 3.5 Lightning uses NVIDIA's documented 262,144-token context window unless the endpoint reports a different limit. Its optional thinking mode is off by default to avoid unnecessary reasoning on short requests. To opt in, set `GRAFT_ENABLE_MODEL_THINKING=1` before launching Graft. Provider inference speed and queueing still affect latency. See [NVIDIA's Lightning documentation](https://docs.nvidia.com/nim/large-language-models/2.0.10/get-started/advanced/get-started-nemotron-3.5-lightning.html).

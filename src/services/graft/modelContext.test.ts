@@ -8,9 +8,20 @@ import {
   getGraftMaxOutputLimits,
   inferContextWindowFromModelId,
   preflightAnthropicRequestContext,
+  estimateAnthropicRequestInputTokens,
 } from './modelContext.js'
 
 describe('modelContext', () => {
+  test('Lightning uses its documented 256K capacity instead of the unknown-model 32K fallback', () => {
+    const model = 'nvidia/nemotron-3.5-lightning-30b-a3b'
+    expect(inferContextWindowFromModelId(model)).toBe(262_144)
+    expect(preflightAnthropicRequestContext({ model, max_tokens: 8192, messages: [{role: 'user', content: 'x'.repeat(175000)}] }, 'nvidia_nim').ok).toBe(true)
+  })
+
+  test('context estimation includes tool-call arguments sent upstream', () => {
+    const request = { model: 'fixture', max_tokens: 1024, messages: [{ role: 'assistant', content: [{ type: 'tool_use', name: 'Write', input: { content: 'x'.repeat(35000) } }] }] }
+    expect(estimateAnthropicRequestInputTokens(request)).toBeGreaterThan(10000)
+  })
   test('infers 32k from llama 3.2 90b vision id', () => {
     expect(
       inferContextWindowFromModelId('meta/llama-3.2-90b-vision-instruct'),

@@ -202,7 +202,7 @@ async function handleMessages(
     return anthropicError(413, preflight.message, 'invalid_request_error')
   }
 
-  const openAiBody = anthropicRequestToOpenAi(body)
+  const openAiBody = anthropicRequestToOpenAi(body, config.providerId)
   proxyDebugLog('REQUEST →upstream', {
     model: openAiBody.model,
     stream: openAiBody.stream,

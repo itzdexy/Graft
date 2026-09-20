@@ -3,6 +3,7 @@ import { CONTEXT_1M_BETA_HEADER } from '../constants/betas.js'
 import {
   getGraftMaxOutputLimitsForModel,
   getGraftModelContextWindow,
+  describeGraftContextWindow,
 } from '../services/graft/modelContext.js'
 import { modelLooksLikeClaude } from '../../scripts/graft-model-compat.js'
 import { getGlobalConfig } from './config.js'
@@ -59,6 +60,10 @@ export function getContextWindowForModel(
   model: string,
   betas?: string[],
 ): number {
+  if (isGraftRuntime()) {
+    const reported = describeGraftContextWindow(model)
+    if (reported.source === 'provider') return reported.tokens
+  }
   // Allow override via environment variable (ant-only)
   // This takes precedence over all other context window resolution, including 1M detection,
   // so users can cap the effective context window for local decisions (auto-compact, etc.)
