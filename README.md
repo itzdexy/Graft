@@ -1,26 +1,24 @@
 # Graft
 
-A terminal-native AI coding agent for working in an existing codebase. Graft can inspect project files, propose and apply edits, run commands with permission controls, and connect to supported AI model providers.
+**v1.4.0** · AI coding agent for your terminal.
 
-> **Naming status:** This repository is named **Graft**, but the current v1.3.6 application still uses the `tovyr` executable, `TOVYR_*` environment variables, and `~/.tovyr/` configuration directory. The CLI has **not** yet been renamed to `graft`; the commands below use the names implemented in the code.
+Graft works in your project directory. It can inspect a codebase, plan changes, edit files, run commands with permission controls, and connect to supported AI model providers. You stay in control of what the agent can execute.
 
-## What it does
+## Features
 
-- Explore files and search a workspace before changing code.
-- Plan changes, edit files, and run shell commands through an interactive terminal interface.
-- Switch between configured providers and models.
-- Use optional agent workflows, web tools, and verification features.
-- Review permission prompts for sensitive or destructive operations.
+- **Codebase context:** read files and search an existing project.
+- **Coding workflows:** plan, review, and apply changes from the terminal.
+- **Provider choice:** configure supported providers and switch models.
+- **Tool access:** run shell commands, use optional web tools, and inspect results.
+- **Permission controls:** review sensitive or destructive actions before they run, according to the active mode.
 
-Features depend on your provider, model, configuration, and platform. See the [user guide](docs/GUIDE.md) for the full command reference and [safety documentation](docs/SAFETY.md) for permission behavior.
+Feature availability depends on your provider, model, configuration, and platform.
 
 ## Requirements
 
-- [Bun](https://bun.sh/) for the application runtime
-- Node.js 18 or newer and npm for the launcher and build scripts
-- Git to clone the source
-
-The project targets Windows, macOS, and Linux. Consult the [user guide](docs/GUIDE.md) for platform-specific setup and troubleshooting.
+- [Bun](https://bun.sh/) for the application runtime.
+- Node.js 18+ and npm for the launcher and build scripts.
+- Git for installing from source.
 
 ## Install from source
 
@@ -32,48 +30,53 @@ bun run build
 npm install -g .
 ```
 
-Open a new terminal after installation if the command is not found on Windows. The source package currently installs the `tovyr` command (and a `tovyrcode` alias); **`graft` is not an available command yet**.
+On Windows, open a new terminal after installing if the command is not immediately available. This is a source installation; the repository does not claim that a `graft` package is published to the npm registry.
 
-To run the source entry point without a global install, use `bun run dev` from the repository directory.
-
-## Get started
-
-Run the setup check:
+Check the installation:
 
 ```bash
-tovyr setup
+graft --version
 ```
 
-Configure a supported provider. For example, the existing FreeModel authentication flow is:
+You can also run `bun run dev` from the source checkout without a global installation.
+
+## Quick start
+
+Check your environment:
 
 ```bash
-tovyr auth login --key YOUR_API_KEY
+graft setup
 ```
 
-Replace `YOUR_API_KEY` with your own key. Take care when entering credentials into a terminal: commands may be saved in shell history. See the [guide](docs/GUIDE.md) for provider configuration and local-model options.
+Configure a supported API provider, for example:
 
-Then **change into the project you want to work on** before starting the agent:
+```bash
+graft auth login --key YOUR_API_KEY
+```
+
+Use your actual provider key, and avoid exposing it in screenshots or shell history. Then move into a project folder and start Graft:
 
 ```bash
 cd path/to/your-project
-tovyr
+graft
 ```
 
-Do not launch it from your home directory: the agent works on the current directory, and a home-directory scan can be unnecessarily broad.
+Run Graft from the project you intend it to access rather than from your home directory.
 
-## Useful commands
+## Commands
 
-| Command | Purpose |
+| Command | Description |
 | --- | --- |
-| `tovyr` | Start the interactive agent |
-| `tovyr --help` | Display CLI help |
-| `tovyr --version` | Display the version |
-| `tovyr setup` | Check the installation and configuration |
-| `tovyr provider list` | Show configured providers |
-| `tovyr provider use <id>` | Choose a provider |
-| `tovyr doctor` | Diagnose the runtime and platform |
+| `graft` | Start the interactive coding agent |
+| `graft --help` | Show available commands |
+| `graft --version` | Show the product version |
+| `graft setup` | Check installation and configuration |
+| `graft doctor` | Diagnose runtime and platform problems |
+| `graft provider list` | List configured providers |
+| `graft provider use <id>` | Choose a provider |
+| `graft -p "prompt"` | Run a non-interactive prompt |
 
-The interactive application also has `/plan`, `/code`, `/agent`, and `/provider` workflows; availability and behavior are described in the [guide](docs/GUIDE.md).
+Interactive workflows include `/plan`, `/code`, `/agent`, and `/provider`. Their behavior depends on configuration and connected models.
 
 ## Development
 
@@ -85,12 +88,10 @@ bun run typecheck
 bun run lint
 ```
 
-The main source entry point is [`src/entrypoints/cli.tsx`](src/entrypoints/cli.tsx). Launchers are in [`bin/`](bin/), build and release scripts in [`scripts/`](scripts/), and public documentation in [`docs/`](docs/).
-
-The repository and its current CLI still contain legacy Tovyr identifiers. Renaming internal identifiers or packaging without updating their dependencies can break startup, so this documentation update does not pretend that migration is complete.
+The application entry point is [`src/entrypoints/cli.tsx`](src/entrypoints/cli.tsx). `bin/` contains command launchers; `scripts/` contains build and release tooling; `docs/` contains additional reference material.
 
 ## Security and licensing
 
-Never commit API keys, `.env` files, access tokens, or user configuration. Check the files you stage before publishing. See [SAFETY.md](docs/SAFETY.md) for the project's documented safeguards; you should still review agent-proposed edits and commands.
+Review proposed edits and commands, and do not commit API keys, tokens, or personal configuration files. Read the [safety documentation](docs/SAFETY.md) for details about permission handling.
 
-Licensed under [MIT](LICENSE). See [NOTICE](NOTICE) for attribution and third-party licensing information.
+MIT licensed. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for licensing and third-party provenance.
