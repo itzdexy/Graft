@@ -1,31 +1,36 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
-# Local npm auth (may contain tokens)
+# Local npm authentication (may contain tokens)
 .npmrc
 
-# Environment / secrets
+# Environment files and secrets
 .env
 .env.*
 !.env.example
 
-# Tovyr user data (keys live in ~/.tovyr/, never in repo)
+# Local CLI configuration and credentials
 .tovyr/
 **/.tovyr/api-key
 **/providers.json
 **/active.json
 
-# IDE / agent session logs (can contain usernames & local paths)
+# Editor and agent session data
 .remember/
 **/.remember/
 .cursor/
 .claude/
 terminals/
 
-# Local agent preferences (Cursor / dev machine)
+# Private agent instructions and planning artifacts
 AGENTS.md
-
-# Private planning docs (not for public repo)
+.superpowers/
+docs/superpowers/
+docs/product/
+docs/audits/
+docs/migrations/
+docs/ui/
+docs/tovyr-agent-roadmap.md
 docs/ROADMAP.md
 docs/WORLD_CLASS_EXPANSION.md
 docs/RESEARCH_FINDINGS.md
@@ -33,7 +38,7 @@ docs/INTEGRATION_PLAN.md
 docs/ENHANCEMENTS.md
 docs/ARCHITECTURE_ANALYSIS.md
 
-# Local test / debug artifacts
+# Local tests and debug artifacts
 .tovyr-patched
 .tovyr-test-*
 _tovyr-test-*
@@ -48,10 +53,10 @@ status.txt
 lsfiles.txt
 website/
 
-# Bundled sidecar packages (not part of core release)
+# Bundled sidecar packages (not part of the core release)
 packages/tovyrroute/
 
-# Build outputs
+# Generated build outputs
 /build/
 .cache/
 dist/
@@ -60,16 +65,15 @@ dist/
 *.tgz
 tovyrcode-*.tgz
 
-# Internal agent / upgrade notes (not for public repo)
+# Internal development notes
 tovyrcode-build-prompt.md
 tovyrcode-upgrade-pack.md
-.superpowers/brainstorm/
 
-# OS junk
+# OS files
 .DS_Store
 Thumbs.db
 
-# Test / cache
+# Test and tool caches
 coverage/
 .vite/
 *.tsbuildinfo
