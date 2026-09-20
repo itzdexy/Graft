@@ -604,4 +604,20 @@ describe('openaiCompat convert: streaming', () => {
     expect(events[0]?.event).toBe('message_start')
     expect(events.at(-1)?.event).toBe('message_stop')
   })
+
+  test('a newline-only final response is an error, not a successful end of turn', async () => {
+    const events = await collectEvents(openAiStreamToAnthropicEvents(sseStream([
+      JSON.stringify({choices: [{delta: {content: '\n'}, finish_reason: 'stop'}]}), '[DONE]',
+    ]), 'nvidia/nemotron-3.5-lightning-30b-a3b'))
+    expect(events.some(event => event.event === 'error')).toBe(true)
+    expect(events.some(event => event.event === 'message_delta')).toBe(false)
+    expect(events.filter(event => event.event === 'content_block_start').length).toBe(events.filter(event => event.event === 'content_block_stop').length)
+  })
+
+  test('reasoning alone is not a completed answer', async () => {
+    const events = await collectEvents(openAiStreamToAnthropicEvents(sseStream([
+      JSON.stringify({choices: [{delta: {reasoning_content: 'Let me check.'}, finish_reason: 'stop'}]}), '[DONE]',
+    ]), 'example'))
+    expect(events.some(event => event.event === 'error')).toBe(true)
+  })
 })

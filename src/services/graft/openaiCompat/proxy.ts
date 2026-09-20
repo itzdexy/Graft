@@ -362,6 +362,11 @@ async function handleMessages(
   }
   proxyDebugLog('RAW upstream JSON', payload)
   const converted = openAiCompletionToAnthropic(payload, body.model)
+  if (converted.stop_reason !== 'max_tokens' && !converted.content.some(block =>
+    block.type === 'tool_use' || (block.type === 'text' && block.text?.trim()),
+  )) {
+    return anthropicError(422, 'The model returned no answer after retrying. Your tool results are preserved; retry or select another model with /model.', 'api_error')
+  }
   proxyDebugLog('CONVERTED →agent', converted)
   return new Response(JSON.stringify(converted), {
     status: 200,

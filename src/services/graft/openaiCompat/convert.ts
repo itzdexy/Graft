@@ -785,15 +785,19 @@ export async function* openAiStreamToAnthropicEvents(
     } else {
       yield* flushTextAccumulator()
     }
+    // A newline or a reasoning-only block is not a final answer. Providers
+    // can return either with finish_reason=stop after successful tool reads.
+    // Preserve truncated reasoning so the normal max_tokens recovery can run.
     const hadContent =
-      nextIndex > 0 || fullText.trim().length > 0 || toolState.size > 0
+      fullText.trim().length > 0 || toolState.size > 0 || finishReason === 'length'
     yield* ensureStarted()
     if (!hadContent) {
+      yield* closeOpenBlock()
       yield emit('error', {
         type: 'error',
         error: {
           type: 'api_error',
-          message: `Model ${requestModel} returned an empty stream (HTTP 200). Check provider health, model id, and context length — or try /model for a different model.`,
+          message: `Model ${requestModel} returned no answer (empty or whitespace-only response). The tool results are preserved. Retry the request or choose another model with /model.`,
         },
       })
       yield emit('message_stop', { type: 'message_stop' })
