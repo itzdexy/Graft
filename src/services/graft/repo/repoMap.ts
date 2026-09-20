@@ -27,7 +27,8 @@ export function buildRankedRepoMap(
   index: RepoIndex,
   options?: { maxChars?: number; query?: string },
 ): string {
-  const maxChars = options?.maxChars ?? 12_000
+  const requestedBudget = options?.maxChars ?? 12_000
+  const maxChars = Number.isFinite(requestedBudget) ? Math.max(0, Math.floor(requestedBudget)) : 12_000
   const queryTerms = (options?.query ?? '')
     .toLowerCase()
     .split(/\W+/)
@@ -46,9 +47,10 @@ export function buildRankedRepoMap(
       file,
       syms,
       score: scoreFile(file, syms.length),
+      relevance: queryTerms.reduce((score, term) => score + (file.toLowerCase().includes(term) ? 2 : 0) + (syms.some(s => s.name.toLowerCase().includes(term)) ? 1 : 0), 0),
     }))
     .filter(x => x.score >= 0)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.relevance - a.relevance || b.score - a.score || a.file.localeCompare(b.file))
 
   const lines: string[] = [
     `Repo map (${index.files.length} indexed files, budget ~${maxChars} chars)`,
@@ -64,22 +66,24 @@ export function buildRankedRepoMap(
       .sort((a, b) => b.score - a.score)
       .slice(0, 12)
 
-    const chunk = [
-      `## ${file}`,
-      ...rankedSyms.map(
-        ({ s }) => `- ${s.kind} ${s.name} (L${s.line})`,
-      ),
-      '',
-    ].join('\n')
-
-    if (used + chunk.length > maxChars) break
+    const available = maxChars - used - 1
+    const parts = [`## ${file}`]
+    let length = parts[0]!.length
+    for (const { s } of rankedSyms) {
+      const line = `- ${s.kind} ${s.name} (L${s.line})`
+      if (length + line.length + 1 > available) break
+      parts.push(line)
+      length += line.length + 1
+    }
+    if (parts.length === 1) continue
+    const chunk = parts.join('\n')
     lines.push(chunk)
-    used += chunk.length
+    used += chunk.length + 1
   }
 
   if (lines.length <= 3) {
-    lines.push('(No symbols indexed — run `/repo analyze` after `git ls-files` is available.)')
+    lines.push(index.symbols.length ? '(No indexed symbols fit this budget.)' : '(No symbols indexed — run `/repo analyze` after `git ls-files` is available.)')
   }
 
-  return lines.join('\n')
+  return lines.join('\n').slice(0, maxChars)
 }

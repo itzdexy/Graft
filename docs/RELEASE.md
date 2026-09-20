@@ -36,3 +36,9 @@ The subsequent public snapshot passes 1,776 tests with one skip and no failures.
 Source installs now require ripgrep on PATH. Real file enumeration and content search passed through the runtime search wrapper. The installers check the dependency, and `graft doctor` reports it. Linux/macOS installation has still only received shell syntax checks locally.
 
 A live web search returned eight results, including the official TypeScript handbook, in approximately 0.74 seconds. Regression tests cover snippet attribution, URL decoding, duplicate removal, cancellation, and unavailable-service reporting. A stalled local provider fixture verifies the separate connection timeout and suppression of automatic retries. Existing broad TypeScript failures remain; this is not a fully typechecked release.
+
+### Project overview and source history
+
+The latest public snapshot passes 1,792 tests with one skip and no failures. Runtime compilation and the installed Windows version command pass. Both new local command loaders delivered their expected output against isolated demo data. The dependency audit reports zero advisories. The broad TypeScript check still reports 3,135 diagnostics; none reference the new overview/source services or commands, or the changed repository map. Live provider latency was not remeasured for this update.
+
+`/project` displays bounded local metadata without invoking a model or running package scripts. `/sources` distinguishes completed search results from fetched pages and ignores links present only in model prose. Topic-based repository maps now prioritize relevant paths and symbols within their character budget. The chat layout remains unchanged; these summaries appear on request.

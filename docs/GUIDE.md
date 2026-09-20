@@ -50,6 +50,12 @@ Bare `/verify` now starts all detected checks through the normal shell-tool work
 
 ## Context and response speed
 
+`/project` shows a local overview of the current folder: detected stack, Git changes, top-level files, and available package scripts. It does not call a model or run those scripts. Large folders are bounded and marked with an ellipsis; Git status has a two-second timeout.
+
+`/repo map <topic>` ranks matching file paths and symbols before larger unrelated files. The map stays within its character budget and includes partial symbol lists when a whole file would not fit.
+
+`/sources` lists up to 40 recent links from completed web tools in the last 200 conversation messages. It distinguishes search results from successfully fetched pages, removes duplicates, and ignores links written only in model prose. A fetched page is not an independently verified claim. Failed fetches and redirects do not earn a fetched label. This command does not make a model request.
+
 Graft uses the active provider's reported context capacity when available, including compatible endpoint metadata. Model-specific documented limits are used when the endpoint omits them; unknown models retain a conservative fallback. Capacity includes room for output and a safety margin. Tool-call arguments count toward the input budget.
 
 OpenAI-compatible connections have a 30-second deadline to begin their response, separate from the stream idle watchdog. A connection timeout is reported without automatic retry. Set `GRAFT_CONNECT_TIMEOUT_MS` before launch to allow a slower model more time (100–600,000 milliseconds).
