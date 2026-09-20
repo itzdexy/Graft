@@ -1,0 +1,49 @@
+{
+  // Typechecks exactly what the CLI loads.
+  //
+  // `include` globs were the old approach (tsconfig.typecheck.json listed ~15
+  // hand-picked paths) and they check whatever someone remembered to add.
+  // Rooting at the real entrypoints instead makes tsc walk the import graph, so
+  // a module is covered because the CLI imports it, not because it was listed.
+  //
+  // packages/ is deliberately outside this: packages/graftroute is a separate
+  // app with its own build and its own dependency tree, and pulling it in here
+  // reports ~21k resolution errors for modules the CLI never loads.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.cache/tsconfig.app.tsbuildinfo",
+    "types": ["node", "bun-types"]
+  },
+  "files": [
+    "src/main.tsx",
+    "src/entrypoints/cli.tsx",
+
+    // Modules reached only through `require()` behind a feature() gate or a
+    // lazy accessor. tsc does not follow require(), so without these roots the
+    // gate's target is invisible to the typechecker -- which is how several of
+    // them came to reference modules that no longer exist.
+    "src/coordinator/coordinatorMode.ts",
+    "src/tools/WebBrowserTool/WebBrowserTool.ts",
+    "src/tools/RemoteTriggerTool/RemoteTriggerTool.ts",
+    "src/tools/ScheduleCronTool/CronCreateTool.ts",
+    "src/tools/ScheduleCronTool/CronDeleteTool.ts",
+    "src/tools/ScheduleCronTool/CronListTool.ts",
+    "src/tools/PowerShellTool/PowerShellTool.tsx",
+    "src/tools/TeamCreateTool/TeamCreateTool.ts",
+    "src/tools/TeamDeleteTool/TeamDeleteTool.ts",
+    "src/tools/SendMessageTool/SendMessageTool.ts"
+  ],
+  // Ambient declarations are not reached by following imports, so `files`
+  // alone leaves them out of the program -- which is why `MACRO` read as an
+  // undeclared name despite types/globals.d.ts declaring it.
+  "include": ["src/types/**/*.d.ts"],
+  "exclude": [
+    "node_modules",
+    "packages",
+    "website",
+    "vendor"
+  ]
+}

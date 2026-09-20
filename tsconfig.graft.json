@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.typecheck.json",
+  "include": [
+    "src/utils/graftRuntime.ts",
+    "src/services/graft/agent/mainLoopLimits.ts",
+    "src/services/graft/providerErrors.ts",
+    "src/services/graft/intent/filenameFromPrompt.ts",
+    "src/services/graft/dx/waitStateCopy.ts",
+    "src/services/graft/dx/thinkingDurations.ts",
+    "src/services/graft/dx/requestTimeout.ts"
+  ],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}

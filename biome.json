@@ -1,0 +1,46 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "src/services/graft/models/**/*.ts",
+      "src/utils/settings/envInt.ts",
+      "src/utils/settings/envInt.test.ts",
+      "src/utils/sandbox/network/**/*.ts",
+      "src/services/mcp/diagnostics.ts",
+      "src/services/mcp/diagnostics.test.ts",
+      "src/services/mcp/redact.ts",
+      "src/services/mcp/redact.test.ts",
+      "src/components/graft/McpDiagnosticsView.tsx",
+      "!packages/graftroute"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noConsole": "error"
+      }
+    }
+  }
+}

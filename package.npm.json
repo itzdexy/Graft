@@ -1,0 +1,71 @@
+{
+  "name": "graft",
+  "version": "1.4.0",
+  "description": "Graft - an AI coding agent for your terminal",
+  "type": "module",
+  "license": "MIT",
+  "author": "itsdexy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itzdexy/Graft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itzdexy/Graft/issues"
+  },
+  "homepage": "https://github.com/itzdexy/Graft#readme",
+  "keywords": [
+    "graft",
+    "ai",
+    "coding-agent",
+    "cli",
+    "assistant"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "graft": "bin/graft.js"
+  },
+  "files": [
+    "bin/graft.js",
+    "bin/graft.cmd",
+    "bin/graft.ps1",
+    "runtime/",
+    "scripts/graft-*.js",
+    "scripts/graft-doctor.js",
+    "scripts/graft-home.js",
+    "scripts/graft-install-checks.js",
+    "scripts/graft-launch-hints.js",
+    "scripts/graft-model-compat.js",
+    "scripts/graft-warm.js",
+    "scripts/graft-package-root.js",
+    "scripts/graft-postinstall.js",
+    "scripts/graft-prep-auth.js",
+    "scripts/graft-provider-catalog-extra.js",
+    "scripts/graft-provider-models-expanded.js",
+    "scripts/graft-provider-catalog.js",
+    "scripts/graft-provider-cli.js",
+    "scripts/graft-providers.js",
+    "scripts/graft-save-api-key.js",
+    "scripts/graft-sync-freemodel-settings.js",
+    "scripts/graft-tune-settings.js",
+    "scripts/graft-windows-launcher.js",
+    "docs/GUIDE.md",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "bin/graft",
+    "release-status.json",
+    "docs/audits/GRAFT_RELEASE.md",
+    "src/constants/graft.js",
+    "src/constants/graftTips.js"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/graft-postinstall.js",
+    "prepublishOnly": "node scripts/graft-release-gate.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "ws": "^8.21.0"
+  }
+}

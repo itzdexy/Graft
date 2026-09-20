@@ -1,0 +1,20 @@
+preload = ["./src/build/preload.ts"]
+
+[test]
+# Bun keeps test preloads separate from the top-level `preload` list, so
+# this must be repeated here. src/build/test-preload.ts pins GRAFT_HOME to a
+# throwaway dir; without it the suite writes into the real ~/.graft.
+preload = ["./src/build/test-preload.ts"]
+pathIgnorePatterns = [
+  "packages/**",
+  "website/tests/**",
+  "**/__tests__/**",
+]
+
+[alias]
+"src/" = "./src/"
+"@ant/computer-use-mcp" = "./vendor/ant-stubs/computer-use-mcp/index.ts"
+"@ant/computer-use-mcp/sentinelApps" = "./vendor/ant-stubs/computer-use-mcp/sentinelApps.ts"
+"@ant/computer-use-mcp/types" = "./vendor/ant-stubs/computer-use-mcp/types.ts"
+"@ant/computer-use-swift" = "./vendor/ant-stubs/computer-use-swift/index.ts"
+"@ant/computer-use-input" = "./vendor/ant-stubs/computer-use-input/index.ts"

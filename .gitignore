@@ -1,0 +1,99 @@
+﻿# Dependencies
+node_modules/
+
+# Local npm auth (may contain tokens)
+.npmrc
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Graft user data (keys live in ~/.graft/, never in repo)
+.graft/
+**/.graft/api-key
+**/providers.json
+**/active.json
+
+# IDE / agent session logs (can contain usernames & local paths)
+.remember/
+**/.remember/
+.cursor/
+.claude/
+terminals/
+
+# Local agent preferences (Cursor / dev machine)
+AGENTS.md
+
+# Private planning docs (not for public repo)
+docs/ROADMAP.md
+docs/WORLD_CLASS_EXPANSION.md
+docs/RESEARCH_FINDINGS.md
+docs/INTEGRATION_PLAN.md
+docs/ENHANCEMENTS.md
+docs/ARCHITECTURE_ANALYSIS.md
+
+# Local test / debug artifacts
+.graft-patched
+.graft-test-*
+_graft-test-*
+.graft-review-build/
+.graft-test-build/
+graft-test-*.txt
+graft-test-*.log
+*.log
+errs.txt
+filelist.txt
+status.txt
+lsfiles.txt
+website/
+
+# Bundled sidecar packages (not part of core release)
+packages/graftroute/
+
+# Build outputs
+/build/
+.cache/
+dist/
+/runtime/
+/installer/
+*.tgz
+graftcode-*.tgz
+
+# Internal agent / upgrade notes (not for public repo)
+graftcode-build-prompt.md
+graftcode-upgrade-pack.md
+.superpowers/brainstorm/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Test / cache
+.graft/
+graft.local.md
+coverage/
+.vite/
+*.tsbuildinfo
+.package.dev.json.bak
+.README.dev.md.bak
+
+# Legacy private data and local attachments
+.tovyr/
+.tovyr.json
+.graft.json
+packages/
+Microsoft/
+docs/audits/
+release-status.json
+*.mp4
+*.zip
+*.exe
+*.msi
+*.dmg
+.codex/
+.superpowers/
+
+# Local repository automation and npm state are not part of the public snapshot.
+.github/
+.npm/

@@ -1,0 +1,124 @@
+import { describe, expect, test } from 'bun:test'
+import {
+  filterGraftStreamingPreview,
+  filterGraftAssistantDisplayText,
+  isBillingHeaderLeak,
+  isPseudoFunctionToolLeak,
+  matchNarratedToolIntent,
+  narratedToolOpenCodeLine,
+  parsePseudoFunctionToolCall,
+  pseudoFunctionOpenCodeLine,
+  resolveGraftWriteDisplayPath,
+  shouldHideGraftAssistantText,
+} from './chatTextFilter.js'
+
+describe('chatTextFilter', () => {
+  test('detects billing header leak', () => {
+    expect(
+      isBillingHeaderLeak(
+        'x-anthropic-billing-header: cc_version=1.0.7.153; cc_entrypoint=cli;',
+      ),
+    ).toBe(true)
+  })
+
+  test('detects narrated Write tool', () => {
+    expect(
+      matchNarratedToolIntent(
+        'Using the Write tool to create a basic SaaS dashboard template...',
+      )?.toolName,
+    ).toBe('Write')
+  })
+
+  test('hides billing-only assistant text', () => {
+    expect(
+      shouldHideGraftAssistantText(
+        'x-anthropic-billing-header: cc_version=1.0.7.153; cc_entrypoint=cli;',
+      ),
+    ).toBe(true)
+  })
+
+  test('hides narrated tool-only text', () => {
+    expect(
+      shouldHideGraftAssistantText(
+        'Using the Write tool to create a basic SaaS dashboard template...',
+      ),
+    ).toBe(true)
+  })
+
+  test('keeps normal conversational text', () => {
+    expect(shouldHideGraftAssistantText('Hi!')).toBe(false)
+  })
+
+  test('shows what the model said instead of a canned greeting', () => {
+    // This used to be rewritten to "Hi - what can I help you with today?",
+    // putting words in the model's mouth and hiding the real signal: a model
+    // that answers a greeting this way should be swapped out, not papered over.
+    expect(
+      filterGraftAssistantDisplayText('There is no task to complete.'),
+    ).toBe('There is no task to complete.')
+  })
+
+  test('narrated tool maps to OpenCode line', () => {
+    const line = narratedToolOpenCodeLine(
+      'Using the Write tool to create dashboard.html',
+    )
+    expect(line?.prefix).toBe('→')
+    expect(line?.text).toContain('Write')
+  })
+
+  test('pseudo Write maps landing page to landing_page.html', () => {
+    const line = pseudoFunctionOpenCodeLine(
+      'Write(file_path="index.html", content="landing page template")',
+      true,
+    )
+    expect(line?.text).toContain('landing_page.html')
+  })
+
+  test('resolveGraftWriteDisplayPath prefers landing_page for landing prompts', () => {
+    expect(
+      resolveGraftWriteDisplayPath('index.html', 'code me a landing page'),
+    ).toBe('landing_page.html')
+  })
+
+  test('hides pseudo-function Write leak', () => {
+    const leak =
+      'Write(file_path="D:\\\\New folder\\\\index.html", content="...")'
+    expect(isPseudoFunctionToolLeak(leak)).toBe(true)
+    expect(shouldHideGraftAssistantText(leak)).toBe(true)
+    const line = pseudoFunctionOpenCodeLine(leak, true)
+    expect(line?.prefix).toBe('→')
+    expect(line?.text).toContain('index.html')
+  })
+
+  test('parsePseudoFunctionToolCall extracts basename', () => {
+    const parsed = parsePseudoFunctionToolCall(
+      'Write(file_path="src/pages/home.tsx", content="...")',
+    )
+    expect(parsed?.toolName).toBe('Write')
+    expect(parsed?.input.file_path).toBe('home.tsx')
+  })
+
+  test('filters streaming preview for pseudo Write', () => {
+    expect(
+      filterGraftStreamingPreview(
+        'Write(file_path="index.html", content="<!DOCTYPE html>")',
+      ),
+    ).toBe(null)
+  })
+
+  test('filters billing header from streaming preview', () => {
+    expect(
+      filterGraftStreamingPreview(
+        'x-anthropic-billing-header: cc_version=1.0.7;',
+      ),
+    ).toBe(null)
+  })
+
+  test('keeps orchestration markers out of the polished transcript', () => {
+    expect(
+      filterGraftAssistantDisplayText(
+        'I recommend option 2.\n\nChoose 1–3 or tell me what to change.\n\n### Ideas ready',
+      ),
+    ).toBe('I recommend option 2.\n\nChoose 1–3 or tell me what to change.')
+  })
+})

@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node", "bun-types"]
+  },
+  "include": [
+    "src/utils/filePersistence/**/*.ts",
+    "src/utils/graftStartupLoader.ts",
+    "src/hooks/useGraftBootScreen.ts",
+    "src/components/graft/**/*.tsx",
+    "src/mcp/builtin/**/*.ts",
+    "src/commands/graft/superthink.impl.tsx",
+    "src/services/graft/intent/**/*.ts",
+    "src/services/graft/openaiCompat/**/*.ts",
+    "src/services/graft/modelContext.ts",
+    "src/services/graft/validateProviderModel.ts",
+    "src/services/graft/providerFailover.ts",
+    "src/services/graft/applyActiveProvider.ts",
+    "src/services/graft/providerModels.ts",
+    "src/constants/graftSystemPrompt.ts"
+  ],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}

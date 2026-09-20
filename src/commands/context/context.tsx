@@ -1,0 +1,82 @@
+import { describeGraftContextWindow } from '../../services/graft/modelContext.js'
+import { isGraftRuntime } from '../../utils/graftRuntime.js'
+import { feature } from '../../utils/features.js'
+import * as React from 'react'
+import type { LocalJSXCommandContext } from '../../commands.js'
+import { ContextVisualization } from '../../components/ContextVisualization.js'
+import { microcompactMessages } from '../../services/compact/microCompact.js'
+import type { LocalJSXCommandOnDone } from '../../types/command.js'
+import type { Message } from '../../types/message.js'
+import { analyzeContextUsage } from '../../utils/analyzeContext.js'
+import { getMessagesAfterCompactBoundary } from '../../utils/messages.js'
+import { renderToAnsiString } from '../../utils/staticRender.js'
+
+/**
+ * Apply the same context transforms query.ts does before the API call, so
+ * /context shows what the model actually sees rather than the REPL's raw
+ * history. Without projectView the token count overcounts by however much
+ * was collapsed — user sees "180k, 3 spans collapsed" when the API sees 120k.
+ */
+function toApiView(messages: Message[]): Message[] {
+  let view = getMessagesAfterCompactBoundary(messages)
+  return view
+}
+
+export async function call(
+  onDone: LocalJSXCommandOnDone,
+  context: LocalJSXCommandContext,
+): Promise<React.ReactNode> {
+  const {
+    messages,
+    getAppState,
+    options: { mainLoopModel, tools },
+  } = context
+
+  const apiView = toApiView(messages)
+
+  // Apply microcompact to get accurate representation of messages sent to API
+  const { messages: compactedMessages } = await microcompactMessages(apiView)
+
+  // Get terminal width for responsive sizing
+  const terminalWidth = process.stdout.columns || 80
+
+  const appState = getAppState()
+
+  // Analyze context with compacted messages
+  // Pass original messages as last parameter for accurate API usage extraction
+  const data = await analyzeContextUsage(
+    compactedMessages,
+    mainLoopModel,
+    async () => appState.toolPermissionContext,
+    tools,
+    appState.agentDefinitions,
+    terminalWidth,
+    context, // Pass full context for system prompt calculation
+    undefined, // mainThreadAgentDefinition
+    apiView, // Original messages for API usage extraction
+  )
+
+  // Render to ANSI string to preserve colors and pass to onDone like local commands do
+  const output = await renderToAnsiString(<ContextVisualization data={data} />)
+
+  // Where the window size came from. Without this the visualization is a
+  // convincing picture built on an unstated number — stealth/ox-alpha was
+  // drawn against the 32k default while the model actually held 1,048,576,
+  // and nothing on screen contradicted it.
+  const provenance = isGraftRuntime()
+    ? (() => {
+        const ctx = describeGraftContextWindow(mainLoopModel)
+        const note =
+          ctx.source === 'provider'
+            ? 'provider-reported'
+            : ctx.source === 'default'
+              ? 'default - model list not loaded, run /model'
+              : ctx.source
+        return `
+Context window: ${ctx.tokens.toLocaleString()} tokens (${note})`
+      })()
+    : ''
+
+  onDone(output + provenance)
+  return null
+}
