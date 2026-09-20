@@ -189,6 +189,7 @@ export function GraftActivitySurface({
   useInterval(
     () => setFrame(value => value + 1),
     projection.animate ? motionInterval(MOTION_FRAME_MS) : null,
+    true,
   )
 
   return (

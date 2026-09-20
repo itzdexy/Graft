@@ -43,6 +43,7 @@ export function useAnimationTimer(intervalMs: number): number {
 export function useInterval(
   callback: () => void,
   intervalMs: number | null,
+  keepAlive = false,
 ): void {
   const callbackRef = useRef(callback)
   callbackRef.current = callback
@@ -62,6 +63,6 @@ export function useInterval(
       }
     }
 
-    return clock.subscribe(onChange, false)
-  }, [clock, intervalMs])
+    return clock.subscribe(onChange, keepAlive)
+  }, [clock, intervalMs, keepAlive])
 }

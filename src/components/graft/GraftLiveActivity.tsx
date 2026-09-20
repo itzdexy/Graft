@@ -240,6 +240,7 @@ export function GraftLiveActivity({
     // The elapsed counter is information, not decoration, so it keeps running
     // when decorative motion is off -- just at a slower, status cadence.
     isLoading && loadingStartTimeRef?.current ? MOTION_STATUS_MS * 2 : null,
+    true,
   )
 
   const inProgressKey = useMemo(
