@@ -18,6 +18,7 @@ type ToolResultLike = {
 type MessageLike = {
   type: string
   message?: { content?: unknown }
+  toolUseResult?: unknown
 }
 
 const MAX_PREVIEW_CHARS = 400
@@ -66,7 +67,8 @@ export function extractToolResultPreview(
     const block = raw as ToolResultLike
     if (block.type !== 'tool_result') continue
     if (block.tool_use_id !== toolUseId) continue
-    const flat = flattenToolResultContent(block.content)
+    const flat = flattenToolResultContent(block.content).trim() ||
+      (typeof message.toolUseResult === 'string' ? message.toolUseResult : '')
     const preview = condense(flat)
     return preview || undefined
   }

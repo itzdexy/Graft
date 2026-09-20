@@ -39,6 +39,11 @@ describe('flattenToolResultContent', () => {
 })
 
 describe('extractToolResultPreview', () => {
+  test('uses the stored error when the matching result content is empty', () => {
+    const message = { ...userMessage([{ type: 'tool_result', tool_use_id: 't1', content: '' }]), toolUseResult: 'Error: access denied' }
+    expect(extractToolResultPreview(message, 't1')).toBe('Error: access denied')
+    expect(extractToolResultPreview(message, 'other')).toBeUndefined()
+  })
   test('finds the matching tool_result and condenses it', () => {
     const message = userMessage([
       {

@@ -1,5 +1,6 @@
 import type { Base64ImageSource } from '@anthropic-ai/sdk/resources/index.mjs'
 import { readdir, readFile as readFileAsync } from 'fs/promises'
+import { readDirectoryAsText } from './readDirectory.js'
 import * as path from 'path'
 import { posix, win32 } from 'path'
 import { z } from 'zod/v4'
@@ -824,6 +825,18 @@ async function callInner(
   data: Output
   newMessages?: ReturnType<typeof createUserMessage>[]
 }> {
+  if (isGraftRuntime()) {
+    const listing = await readDirectoryAsText(resolvedFilePath, context.abortController.signal)
+    if (listing !== null) {
+      const lines = listing.split('\n')
+      const start = Math.max(0, offset - 1)
+      const selected = lines.slice(start, limit === undefined ? undefined : start + limit)
+      return { data: { type: 'text', file: {
+        filePath: file_path, content: selected.join('\n'), numLines: selected.length,
+        startLine: offset, totalLines: lines.length,
+      } } }
+    }
+  }
   // --- Notebook ---
   if (ext === 'ipynb') {
     const cells = await readNotebook(resolvedFilePath)
