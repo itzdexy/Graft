@@ -50,6 +50,7 @@ export function getProviderModelRefreshState(providerId: string) {
 function selectionFingerprint(selection: NonNullable<ReturnType<typeof resolveProviderSelection>>): string {
   return createHash('sha256').update(JSON.stringify([
     selection.providerId, selection.baseUrl, selection.authMode, selection.apiKey,
+    getProvider(selection.providerId)?.apiFormat,
   ])).digest('hex')
 }
 

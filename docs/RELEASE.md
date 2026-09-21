@@ -66,3 +66,7 @@ Official references: [OpenAI model guidance](https://developers.openai.com/api/d
 The broad TypeScript check reports 3,137 diagnostics: the previous 3,135 baseline plus two missing React declaration diagnostics in the new model-audit view. These are not suppressed; the project is not typecheck-clean. Windows runtime compilation and the complete public-snapshot test suite are checked separately. macOS and Linux are not tested on this PC.
 
 Final snapshot validation: 1,816 tests passed, one skipped, and zero failed across 286 files. Runtime compilation passed. The dependency audit reported zero advisories.
+
+## OpenRouter model selection correction
+
+OpenRouter now uses its standard OpenAI-compatible API for discovery and inference. Sending an Anthropic compatibility header to its catalog endpoint had produced rewritten IDs such as `anthropic/z-ai/glm-5.2:free`; the normal catalog returns `z-ai/glm-5.2:free`. Changing the transport invalidates the old catalog cache. The picker displays the exact API ID and labels catalog entries as listed, not verified on the account. Validation consults the requested provider's inventory before vendor-name heuristics, even when another provider is active. Ambiguous model-name shortcuts are rejected. Regression coverage follows the selected ID through discovery, display, validation and a fixture inference request.

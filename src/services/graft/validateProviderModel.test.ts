@@ -12,6 +12,10 @@ const NIM_VERIFIED = [
 ]
 
 describe('validateProviderModel', () => {
+  test('does not guess between vendors sharing the same model slug', () => {
+    expect(resolveModelInVerifiedList('shared', ['one/shared', 'two/shared'])).toBeNull()
+    expect(resolveModelInVerifiedList('two/shared', ['one/shared', 'two/shared'])).toBe('two/shared')
+  })
   test('resolveModelInVerifiedList matches vendor-prefixed ids', () => {
     expect(
       resolveModelInVerifiedList('nvidia/nemotron-4-340b-instruct', NIM_VERIFIED),

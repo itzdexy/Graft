@@ -10,8 +10,8 @@ import {
   pickBestVerifiedModel,
 } from './providerModelPick.js'
 import {
-  fetchActiveProviderModelIds,
-  getCachedProviderModelIds,
+  fetchProviderModelIds,
+  getCachedProviderModelIdsFor,
 } from './providerModels.js'
 import { isMetaAgentModelId, isMetaProviderId } from './metaProvider.js'
 
@@ -39,12 +39,11 @@ export function resolveModelInVerifiedList(
 
   const modelSlug = modelId.includes('/') ? modelId.split('/').pop()! : modelId
   const modelSlugNorm = modelSlug.toLowerCase()
-  for (const id of verified) {
+  const slugMatches = verified.filter(id => {
     const slug = id.includes('/') ? id.split('/').pop()! : id
-    if (slug.toLowerCase() === modelSlugNorm) return id
-  }
-
-  return null
+    return slug.toLowerCase() === modelSlugNorm
+  })
+  return slugMatches.length === 1 ? slugMatches[0]! : null
 }
 
 export function isModelVerifiedForProvider(
@@ -109,6 +108,15 @@ export async function validateModelForProvider(
     }
   }
 
+  // Provider-owned inventory is stronger evidence than vendor-name heuristics.
+  // Always load the requested provider, even when another provider is active.
+  let verified = getCachedProviderModelIdsFor(providerId)
+  if (options.forceFetch || (!verified && providerNeedsOpenAiCompat(def))) {
+    verified = await fetchProviderModelIds(providerId, { force: options.forceFetch === true })
+  }
+  const listed = verified?.length ? resolveModelInVerifiedList(trimmed, verified) : null
+  if (listed) return { ok: true, model: listed, corrected: listed !== trimmed }
+
   if (isModelProviderMismatch(trimmed, providerId)) {
     const suggestion = getDefaultModelId(def) || undefined
     return {
@@ -131,17 +139,6 @@ export async function validateModelForProvider(
 
   if (!providerNeedsOpenAiCompat(def)) {
     return { ok: true, model: trimmed, corrected: false }
-  }
-
-  let verified =
-    options.forceFetch === true
-      ? await fetchActiveProviderModelIds({ force: true })
-      : getCachedProviderModelIds()
-
-  if (!verified?.length) {
-    verified = await fetchActiveProviderModelIds({
-      force: options.forceFetch === true,
-    })
   }
 
   if (!verified?.length) {

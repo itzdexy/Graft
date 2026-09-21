@@ -119,10 +119,10 @@ describe('buildModelRows', () => {
 })
 
 describe('presentModelRow', () => {
-  test('detail leads with the qualified id users have to paste', () => {
+  test('detail leads with the exact API model id without a UI provider prefix', () => {
     const row = build()[0]!
     expect(presentModelRow(row).detail).toBe(
-      'anthropic/claude-sonnet-5 · Balanced',
+      'claude-sonnet-5 · Balanced',
     )
   })
 
@@ -220,7 +220,7 @@ describe('live metadata tags', () => {
     const shown = presentModelRow(ox)
     expect(shown.badge).toBe('free')
     expect(shown.detail).toBe(
-      'openrouter/stealth/ox-alpha · FREE · TOOLS · 1M ctx · IMAGE · Best',
+      'stealth/ox-alpha · FREE · TOOLS · 1M ctx · IMAGE · Best',
     )
   })
 

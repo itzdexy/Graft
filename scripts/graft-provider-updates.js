@@ -5,6 +5,7 @@ const models = (...ids) => ids.map(id => ({ id, label: id, tier: 'sonnet' }))
 const openai = (baseUrl, docs, extra = {}) => ({ baseUrl, apiFormat: 'openai', authMode: 'authToken', anyModel: true, notes: `OpenAI-compatible API. Live model availability depends on your account. ${docs}`, ...extra })
 
 export const PROVIDER_UPDATES = {
+  openrouter: openai('https://openrouter.ai/api/v1', 'https://openrouter.ai/docs/api_reference/overview'),
   openai: openai('https://api.openai.com/v1', 'https://developers.openai.com/api/docs/models', { defaultModel: 'gpt-5.6-terra', models: models('gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-4.1', 'gpt-4.1-mini') }),
   google: openai('https://generativelanguage.googleapis.com/v1beta/openai', 'https://ai.google.dev/gemini-api/docs/openai', { defaultModel: 'gemini-3.8-flash', models: models('gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash') }),
   groq: openai('https://api.groq.com/openai/v1', 'https://console.groq.com/docs/models', { defaultModel: 'openai/gpt-oss-120b', models: models('openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant') }),

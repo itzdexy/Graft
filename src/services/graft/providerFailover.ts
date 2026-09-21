@@ -23,6 +23,7 @@ import { pickBestCatalogModel, pickBestProviderModel, pickBestVerifiedModel } fr
 import {
   fetchActiveProviderModelIds,
   getCachedProviderModelIds,
+  getCachedProviderModelIdsFor,
   hasWarmProviderModelCache,
 } from './providerModels.js'
 import {
@@ -181,6 +182,7 @@ export function isModelProviderMismatch(
 ): boolean {
   const provider = getProvider(providerId)
   if (!provider || !model) return false
+  if (getCachedProviderModelIdsFor(providerId)?.includes(model)) return false
   if (provider.models?.some(m => m.id === model)) return false
   const graft = modelLooksLikeClaude(model)
   const official = isOfficialClaudeProvider(provider)

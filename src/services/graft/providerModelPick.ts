@@ -29,10 +29,10 @@ function isModelProviderMismatch(model: string, providerId: string): boolean {
   return false
 }
 
-function isPickableModel(providerId: string, modelId: string, exclude?: Set<string>): boolean {
+function isPickableModel(providerId: string, modelId: string, exclude?: Set<string>, listed = false): boolean {
   if (!modelId) return false
   if (exclude?.has(modelId)) return false
-  if (isModelProviderMismatch(modelId, providerId)) return false
+  if (!listed && isModelProviderMismatch(modelId, providerId)) return false
   if (!isAgentSuitableOpenAiModel(modelId)) return false
   if (getProviderModelUnavailableReason(providerId, modelId)) return false
   return true
@@ -110,7 +110,7 @@ export function pickBestVerifiedModel(
   for (const id of remainder) push(id)
 
   for (const id of ordered) {
-    if (!isPickableModel(providerId, id, exclude)) continue
+    if (!isPickableModel(providerId, id, exclude, true)) continue
     return id
   }
   return null

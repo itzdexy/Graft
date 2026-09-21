@@ -55,12 +55,12 @@ describe('pickBestVerifiedModel', () => {
     expect(picked).toBe('anthropic/claude-sonnet')
   })
 
-  test('skips non-catalog Graft ids on gateways', () => {
+  test('accepts non-catalog Claude IDs when the gateway explicitly lists them', () => {
     const picked = pickBestVerifiedModel('openrouter', [
       'claude-3-5-sonnet-20241022',
       'meta-llama/llama-3-8b',
     ])
-    expect(picked).toBe('meta-llama/llama-3-8b')
+    expect(picked).toBe('claude-3-5-sonnet-20241022')
   })
 })
 

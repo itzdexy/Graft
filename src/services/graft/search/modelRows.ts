@@ -8,7 +8,7 @@
  * way opencode does it.
  */
 
-import { qualifiedModelId, type ModelSearchRow } from './pickerSearch.js'
+import type { ModelSearchRow } from './pickerSearch.js'
 import type { ModelDescriptor } from '../providers/types.js'
 import { deriveModelTags } from '../models/modelMetadata.js'
 
@@ -152,14 +152,11 @@ export type ModelRowPresentation = {
 /**
  * Detail and badge for a model row.
  *
- * The detail always leads with the qualified id, because that is the string
- * the user needs for `--model`, config files, and `/provider model <id>`.
+ * Display the API id verbatim. Provider identity lives separately in the row.
  */
 export function presentModelRow(row: ModelSearchRow): ModelRowPresentation {
-  // Qualified id first (it is what you paste into a config), then the live
-  // tags, then the tier. Tags come from the provider's own metadata, so a row
-  // reads "openrouter/stealth/ox-alpha · FREE · TOOLS · 1M ctx".
-  const detail = [qualifiedModelId(row), ...(row.tags ?? []), row.tierLabel]
+  // Never turn the search-only provider prefix into a copyable API model id.
+  const detail = [row.modelId, ...(row.tags ?? []), row.tierLabel]
     .filter(Boolean)
     .join(' · ')
 

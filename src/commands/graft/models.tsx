@@ -357,7 +357,7 @@ function ModelsFlow({
     items.push({
       key: CUSTOM_KEY,
       label: `Use "${query.trim()}" as a model id`,
-      detail: `${anyModelProvider.providerLabel} · verified on Enter`,
+      detail: `${anyModelProvider.providerLabel} · check on Enter`,
       badge: 'custom',
       badgeTone: 'warning' as const,
       group: undefined,
@@ -403,7 +403,7 @@ function ModelsFlow({
               <Text color="text">{` · ${activeModelLabel}`}</Text>
             ) : null}
             {verifiedModelIds.size > 0
-              ? `   ${verifiedModelIds.size} verified on your key`
+              ? `   ${verifiedModelIds.size} listed by provider`
               : ''}
           </Text>
         }
