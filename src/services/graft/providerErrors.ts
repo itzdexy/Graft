@@ -193,6 +193,11 @@ export function classifyProviderError(
     }
   }
 
+  // Rejected sampling/tool parameters do not mean the model itself is missing.
+  if ((status === 400 || status === 422) && /\b(parameter|temperature|top_p|max_tokens|max_completion_tokens|tool_choice|chat_template_kwargs)\b/i.test(message)) {
+    return { kind: 'bad_response', message, status, retryable: false, userMessage: buildUserMessage('bad_response', message) }
+  }
+
   if (
     /\bmodel\b/i.test(message) &&
     (/\bnot available\b/i.test(message) ||
@@ -209,7 +214,7 @@ export function classifyProviderError(
     }
   }
 
-  if (status === 400 && /\bmodel\b/i.test(message)) {
+  if (status === 400 && /\b(invalid|unknown)\s+model\b|\bmodel\s+(id|name)\b.*\binvalid\b/i.test(message)) {
     return {
       kind: 'invalid_model',
       message,

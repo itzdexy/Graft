@@ -10,6 +10,7 @@ import {
 } from '../../../scripts/graft-providers.js'
 import { applyActiveProviderSession } from './applyActiveProvider.js'
 import type { ModelReadinessState } from './modelReadiness.js'
+import { listModelReadiness } from './modelReadiness.js'
 import { getCachedProviderModelIdsFor } from './providerModels.js'
 import { probeProviderModel } from './providers/probe.js'
 import {
@@ -155,12 +156,18 @@ export async function activateProviderModel(
     (readiness.readiness === 'slow' &&
       (input.allowSlow === true || listedByProvider))
   if (!acceptable) {
+    const alternatives = listModelReadiness(input.providerId)
+      .filter(record => record.source === 'probe' && record.state === 'ready' && record.modelId !== validation.model)
+      .sort((a, b) => b.checkedAt - a.checkedAt)
+      .slice(0, 2)
+      .map(record => JSON.stringify(record.modelId))
+    const suggestion = alternatives.length ? ` Recent successful checks: ${alternatives.join(', ')}.` : ''
     return {
       ok: false,
       providerId: input.providerId,
       modelId: validation.model,
       readiness: readiness.readiness,
-      message: readiness.detail ?? 'This model did not pass its inference check.',
+      message: (readiness.detail ?? 'This model did not pass its inference check.') + suggestion,
     }
   }
   if (input.requireTools && readiness.readiness === 'chat_only') {

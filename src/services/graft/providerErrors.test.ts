@@ -8,6 +8,13 @@ import {
 } from './providerErrors.js'
 
 describe('providerErrors', () => {
+  test('unsupported parameters never blacklist the model or trigger model failover', () => {
+    for (const message of ['temperature is not supported by this model', 'Invalid max_tokens parameter for model test', 'This model does not support tool_choice']) {
+      const error = classifyProviderError({status:400,message})
+      expect(error.kind).toBe('bad_response')
+      expect(shouldAttemptProviderFailover(error.kind)).toBe(false)
+    }
+  })
   test('classifies generic HTTP 402 gateway errors as billing limits', () => {
     expect(classifyProviderError({ status: 402, message: 'Provider returned error' }).kind).toBe('quota_exceeded')
   })

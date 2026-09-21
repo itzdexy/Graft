@@ -275,6 +275,7 @@ function ModelsFlow({
         // pick another row, instead of dumping the user back into chat.
         onFailure: (message, result) => {
           setChecking(null)
+          setVerifiedRefresh((n: number) => n + 1)
           const retryable = result.readiness === 'slow'
           setSlowCandidate(retryable ? { providerId, modelId } : null)
           setActivationError(

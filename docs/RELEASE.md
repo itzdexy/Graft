@@ -74,3 +74,7 @@ OpenRouter now uses its standard OpenAI-compatible API for discovery and inferen
 ## Model-check error reporting
 
 The model picker now explains rate limits, expired credentials and credit limits even when a gateway returns only "Provider returned error". HTTP status and numeric Retry-After hints are retained. A rate-limited selection leaves the previous configuration intact. HTTP 402 is classified as a credit or quota issue; the setup heading says configured rather than claiming inference readiness. Connection-check cache entries are invalidated when credentials change.
+
+## Shared provider recovery
+
+Model selection reuses recent inference evidence: successful checks for five minutes and inconclusive failures for 45 seconds. Explicit `/model check` probes bypass this cache; changing credentials or endpoints invalidates it. An ambiguous HTTP 404 is held only briefly, while a confirmed missing-model response retains the longer model-specific quarantine. Unsupported request parameters no longer mark a model unavailable or trigger model failover. Failed selections preserve configuration and can suggest up to two models that recently answered an actual check on the same provider. Catalog-only entries never earn that recommendation. Fixture coverage includes OpenRouter, NVIDIA NIM, Groq, Cerebras and OpenAI; it does not certify live access to every provider.

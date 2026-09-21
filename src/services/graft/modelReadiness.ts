@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { resolveProviderSelection } from '../../../scripts/graft-providers.js'
+import type { ProviderErrorKind } from './providerErrors.js'
 
 export function readinessSource(providerId: string): string {
   const selection = resolveProviderSelection(providerId, '__catalog__')
@@ -26,6 +27,7 @@ export type ModelReadinessRecord = {
   supportsTools?: boolean
   supportsStreaming?: boolean
   detail?: string
+  errorKind?: ProviderErrorKind
   hardFailure: boolean
 }
 

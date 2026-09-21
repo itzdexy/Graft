@@ -45,6 +45,7 @@ import { syncGraftModelToSession } from '../syncModelState.js'
 import { modelUsesOpenAiThinkingKwargs } from '../openAiModelSuitability.js'
 import {
   setModelReadiness,
+  getModelReadiness,
   readinessSource,
   type ModelReadinessState,
 } from '../modelReadiness.js'
@@ -100,6 +101,7 @@ export function classifyProbeOutcome(input: {
   timedOut?: boolean
   transientFailure?: boolean
   status?: number
+  modelFailure?: boolean
 }): ProbeOutcomeClassification {
   if (input.status === 401 || input.status === 403) {
     return {
@@ -115,11 +117,11 @@ export function classifyProbeOutcome(input: {
       hardFailure: false,
     }
   }
-  if (input.status === 404) {
+  if (input.status === 404 || input.modelFailure) {
     return {
       providerState: input.providerReachable ? 'reachable' : 'offline',
       modelState: 'unavailable',
-      hardFailure: true,
+      hardFailure: input.modelFailure === true,
     }
   }
   if (input.timedOut || input.transientFailure) {
@@ -530,6 +532,14 @@ async function probeResolvedProviderModel(
   const originalSource = readinessSource(active.providerId)
   const changedResult = (): ModelAvailabilityResult => ({ ok: false, readiness: 'unknown', latencyMs: Date.now() - startedAt, detail: 'Provider configuration changed during the check. Run it again.' })
   signal?.throwIfAborted()
+  const recent = forceInference ? null : getModelReadiness(active.providerId, modelId)
+  if (recent?.source === 'probe' && (recent.state === 'ready' || recent.errorKind)) {
+    return {
+      ok: recent.state === 'ready', readiness: recent.state,
+      latencyMs: recent.latencyMs ?? 0, errorKind: recent.errorKind,
+      detail: recent.detail ? `${recent.detail} Recent check reused; /model check runs a fresh check.` : undefined,
+    }
+  }
   if (!forceInference && shouldSkipMetaChatProbe(active.providerId, modelId)) {
     clearProviderModelUnavailable(active.providerId, modelId)
     setModelReadiness({
@@ -566,7 +576,7 @@ async function probeResolvedProviderModel(
         return { ok: true, latencyMs, readiness: 'ready' }
       }
       const detail = `${modelId} returned no output within the small test budget. This check is inconclusive; the model remains selectable.`
-      setModelReadiness({ providerId: active.providerId, modelId, state: 'unknown', source: 'probe', checkedAt: Date.now(), detail, hardFailure: false }, 45_000)
+      setModelReadiness({ providerId: active.providerId, modelId, state: 'unknown', source: 'probe', checkedAt: Date.now(), detail, errorKind: 'bad_response', hardFailure: false }, 45_000)
       return {
         ok: false,
         latencyMs: Date.now() - startedAt,
@@ -602,10 +612,11 @@ async function probeResolvedProviderModel(
     const detail =
       classified.kind === 'timeout'
         ? `${modelId} did not respond within ${Math.round(timeoutMs / 1_000)}s. Try again or choose another model.`
-        : candidate.status === 404 ||
-            classified.kind === 'model_unavailable' ||
+        : candidate.status === 404
+          ? `${providerLabel} could not find this model or its configured endpoint (HTTP 404). Choose another model, or check the endpoint with /provider. Your previous model is unchanged.`
+          : classified.kind === 'model_unavailable' ||
             classified.kind === 'invalid_model'
-          ? `${modelId} is listed by ${providerLabel}, but its chat endpoint is unavailable.`
+          ? `${providerLabel} rejected ${modelId} for inference. Choose another model; /model check can recheck availability. Your previous model is unchanged.`
           : probeFailureDetail(
               classified.kind,
               providerLabel,
@@ -627,6 +638,7 @@ async function probeResolvedProviderModel(
       timedOut: classified.kind === 'timeout',
       transientFailure: classified.kind === 'network_error',
       status: candidate.status,
+      modelFailure: classified.kind === 'model_unavailable' || classified.kind === 'invalid_model',
     })
     setModelReadiness(
       {
@@ -637,19 +649,11 @@ async function probeResolvedProviderModel(
         checkedAt: Date.now(),
         latencyMs: Date.now() - startedAt,
         detail,
+        errorKind: candidate.status === 404 ? 'model_unavailable' : classified.kind,
         hardFailure: outcome.hardFailure,
       },
       outcome.hardFailure ? 30 * 60 * 1000 : 45_000,
     )
-    // Only poison the unavailable cache for hard model failures — timeouts and
-    // transient network errors should not hide a model for the TTL window.
-    if (
-      candidate.status === 404 ||
-      classified.kind === 'model_unavailable' ||
-      classified.kind === 'invalid_model'
-    ) {
-      markProviderModelUnavailable(active.providerId, modelId, detail)
-    }
     return {
       ok: false,
       latencyMs: Date.now() - startedAt,
@@ -910,6 +914,7 @@ async function performProbe(active: ActiveProvider): Promise<ProviderConnectionS
       providerReachable,
       timedOut: classified.kind === 'timeout',
       status: candidate.status,
+      modelFailure: classified.kind === 'model_unavailable' || classified.kind === 'invalid_model',
     })
     setModelReadiness(
       {

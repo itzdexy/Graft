@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { pathToFileURL } from 'node:url'
 import { createGraftTestHome } from '../../../scripts/graft-test-home.js'
 import { activateProviderModel } from './activateProviderModel.js'
+import { setModelReadiness, clearModelReadiness } from './modelReadiness.js'
 
 function runFailedDefaultCommit(state: Record<string, unknown>) {
   const testHome = createGraftTestHome()
@@ -38,6 +39,27 @@ function runFailedDefaultCommit(state: Record<string, unknown>) {
 }
 
 describe('activateProviderModel', () => {
+  test('failed selection suggests only observed successes without switching automatically', async () => {
+    for (const [modelId, source] of [['responded', 'probe'], ['catalog-only', 'catalog']] as const) {
+      setModelReadiness({providerId:'fixture',modelId,state:'ready',source,checkedAt:Date.now(),hardFailure:false})
+    }
+    try {
+      let committed=false
+      const result=await activateProviderModel({providerId:'fixture',modelId:'missing'},{
+        validate:async input=>({ok:true,model:input.modelId,corrected:false}),
+        probe:async()=>({ok:false,latencyMs:1,readiness:'unavailable',detail:'Endpoint unavailable.'}),
+        commit:async()=>{committed=true},
+      })
+      expect(result.ok).toBe(false)
+      if(!result.ok) {
+        expect(result.message).toContain('Recent successful checks: "responded"')
+        expect(result.message).not.toContain('catalog-only')
+      }
+      expect(committed).toBe(false)
+    } finally {
+      clearModelReadiness('fixture','responded'); clearModelReadiness('fixture','catalog-only')
+    }
+  })
   test('does not commit a candidate that times out', async () => {
     let committed = false
 

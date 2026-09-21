@@ -92,7 +92,7 @@ describe('provider connection probe helpers', () => {
 
   test('classifies a missing chat model as a hard model failure', () => {
     expect(
-      classifyProbeOutcome({ providerReachable: true, status: 404 }),
+      classifyProbeOutcome({ providerReachable: true, status: 404, modelFailure: true }),
     ).toEqual({
       providerState: 'reachable',
       modelState: 'unavailable',

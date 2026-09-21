@@ -37,6 +37,8 @@ test('every provider probe stays on its selected endpoint despite stale session 
 })
 
 test('transient inference failures do not erase reachable model inventory', () => {
+  expect(classifyProbeOutcome({providerReachable:true,status:404}).hardFailure).toBe(false)
+  expect(classifyProbeOutcome({providerReachable:true,status:400,modelFailure:true}).hardFailure).toBe(true)
   expect(classifyProbeOutcome({ providerReachable: true, transientFailure: true }).modelState).toBe('slow')
   expect(classifyProbeOutcome({ providerReachable: false, transientFailure: true }).modelState).toBe('unknown')
   expect(classifyProbeOutcome({ providerReachable: true, transientFailure: true, status: 401 }).providerState).toBe('invalid_credentials')
