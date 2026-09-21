@@ -3,6 +3,7 @@ import {
   getGraftMaxOutputLimitsForModel,
 } from '../modelContext.js'
 import { getCachedProviderModelDescriptors } from '../providerModels.js'
+import { rememberUnavailableModel, rememberedUnavailableModel } from '../models/unavailableCache.js'
 import { randomUUID } from 'node:crypto'
 import { completionBudget, usesOpenAiReasoningParameters } from '../openaiCompat/requestOptions.js'
 import { OAUTH_BETA_HEADER } from '../../../constants/oauth.js'
@@ -46,6 +47,7 @@ import { modelUsesOpenAiThinkingKwargs } from '../openAiModelSuitability.js'
 import {
   setModelReadiness,
   getModelReadiness,
+  listModelReadiness,
   readinessSource,
   type ModelReadinessState,
 } from '../modelReadiness.js'
@@ -532,6 +534,9 @@ async function probeResolvedProviderModel(
   const originalSource = readinessSource(active.providerId)
   const changedResult = (): ModelAvailabilityResult => ({ ok: false, readiness: 'unknown', latencyMs: Date.now() - startedAt, detail: 'Provider configuration changed during the check. Run it again.' })
   signal?.throwIfAborted()
+  if (!forceInference && rememberedUnavailableModel(active.providerId, modelId)) {
+    return {ok:false,readiness:'unavailable',errorKind:'model_unavailable',latencyMs:0,detail:'This model recently failed on this endpoint. Choose another model, or run /model check to retry. Your previous model is unchanged.'}
+  }
   const recent = forceInference ? null : getModelReadiness(active.providerId, modelId)
   if (recent?.source === 'probe' && (recent.state === 'ready' || recent.errorKind)) {
     return {
@@ -640,6 +645,9 @@ async function probeResolvedProviderModel(
       status: candidate.status,
       modelFailure: classified.kind === 'model_unavailable' || classified.kind === 'invalid_model',
     })
+    if (outcome.hardFailure || (candidate.status === 404 && listModelReadiness(active.providerId).some(r => r.modelId !== modelId && r.source === 'probe' && r.state === 'ready'))) {
+      rememberUnavailableModel(active.providerId, modelId)
+    }
     setModelReadiness(
       {
         providerId: active.providerId,

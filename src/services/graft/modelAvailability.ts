@@ -4,6 +4,7 @@ import {
   resetModelReadiness,
   setModelReadiness,
 } from './modelReadiness.js'
+import { rememberedUnavailableModel, forgetUnavailableModel } from './models/unavailableCache.js'
 
 const DEFAULT_FAILURE_TTL_MS = 30 * 60 * 1000
 
@@ -29,6 +30,7 @@ export function clearProviderModelUnavailable(
   modelId: string,
 ): void {
   clearModelReadiness(providerId, modelId)
+  forgetUnavailableModel(providerId, modelId)
 }
 
 export function getProviderModelUnavailableReason(
@@ -36,7 +38,8 @@ export function getProviderModelUnavailableReason(
   modelId: string,
 ): string | null {
   const record = getModelReadiness(providerId, modelId)
-  return record?.state === 'unavailable' ? record.detail ?? 'Unavailable' : null
+  return record?.state === 'unavailable' ? record.detail ?? 'Unavailable'
+    : rememberedUnavailableModel(providerId, modelId) ? 'Recently confirmed unavailable. Run /model check to retry.' : null
 }
 
 export function resetProviderModelAvailability(): void {

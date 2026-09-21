@@ -3,6 +3,7 @@ import { fetchProviderModels, getProviderModelRefreshState } from '../providerMo
 import { probeProviderModel, type ModelAvailabilityResult } from '../providers/probe.js'
 import { isAgentSuitableOpenAiModel } from '../openAiModelSuitability.js'
 import type { ModelDescriptor } from '../providers/types.js'
+import { rememberUnavailableModel } from './unavailableCache.js'
 
 export type ModelCheck = { id: string; status: string; latencyMs: number }
 export type ProviderAudit = { providerId: string; catalog: string; listed: number; eligible: number; checked: ModelCheck[]; stopped?: string }
@@ -15,10 +16,14 @@ const defaultDependencies = {
   fetch: fetchProviderModels,
   state: (id: string) => getProviderModelRefreshState(id)?.state ?? 'failed',
   probe: probeProviderModel,
+  finish: (providerId: string, checked: ModelCheck[]) => {
+    if (!checked.some(c => c.status === 'passed')) return
+    for (const c of checked) if (c.status === 'model_unavailable' || c.status === 'invalid_model') rememberUnavailableModel(providerId, c.id)
+  },
 }
 
 /** Small fixed prompts only; never send project files, conversation text, or tools. */
-export async function auditProviderModels(options: ModelAuditOptions = {}, deps = defaultDependencies): Promise<ProviderAudit[]> {
+export async function auditProviderModels(options: ModelAuditOptions = {}, deps: Omit<typeof defaultDependencies, 'finish'> & { finish?: typeof defaultDependencies.finish } = defaultDependencies): Promise<ProviderAudit[]> {
   const ids = options.all ? deps.ids() : [options.providerId ?? deps.active()]
   const reports: ProviderAudit[] = []
   const timeoutMs = Math.max(1000, Math.min(60_000, options.timeoutMs ?? 12_000))
@@ -57,6 +62,7 @@ export async function auditProviderModels(options: ModelAuditOptions = {}, deps 
     }
     // Keep probes modest; stop launching requests when the provider rate-limits.
     await Promise.all([worker(), worker()])
+    if (deps.selection(providerId) === original) deps.finish?.(providerId, report.checked)
     if (options.signal?.aborted) report.stopped = 'cancelled'
     else if (!report.stopped && queue.length < eligible.length) report.stopped = 'requested limit'
   }
