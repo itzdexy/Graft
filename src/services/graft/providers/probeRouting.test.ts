@@ -1,5 +1,16 @@
 import { expect, test } from 'bun:test'
-import { fetchOpenAiProbe, classifyProbeOutcome } from './probe.js'
+import { fetchOpenAiProbe, classifyProbeOutcome, probeFailureDetail } from './probe.js'
+
+test('model checks explain generic gateway failures using their HTTP classification', () => {
+  const rate = probeFailureDetail('rate_limit', 'OpenRouter', 'https://openrouter.ai/api/v1', 'Provider returned error', 429, '30')
+  expect(rate).toContain('rate limit (HTTP 429)')
+  expect(rate).toContain('Wait 30 seconds')
+  expect(rate).toContain('previous model is unchanged')
+  expect(rate).not.toContain('Provider returned error')
+  expect(probeFailureDetail('auth_failed', 'OpenRouter', '', 'API key expired.', 401)).toContain('API key expired (HTTP 401)')
+  expect(probeFailureDetail('quota_exceeded', 'Provider', '', 'Provider returned error', 402)).toContain('quota or credit limit')
+  expect(probeFailureDetail('unknown', 'Provider', '', 'Provider returned error', 400)).toContain('could not complete the model check (HTTP 400)')
+})
 
 test('every provider probe stays on its selected endpoint despite stale session environment', async () => {
   const originalFetch = globalThis.fetch

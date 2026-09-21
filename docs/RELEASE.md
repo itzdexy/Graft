@@ -70,3 +70,7 @@ Final snapshot validation: 1,816 tests passed, one skipped, and zero failed acro
 ## OpenRouter model selection correction
 
 OpenRouter now uses its standard OpenAI-compatible API for discovery and inference. Sending an Anthropic compatibility header to its catalog endpoint had produced rewritten IDs such as `anthropic/z-ai/glm-5.2:free`; the normal catalog returns `z-ai/glm-5.2:free`. Changing the transport invalidates the old catalog cache. The picker displays the exact API ID and labels catalog entries as listed, not verified on the account. Validation consults the requested provider's inventory before vendor-name heuristics, even when another provider is active. Ambiguous model-name shortcuts are rejected. Regression coverage follows the selected ID through discovery, display, validation and a fixture inference request.
+
+## Model-check error reporting
+
+The model picker now explains rate limits, expired credentials and credit limits even when a gateway returns only "Provider returned error". HTTP status and numeric Retry-After hints are retained. A rate-limited selection leaves the previous configuration intact. HTTP 402 is classified as a credit or quota issue; the setup heading says configured rather than claiming inference readiness. Connection-check cache entries are invalidated when credentials change.

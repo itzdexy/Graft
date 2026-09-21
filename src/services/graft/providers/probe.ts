@@ -147,7 +147,7 @@ let inFlight:
 let probeGeneration = 0
 
 function activeKey(active: ActiveProvider): string {
-  return `${active.providerId}\0${active.model}\0${active.baseUrl}`
+  return `${active.providerId}\0${active.model}\0${readinessSource(active.providerId)}`
 }
 
 function safeDetail(value: string): string {
@@ -159,16 +159,37 @@ function safeDetail(value: string): string {
     .slice(0, 320)
 }
 
-function probeFailureDetail(
+export function probeFailureDetail(
   kind: ProviderErrorKind,
   providerLabel: string,
   baseUrl: string,
   message: string,
+  status?: number,
+  retryAfter?: string | null,
 ): string {
+  const http = status ? ` (HTTP ${status})` : ''
+  if (kind === 'rate_limit') {
+    const seconds = Number(retryAfter)
+    const delay = retryAfter && Number.isFinite(seconds) && seconds > 0
+      ? `Wait ${Math.ceil(seconds)} seconds before retrying`
+      : 'Wait before retrying'
+    return `${providerLabel} rate limit${http}. ${delay}, or choose another model. Your previous model is unchanged.`
+  }
+  if (kind === 'quota_exceeded') {
+    return `${providerLabel} quota or credit limit${http}. Check the account's usage and billing, or choose another provider with /provider. Your previous model is unchanged.`
+  }
+  if (kind === 'auth_failed' || kind === 'invalid_key') {
+    const reason = /expir/i.test(message) ? 'API key expired' : 'authentication failed'
+    return `${providerLabel} ${reason}${http}. Update the key with /provider. Your previous model is unchanged.`
+  }
   if (kind === 'network_error') {
     return `${providerLabel}'s inference request failed at ${baseUrl}. Model-list availability does not confirm inference access. Retry or check your network and provider endpoint.`
   }
-  return safeDetail(message)
+  const detail = safeDetail(message)
+  if (!detail || /^provider returned error[.!]?$/i.test(detail)) {
+    return `${providerLabel} could not complete the model check${http}. Retry or choose another model. Your previous model is unchanged.`
+  }
+  return `${providerLabel}${http}: ${detail}`
 }
 
 function parseResetValue(value: string | null): number | undefined {
@@ -570,7 +591,7 @@ async function probeResolvedProviderModel(
   } catch (error) {
     signal?.throwIfAborted()
     if (readinessSource(active.providerId) !== originalSource) return changedResult()
-    const candidate = error as Error & { status?: number }
+    const candidate = error as Error & { status?: number; headers?: Headers }
     const classified = classifyProviderError({
       status: candidate.status,
       message: candidate.message,
@@ -590,6 +611,8 @@ async function probeResolvedProviderModel(
               providerLabel,
               active.baseUrl,
               classified.message,
+              candidate.status,
+              candidate.headers?.get('retry-after'),
             )
     const knownReachable = providerReachableFromProbeEvidence({
       errorKind: classified.kind,

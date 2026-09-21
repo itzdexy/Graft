@@ -197,7 +197,7 @@ export function ProviderFlow({
 
   if (step === 'models' && selectedId) {
     return (
-      <Frame subtitle="Provider ready · choose a model">
+      <Frame subtitle="Provider configured · choose a model">
         <GraftProviderModelPicker
           initialProviderId={selectedId}
           setupMessage={setupMessage}

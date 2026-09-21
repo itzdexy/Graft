@@ -153,7 +153,7 @@ export function classifyProviderError(
     }
   }
 
-  if (isQuotaErrorText(message)) {
+  if (status === 402 || isQuotaErrorText(message)) {
     return {
       kind: 'quota_exceeded',
       message,

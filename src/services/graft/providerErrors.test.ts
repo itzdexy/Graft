@@ -8,6 +8,9 @@ import {
 } from './providerErrors.js'
 
 describe('providerErrors', () => {
+  test('classifies generic HTTP 402 gateway errors as billing limits', () => {
+    expect(classifyProviderError({ status: 402, message: 'Provider returned error' }).kind).toBe('quota_exceeded')
+  })
   test('classifies rate limit 429', () => {
     const err = classifyProviderError({
       status: 429,

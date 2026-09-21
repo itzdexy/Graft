@@ -43,6 +43,14 @@ test('OpenRouter live IDs survive discovery, display, validation and activation 
       const result=await activateProviderModel({providerId:'openrouter',modelId:row.modelId},{probe:probeProviderModel,commit:async input=>assert.equal(input.modelId,ids[0])});
       assert.equal(result.ok,true); assert.equal(probed,ids[0]);
       assert.equal(getActiveProviderId(),'nvidia_nim');
+      globalThis.fetch=async ()=>Response.json({error:{message:'Provider returned error'}},{status:429,headers:{'retry-after':'15'}});
+      let committed=false;
+      const limited=await activateProviderModel({providerId:'openrouter',modelId:row.modelId},{probe:probeProviderModel,commit:async()=>{committed=true}});
+      assert.equal(limited.ok,false);
+      assert.ok(limited.message.includes('rate limit (HTTP 429)'));
+      assert.ok(limited.message.includes('Wait 15 seconds'));
+      assert.equal(committed,false);
+      assert.equal(getActiveProviderId(),'nvidia_nim');
     `
     const result = spawnSync(process.execPath, ['-e', code], { cwd: resolve(import.meta.dir, '../../..'), env: { ...process.env, GRAFT_HOME: fixtureHome, NODE_ENV: 'test' }, encoding: 'utf8', timeout: 20000 })
     expect(result.stderr).toBe('')
