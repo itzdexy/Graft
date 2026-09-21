@@ -76,7 +76,6 @@ import {
   formatToolInputForLog,
   validateGraftFileToolPath,
 } from '../graft/tools/safety.js'
-import { maybeCheckpointBeforeEdit } from '../graft/git/editHook.js'
 import { normalizeToolArguments, normalizeWebToolCall } from '../graft/openaiCompat/toolNormalization.js'
 import { noteCodeEditForVerify } from '../graft/verify/editHook.js'
 import {
@@ -1273,12 +1272,6 @@ async function checkPermissionsAndCallTool(
     callInput = processedInput
   }
   callInput = finalizeToolCallInput(tool, callInput) as typeof callInput
-  if (
-    isGraftRuntime() &&
-    (tool.name === FILE_EDIT_TOOL_NAME || tool.name === FILE_WRITE_TOOL_NAME)
-  ) {
-    await maybeCheckpointBeforeEdit(assistantMessage?.uuid)
-  }
 
   if (isGraftRuntime() && processedInput && typeof processedInput === 'object') {
     const filePath =
@@ -1415,7 +1408,7 @@ async function checkPermissionsAndCallTool(
         tool.name === FILE_EDIT_TOOL_NAME ||
         tool.name === FILE_WRITE_TOOL_NAME
       ) {
-        noteCodeEditForVerify()
+        noteCodeEditForVerify(toolUseContext.agentId)
       }
     }
 

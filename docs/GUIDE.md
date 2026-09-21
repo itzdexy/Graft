@@ -48,6 +48,16 @@ Use `/build <feature>` for implementation, `/debug <problem>` for investigation,
 
 Bare `/verify` now starts all detected checks through the normal shell-tool workflow, where permission checks, progress, and cancellation apply. `/verify test` or `/verify lint,typecheck` selects a subset; `/verify help` shows usage. Missing checks are reported as unconfigured. Verification alone does not request source fixes. Package-manager declarations take precedence over leftover lockfiles, and detection does not invent missing tests or choose `lint:fix` as a check.
 
+Post-edit verification and `/agent autofix` also request checks through the normal shell tool. They do not execute scripts while preparing prompts or automatically commit passing changes. Pending verification is tracked separately for each project and agent. Existing tool results from after the latest edit can be reused, and recovery requests are bounded. Model compliance and provider tool support still determine whether requested checks actually run; inspect the reported tool results.
+
+## Reviewing and committing changes
+
+`/changes` displays staged and working-tree status, added/removed line counts, and untracked entries without a model request. It covers the whole Git repository, shows at most 40 entries, and reads metadata rather than patch bodies. Binary files are labeled; untracked directories are grouped without line counts. Rename detection is disabled, so a rename appears as a deletion and an addition. This is a change inventory, not a code review; use `/review` or `git diff` to examine the code.
+
+Edits no longer stash or stage the working tree automatically. The edit tools retain their existing file-history backups when file checkpointing is enabled. `/git-commit <summary>` commits only the changes already staged by the user; other edits and untracked files remain outside that commit.
+
+`/undo git` previews the latest eligible `graftcode:` commit. Apply the displayed `/undo git apply <commit>` command to create a new revert commit while preserving history. Git undo refuses pending changes, a changed commit ID, and root or merge commits. Bare `/undo` retains its conversation-rewind behavior.
+
 ## Context and response speed
 
 `/project` shows a local overview of the current folder: detected stack, Git changes, top-level files, and available package scripts. It does not call a model or run those scripts. Large folders are bounded and marked with an ellipsis; Git status has a two-second timeout.

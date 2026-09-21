@@ -6,10 +6,6 @@ import {
   verifyPromptForCwd,
 } from '../verify/verifyPrompts.js'
 import {
-  formatVerificationReport,
-  runVerification,
-} from '../verify/VerifyEngine.js'
-import {
   buildTaskTimeline,
   formatTimelineMarkdown,
 } from '../dx/taskTimeline.js'
@@ -74,16 +70,7 @@ export async function agentPrompt(
       session.phase = 'verify'
       saveAgentSession(session)
 
-      const report = await runVerification(cwd)
-      const reportText = formatVerificationReport(report)
-      if (report.allPassed) {
-        return [
-          {
-            type: 'text',
-            text: `${reportText}\n\nAll checks passed. Mark verify step complete and continue the agent goal.`,
-          },
-        ]
-      }
+      const reportText = 'Verification has not run for this request. Run the detected checks through the normal shell tool before diagnosing failures. Use actual results; missing checks are not a pass.'
       // Stop and escalate once the round budget is spent — otherwise a build
       // that never goes green would loop forever, burning turns and tokens.
       if (
@@ -95,12 +82,12 @@ export async function agentPrompt(
           session.maxAutoFixRounds,
         )
       }
-      return buildAutoFixPrompt(
+      return [...await verifyPromptForCwd(cwd), ...buildAutoFixPrompt(
         session,
         reportText,
         session.autoFixRound,
         session.maxAutoFixRounds,
-      )
+      )]
     }
 
     case 'timeline': {

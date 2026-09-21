@@ -42,3 +42,13 @@ A live web search returned eight results, including the official TypeScript hand
 The latest public snapshot passes 1,792 tests with one skip and no failures. Runtime compilation and the installed Windows version command pass. Both new local command loaders delivered their expected output against isolated demo data. The dependency audit reports zero advisories. The broad TypeScript check still reports 3,135 diagnostics; none reference the new overview/source services or commands, or the changed repository map. Live provider latency was not remeasured for this update.
 
 `/project` displays bounded local metadata without invoking a model or running package scripts. `/sources` distinguishes completed search results from fetched pages and ignores links present only in model prose. Topic-based repository maps now prioritize relevant paths and symbols within their character budget. The chat layout remains unchanged; these summaries appear on request.
+
+### Visible verification and Git workflow
+
+The final public snapshot passes 1,801 tests with one platform-specific skip and no failures. Runtime compilation and the updated Windows installation pass.
+
+The Git workflow now previews changes locally, commits only already-staged files, and previews Git undo before applying a history-preserving revert. Automatic pre-edit stashing and automatic post-verification commits were removed. Existing file-history backup behavior remains available. Post-edit verification and agent autofix prepare normal shell-tool work, where permissions, progress, and cancellation apply; prompt loading does not run project scripts. Verification bookkeeping is isolated by project and agent.
+
+Real Git fixtures verify that previews leave files and the index unchanged, commits preserve unstaged and untracked work, stale undo requests are rejected, and an applied revert preserves commit history. Command-loader fixtures cover `/changes` and `/undo git`. The dependency audit reports zero advisories; the broad TypeScript check remains at 3,135 diagnostics with unchanged per-file/error-code counts.
+
+A live installed-CLI coding fixture using the configured GLM 5.3 Flash model did not finish within 120 seconds. It read the fixture but did not edit it or pass the independent test before the harness stopped it. The first two model responses took approximately 41 and 55 seconds to begin; completed read/search tools took 3–23 milliseconds. Files, staged state, and history remained intact. This run does not demonstrate a completed live coding workflow or improved provider latency.

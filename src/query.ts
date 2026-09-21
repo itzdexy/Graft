@@ -1550,10 +1550,10 @@ async function* queryLoop(
         lastMessage?.type === 'assistant' &&
         !lastMessage.isApiErrorMessage
       ) {
-        const verify = await runGraftAutoVerifyIfNeeded(permissionMode)
-        if (verify.kind === 'passed' || verify.kind === 'lint_only') {
+        const verify = await runGraftAutoVerifyIfNeeded(permissionMode, toolUseContext.agentId)
+        if (verify.kind === 'lint_only') {
           yield createSystemMessage(verify.message, 'info')
-        } else if (verify.kind === 'failed') {
+        } else if (verify.kind === 'requested') {
           verifyRecoveryCount++
           const recoveryMessage = createUserMessage({
             content: verify.feedback,
