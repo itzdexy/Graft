@@ -71,3 +71,21 @@ Graft uses the active provider's reported context capacity when available, inclu
 OpenAI-compatible connections have a 30-second deadline to begin their response, separate from the stream idle watchdog. A connection timeout is reported without automatic retry. Set `GRAFT_CONNECT_TIMEOUT_MS` before launch to allow a slower model more time (100–600,000 milliseconds).
 
 Nemotron 3.5 Lightning uses NVIDIA's documented 262,144-token context window unless the endpoint reports a different limit. Its optional thinking mode is off by default to avoid unnecessary reasoning on short requests. To opt in, set `GRAFT_ENABLE_MODEL_THINKING=1` before launching Graft. Provider inference speed and queueing still affect latency. See [NVIDIA's Lightning documentation](https://docs.nvidia.com/nim/large-language-models/2.0.10/get-started/advanced/get-started-nemotron-3.5-lightning.html).
+
+## Updating and checking models
+
+Use `/model refresh` to reload the active provider's live inventory, or `/model refresh all` for connected providers. Successful discovery replaces bootstrap choices, including paginated Anthropic and Gemini catalogs. A failed refresh preserves previous inventory and identifies it as stale. Saved custom endpoints and model choices are preserved. Catalog and readiness evidence are isolated by provider, endpoint, and credentials.
+
+Use `/model check` or `/model check all` to send small, isolated text probes. Checks may incur provider charges. Two requests run at once per provider; authentication, quota and rate-limit errors stop new checks. Esc cancels. A listed model is not necessarily available to your account, and a short response does not certify tool calling, full context capacity, vision, or sustained streaming. Timeouts and empty short-budget responses remain inconclusive.
+
+The terminal equivalents provide per-model results:
+
+```sh
+graft models refresh all
+graft models check all --timeout 12000
+graft models check nvidia_nim --limit 5 --timeout 20000
+```
+
+The optional limit applies per provider. No project files, conversations, or tool definitions enter these probes. Only connected providers are checked; Graft does not create accounts or purchase access. Models known to be embeddings, media, moderation or reranking targets are excluded from the text probe. Additional models can be entered manually where a provider supports custom model IDs.
+
+Synthetic and NanoGPT are available in `/provider`. Current bootstrap choices and endpoint corrections are recorded with official documentation links in `scripts/graft-provider-updates.js`. GitHub Models is hidden because the service retired; GitHub Copilot is separate. Native GPT-6 Astra uses the Responses API for tool calls with remote conversation storage disabled. Other supported native OpenAI reasoning models use completion-token budgets and omit unsupported sampling controls. Third-party gateways retain their own transport conventions.

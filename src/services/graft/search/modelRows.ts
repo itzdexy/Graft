@@ -168,7 +168,7 @@ export function presentModelRow(row: ModelSearchRow): ModelRowPresentation {
   if (row.tags?.includes('FREE')) {
     return { badge: 'free', badgeTone: 'success', detail }
   }
-  if (row.verified) return { badge: 'verified', badgeTone: 'success', detail }
+  if (row.verified) return { badge: 'listed', badgeTone: 'muted', detail }
   return { badge: '', badgeTone: 'muted', detail }
 }
 

@@ -71,7 +71,9 @@ export function inferContextWindowFromModelId(modelId: string): number | null {
   if (id.includes('muse-spark')) {
     return 1_000_000
   }
-  if (id.includes('claude-opus-4') || id.includes('claude-sonnet-5')) {
+  if (id.includes('gpt-6-astra')) return 1_050_000
+  if (id.includes('claude-sonnet-5') || id.includes('claude-opus-5') || id.includes('claude-fable-5-1')) return 1_000_000
+  if (id.includes('claude-opus-4')) {
     return 200_000
   }
   if (id.includes('claude-fable-5') || id.includes('claude-mythos-5')) {

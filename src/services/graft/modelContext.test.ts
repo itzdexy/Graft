@@ -12,6 +12,10 @@ import {
 } from './modelContext.js'
 
 describe('modelContext', () => {
+  test('current documented native models retain their full context windows', () => {
+    expect(inferContextWindowFromModelId('gpt-6-astra')).toBe(1_050_000)
+    for (const id of ['claude-fable-5-1', 'claude-opus-5', 'claude-sonnet-5']) expect(inferContextWindowFromModelId(id)).toBe(1_000_000)
+  })
   test('Lightning uses its documented 256K capacity instead of the unknown-model 32K fallback', () => {
     const model = 'nvidia/nemotron-3.5-lightning-30b-a3b'
     expect(inferContextWindowFromModelId(model)).toBe(262_144)

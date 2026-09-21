@@ -35,6 +35,17 @@ test('model discovery isolates endpoints, key changes, and late responses', () =
       assert.deepEqual(getCachedProviderModelIdsFor('nvidia_nim'), ['new-model']);
       setProviderKey('nvidia_nim', 'fixture-third');
       assert.equal(getCachedProviderModelIdsFor('nvidia_nim'), null);
+      const { setModelReadiness, getModelReadiness } = await import('./src/services/graft/modelReadiness.ts');
+      setModelReadiness({providerId:'nvidia_nim',modelId:'same',state:'unavailable',source:'probe',checkedAt:Date.now(),hardFailure:true});
+      assert.equal(getModelReadiness('nvidia_nim','same').state, 'unavailable');
+      setProviderKey('nvidia_nim', 'fixture-fourth');
+      assert.equal(getModelReadiness('nvidia_nim','same'), null);
+      setProviderKey('nanogpt', 'fixture-nanogpt');
+      globalThis.fetch = async url => {
+        assert.equal(String(url), 'https://nano-gpt.com/api/v1/models');
+        return Response.json({data:[{id:'new-chat-model'}]});
+      };
+      assert.equal((await fetchProviderModels('nanogpt'))[0].id, 'new-chat-model');
     `
     const result = spawnSync(process.execPath, ['-e', code], {
       cwd: resolve(import.meta.dir, '../../..'),

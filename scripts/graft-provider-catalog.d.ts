@@ -31,6 +31,7 @@ export type CatalogProviderDef = {
   featured?: boolean
   regions?: string[]
   notes?: string
+  retired?: string
 }
 
 export declare const PROVIDER_CATALOG: Record<string, CatalogProviderDef>

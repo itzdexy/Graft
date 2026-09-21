@@ -1,3 +1,11 @@
+import { createHash } from 'node:crypto'
+import { resolveProviderSelection } from '../../../scripts/graft-providers.js'
+
+export function readinessSource(providerId: string): string {
+  const selection = resolveProviderSelection(providerId, '__catalog__')
+  return createHash('sha256').update(JSON.stringify(selection ? [selection.baseUrl, selection.apiKey, selection.authMode] : null)).digest('hex')
+}
+
 export type ModelReadinessState =
   | 'unknown'
   | 'listed'
@@ -22,6 +30,7 @@ export type ModelReadinessRecord = {
 }
 
 type StoredReadiness = {
+  source: string
   record: ModelReadinessRecord
   expiresAt: number
 }
@@ -38,6 +47,7 @@ export function setModelReadiness(
   ttlMs = DEFAULT_TTL_MS,
 ): ModelReadinessRecord {
   readiness.set(readinessKey(record.providerId, record.modelId), {
+    source: readinessSource(record.providerId),
     record: { ...record },
     expiresAt: record.checkedAt + ttlMs,
   })
@@ -52,7 +62,7 @@ export function getModelReadiness(
   const key = readinessKey(providerId, modelId)
   const stored = readiness.get(key)
   if (!stored) return null
-  if (now > stored.expiresAt) {
+  if (now > stored.expiresAt || stored.source !== readinessSource(providerId)) {
     readiness.delete(key)
     return null
   }
@@ -76,7 +86,7 @@ export function listModelReadiness(
 ): ModelReadinessRecord[] {
   const records: ModelReadinessRecord[] = []
   for (const [key, stored] of readiness) {
-    if (now > stored.expiresAt) {
+    if (now > stored.expiresAt || stored.source !== readinessSource(stored.record.providerId)) {
       readiness.delete(key)
       continue
     }

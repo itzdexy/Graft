@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { ModelAuditView } from './ModelAuditView.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Command, LocalJSXCommandContext } from '../../commands.js'
 import { Box, Text, useAnimationFrame, useInput } from '../../ink.js'
@@ -463,6 +464,8 @@ export async function call(
   context: LocalJSXCommandContext,
   _args: string,
 ): Promise<React.ReactNode> {
+  const args = _args.trim().toLowerCase()
+  if (/^(refresh|check)( all)?$/.test(args)) return <ModelAuditView check={args.startsWith('check')} all={args.endsWith(' all')} onDone={onDone} />
   return <ModelsFlow onDone={onDone} setAppState={context.setAppState} />
 }
 

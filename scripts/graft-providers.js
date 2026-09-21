@@ -225,7 +225,7 @@ export function getProviderApiKey(providerId, state = loadState()) {
 /** True when the user has saved a valid API key for this provider. */
 export function isProviderActivated(providerId, state = loadState()) {
   const def = getProvider(providerId, state)
-  if (!def) return false
+  if (!def || def.retired) return false
   if (state.auth?.[providerId] === 'oauth') return true
   if (isLocalProvider(def)) return Boolean(def.baseUrl)
   return isValidKey(def, getProviderApiKey(providerId, state))
@@ -247,7 +247,7 @@ export function resolveActive(state = loadState()) {
 
   const providerId = getActiveProviderId(state)
   const provider = getProvider(providerId, state)
-  if (!provider) return null
+  if (!provider || provider.retired) return null
   if (state.auth?.[providerId] === 'oauth') {
     return {
       providerId,
@@ -282,7 +282,7 @@ export function resolveActive(state = loadState()) {
  */
 export function resolveProviderSelection(providerId, modelId, state = loadState()) {
   const provider = getProvider(providerId, state)
-  if (!provider) return null
+  if (!provider || provider.retired) return null
   const model = modelId || state.models?.[providerId] || getDefaultModelId(provider)
   if (!model) return null
 
@@ -328,6 +328,7 @@ export function setActiveProvider(id) {
     return state
   }
   if (!PROVIDER_CATALOG[id]) throw new Error(`Unknown provider: ${id}`)
+  if (PROVIDER_CATALOG[id].retired) throw new Error(PROVIDER_CATALOG[id].retired)
   const state = loadState()
   state.active = id
   saveState(state)
@@ -399,7 +400,7 @@ export function setCustomProvider({ baseUrl, label, providerId }) {
 }
 
 export function listProviderIds() {
-  return Object.keys(PROVIDER_CATALOG).filter(id => id !== 'openai_proxy')
+  return Object.keys(PROVIDER_CATALOG).filter(id => id !== 'openai_proxy' && !PROVIDER_CATALOG[id].retired)
 }
 
 if (process.argv[1]?.endsWith('graft-providers.js')) {

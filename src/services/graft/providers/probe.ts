@@ -4,6 +4,7 @@ import {
 } from '../modelContext.js'
 import { getCachedProviderModelDescriptors } from '../providerModels.js'
 import { randomUUID } from 'node:crypto'
+import { completionBudget, usesOpenAiReasoningParameters } from '../openaiCompat/requestOptions.js'
 import { OAUTH_BETA_HEADER } from '../../../constants/oauth.js'
 import {
   getProvider,
@@ -44,6 +45,7 @@ import { syncGraftModelToSession } from '../syncModelState.js'
 import { modelUsesOpenAiThinkingKwargs } from '../openAiModelSuitability.js'
 import {
   setModelReadiness,
+  readinessSource,
   type ModelReadinessState,
 } from '../modelReadiness.js'
 import {
@@ -84,6 +86,7 @@ export type ModelAvailabilityResult = {
   latencyMs: number
   readiness: ModelReadinessState
   detail?: string
+  errorKind?: ProviderErrorKind
 }
 
 export type ProbeOutcomeClassification = {
@@ -134,6 +137,7 @@ export function classifyProbeOutcome(input: {
 }
 
 let cached: ProviderConnectionSnapshot | null = null
+let cachedSourceKey: string | null = null
 let inFlight:
   | {
       key: string
@@ -402,11 +406,11 @@ export async function fetchOpenAiProbe(
             content: 'Connection check. Reply with exactly OK.',
           },
         ],
-        max_tokens: PROBE_MAX_OUTPUT_TOKENS,
+        ...completionBudget(active.providerId, active.model, PROBE_MAX_OUTPUT_TOKENS),
         // Non-streaming probes finish with a full JSON body — more reliable on
         // NIM than waiting for the first SSE token within a tight timeout.
         stream: false,
-        temperature: 0,
+        ...(!usesOpenAiReasoningParameters(active.providerId, active.model) ? { temperature: 0 } : {}),
         // Keep probes snappy on GLM/R1 — default thinking would time out.
         ...(modelUsesOpenAiThinkingKwargs(active.model)
           ? { chat_template_kwargs: { enable_thinking: false } }
@@ -498,9 +502,14 @@ async function probeResolvedProviderModel(
   active: ActiveProvider,
   modelId: string,
   timeoutMs: number,
+  signal?: AbortSignal,
+  forceInference = false,
 ): Promise<ModelAvailabilityResult> {
   const startedAt = Date.now()
-  if (shouldSkipMetaChatProbe(active.providerId, modelId)) {
+  const originalSource = readinessSource(active.providerId)
+  const changedResult = (): ModelAvailabilityResult => ({ ok: false, readiness: 'unknown', latencyMs: Date.now() - startedAt, detail: 'Provider configuration changed during the check. Run it again.' })
+  signal?.throwIfAborted()
+  if (!forceInference && shouldSkipMetaChatProbe(active.providerId, modelId)) {
     clearProviderModelUnavailable(active.providerId, modelId)
     setModelReadiness({
       providerId: active.providerId,
@@ -516,10 +525,11 @@ async function probeResolvedProviderModel(
   try {
     const result = await runTransportProbe(
       { ...active, model: modelId },
-      AbortSignal.timeout(timeoutMs),
+      signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     )
+    if (readinessSource(active.providerId) !== originalSource) return changedResult()
     if (!result.text.trim()) {
-      if (metaProbeTreatsEmptyOutputAsSuccess(active.providerId, modelId)) {
+      if (!forceInference && metaProbeTreatsEmptyOutputAsSuccess(active.providerId, modelId)) {
         clearProviderModelUnavailable(active.providerId, modelId)
         const latencyMs = Date.now() - startedAt
         setModelReadiness({
@@ -534,12 +544,13 @@ async function probeResolvedProviderModel(
         })
         return { ok: true, latencyMs, readiness: 'ready' }
       }
-      const detail = `${modelId} returned no output. Choose another model.`
-      markProviderModelUnavailable(active.providerId, modelId, detail)
+      const detail = `${modelId} returned no output within the small test budget. This check is inconclusive; the model remains selectable.`
+      setModelReadiness({ providerId: active.providerId, modelId, state: 'unknown', source: 'probe', checkedAt: Date.now(), detail, hardFailure: false }, 45_000)
       return {
         ok: false,
         latencyMs: Date.now() - startedAt,
-        readiness: 'unavailable',
+        readiness: 'unknown',
+        errorKind: 'bad_response',
         detail,
       }
     }
@@ -557,6 +568,8 @@ async function probeResolvedProviderModel(
     })
     return { ok: true, latencyMs, readiness: 'ready' }
   } catch (error) {
+    signal?.throwIfAborted()
+    if (readinessSource(active.providerId) !== originalSource) return changedResult()
     const candidate = error as Error & { status?: number }
     const classified = classifyProviderError({
       status: candidate.status,
@@ -587,7 +600,7 @@ async function probeResolvedProviderModel(
       providerReachable:
         knownReachable ||
         ((classified.kind === 'timeout' || classified.kind === 'network_error') &&
-          (await openAiProviderIsReachable(active))),
+          (!forceInference && await openAiProviderIsReachable(active))),
       timedOut: classified.kind === 'timeout',
       transientFailure: classified.kind === 'network_error',
       status: candidate.status,
@@ -619,6 +632,7 @@ async function probeResolvedProviderModel(
       latencyMs: Date.now() - startedAt,
       readiness: outcome.modelState,
       detail,
+      errorKind: candidate.status === 404 ? 'model_unavailable' : classified.kind,
     }
   }
 }
@@ -628,6 +642,8 @@ export async function probeProviderModel(input: {
   providerId: string
   modelId: string
   timeoutMs?: number
+  signal?: AbortSignal
+  forceInference?: boolean
 }): Promise<ModelAvailabilityResult> {
   const active = resolveProviderSelection(input.providerId, input.modelId)
   if (!active) {
@@ -642,6 +658,8 @@ export async function probeProviderModel(input: {
     active,
     input.modelId,
     input.timeoutMs ?? PICKER_PROBE_TIMEOUT_MS,
+    input.signal,
+    input.forceInference,
   )
 }
 
@@ -771,6 +789,8 @@ async function reconcileAwayFromUnavailableModel(
 
 async function performProbe(active: ActiveProvider): Promise<ProviderConnectionSnapshot> {
   const startedAt = Date.now()
+  const originalSource = readinessSource(active.providerId)
+  const changedSnapshot = (): ProviderConnectionSnapshot => ({ state: 'degraded', providerId: active.providerId, providerLabel: active.label, modelId: active.model, modelState: 'unknown', checkedAt: Date.now(), detail: 'Provider configuration changed during the check.' })
   if (shouldSkipMetaChatProbe(active.providerId, active.model)) {
     const capabilities = resolveModelCapabilities(active.model, active.providerId)
     clearProviderModelUnavailable(active.providerId, active.model)
@@ -800,6 +820,7 @@ async function performProbe(active: ActiveProvider): Promise<ProviderConnectionS
   const timeout = AbortSignal.timeout(PROBE_TIMEOUT_MS)
   try {
     const result = await runTransportProbe(active, timeout)
+    if (readinessSource(active.providerId) !== originalSource) return changedSnapshot()
     const quota = readProviderQuota(result.headers)
     const capabilities = resolveModelCapabilities(active.model, active.providerId)
     const text = result.text.trim()
@@ -810,18 +831,11 @@ async function performProbe(active: ActiveProvider): Promise<ProviderConnectionS
     const state = emptyMetaOk
       ? stateForProbeResult({ text: text || 'ok', quota })
       : stateForProbeResult({ text, quota })
-    if (state === 'degraded') {
-      markProviderModelUnavailable(
-        active.providerId,
-        active.model,
-        'Provider accepted the request but returned no model output.',
-      )
-      void reconcileAwayFromUnavailableModel(active).catch(() => {})
-    } else if (text || emptyMetaOk) {
+    if (text || emptyMetaOk) {
       clearProviderModelUnavailable(active.providerId, active.model)
     }
     const modelState: ModelReadinessState =
-      text || emptyMetaOk ? 'ready' : 'unavailable'
+      text || emptyMetaOk ? 'ready' : 'unknown'
     setModelReadiness({
       providerId: active.providerId,
       modelId: active.model,
@@ -832,10 +846,10 @@ async function performProbe(active: ActiveProvider): Promise<ProviderConnectionS
       supportsStreaming: result.supportsStreaming,
       supportsTools: capabilities.toolCalling,
       detail:
-        modelState === 'unavailable'
+        modelState === 'unknown'
           ? 'Provider accepted the request but returned no model output.'
           : undefined,
-      hardFailure: modelState === 'unavailable',
+      hardFailure: false,
     })
     return {
       state,
@@ -855,6 +869,7 @@ async function performProbe(active: ActiveProvider): Promise<ProviderConnectionS
     }
   } catch (error) {
     const candidate = error as Error & { status?: number; headers?: Headers }
+    if (readinessSource(active.providerId) !== originalSource) return changedSnapshot()
     const classified = classifyProviderError({
       status: candidate.status,
       message: candidate.message,
@@ -937,6 +952,7 @@ export async function probeActiveProviderConnection(
   if (
     !options.force &&
     cached &&
+    cachedSourceKey === key &&
     cached.providerId === active.providerId &&
     cached.modelId === active.model &&
     cached.checkedAt &&
@@ -961,6 +977,7 @@ export async function probeActiveProviderConnection(
       activeKey(current) === key
     if (isCurrent) {
       cached = result
+      cachedSourceKey = key
       setProviderConnectionSnapshot(result)
     }
     return result
@@ -985,6 +1002,7 @@ export function scheduleActiveProviderProbe(
 export function resetActiveProviderProbeCache(): void {
   probeGeneration += 1
   cached = null
+  cachedSourceKey = null
   inFlight = null
 }
 

@@ -133,7 +133,7 @@ describe('presentModelRow', () => {
 
   test('a verified non-active model says so', () => {
     const row = build().find(r => r.modelId === 'claude-opus-4-5')!
-    expect(presentModelRow(row).badge).toBe('verified')
+    expect(presentModelRow(row).badge).toBe('listed')
   })
 
   test('a catalog-only model gets no badge', () => {

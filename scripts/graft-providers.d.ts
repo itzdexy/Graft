@@ -44,6 +44,7 @@ export type GraftProvider = {
   featured?: boolean
   regions?: string[]
   notes?: string
+  retired?: string
   local?: boolean
   keyPattern?: string
 }

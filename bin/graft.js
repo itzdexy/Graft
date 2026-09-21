@@ -377,6 +377,10 @@ async function main() {
   }
 
   if (args[0] === 'models') {
+    if (['refresh', 'check'].includes(args[1])) {
+      await runBunScript('graft-model-audit.ts', args.slice(1))
+      return
+    }
     await runNodeScript('graft-provider-cli.js', ['models', args[1]].filter(Boolean))
     return
   }

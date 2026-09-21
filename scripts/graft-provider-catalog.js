@@ -31,12 +31,14 @@
  *   featured?: boolean,
  *   regions?: string[],
  *   notes?: string,
+ *   retired?: string,
  * }} ProviderDef
  */
 
 import { EXTRA_PROVIDER_CATALOG } from './graft-provider-catalog-extra.js'
 import { formatProviderModelDisplayName } from './graft-model-display.js'
 import { PROVIDER_MODEL_EXPANSIONS } from './graft-provider-models-expanded.js'
+import { NEW_PROVIDERS, PROVIDER_UPDATES } from './graft-provider-updates.js'
 
 const TIER_RANK = { opus: 0, sonnet: 1, haiku: 2 }
 
@@ -739,6 +741,13 @@ for (const [providerId, extraModels] of Object.entries(PROVIDER_MODEL_EXPANSIONS
   provider.models = merged
 }
 
+// Apply reviewed replacements after legacy expansions so obsolete bootstrap IDs
+// are not silently reintroduced. Saved endpoint/model choices remain untouched.
+for (const [id, update] of Object.entries(PROVIDER_UPDATES)) {
+  if (PROVIDER_CATALOG[id]) Object.assign(PROVIDER_CATALOG[id], update)
+}
+Object.assign(PROVIDER_CATALOG, NEW_PROVIDERS)
+
 // Legacy id from older Graft builds
 if (!PROVIDER_CATALOG.openai_proxy) {
   PROVIDER_CATALOG.openai_proxy = { ...PROVIDER_CATALOG.openai, id: 'openai_proxy', label: 'OpenAI (legacy id)' }
@@ -805,7 +814,7 @@ export function listProvidersByCategory() {
   /** @type {Record<string, ProviderDef[]>} */
   const groups = {}
   for (const p of Object.values(PROVIDER_CATALOG)) {
-    if (p.id === 'openai_proxy') continue
+    if (p.id === 'openai_proxy' || p.retired) continue
     const cat = p.category || 'api'
     if (!groups[cat]) groups[cat] = []
     groups[cat].push(p)

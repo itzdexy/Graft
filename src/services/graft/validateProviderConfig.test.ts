@@ -29,7 +29,7 @@ describe('validateProviderConfig', () => {
     expect(getProvider('ollama')?.baseUrl).toContain('11434')
   })
 
-  test('openai gateway stub requires base URL', () => {
+  test('native OpenAI has a usable default base URL', () => {
     const issues = validateProviderConfig('openai', {
       active: 'openai',
       keys: { openai: 'sk-test-key-1234567890' },
@@ -37,7 +37,8 @@ describe('validateProviderConfig', () => {
       custom: { baseUrl: '' },
       endpoints: {},
     })
-    expect(issues.some(i => i.code === 'missing_base_url')).toBe(true)
+    expect(issues.some(i => i.code === 'missing_base_url')).toBe(false)
+    expect(getProvider('openai')?.baseUrl).toBe('https://api.openai.com/v1')
   })
 
   test('formatProviderConfigIssues renders fix hints', () => {

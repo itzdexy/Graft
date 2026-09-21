@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { usesResponsesApi, chatToResponses, responseToChat, responsesToChatStream } from './responses.js'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -203,6 +204,7 @@ async function handleMessages(
   }
 
   const openAiBody = anthropicRequestToOpenAi(body, config.providerId)
+  const responsesApi = usesResponsesApi(config.providerId, body.model)
   proxyDebugLog('REQUEST →upstream', {
     model: openAiBody.model,
     stream: openAiBody.stream,
@@ -218,14 +220,15 @@ async function handleMessages(
   const upstreamSignal = AbortSignal.any([req.signal, connection.signal, AbortSignal.timeout(600_000)])
   let upstream: Response
   try {
-    upstream = await fetch(openAiChatCompletionsUrl(config.upstreamBaseUrl), {
+    const chatUrl = String(openAiChatCompletionsUrl(config.upstreamBaseUrl))
+    upstream = await fetch(responsesApi ? chatUrl.replace(/\/chat\/completions$/, '/responses') : chatUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${config.upstreamApiKey}`,
         'content-type': 'application/json',
         'x-request-id': randomUUID(),
       },
-      body: JSON.stringify(openAiBody),
+      body: JSON.stringify(responsesApi ? chatToResponses(openAiBody) : openAiBody),
       signal: upstreamSignal,
     })
   } catch (error) {
@@ -286,8 +289,8 @@ async function handleMessages(
     }
     // When tracing, tee the raw upstream stream and dump it to the log so we can
     // see the model's actual tool_calls / text without disturbing translation.
-    let translateBody = upstream.body
-    if (PROXY_DEBUG) {
+    let translateBody = responsesApi ? responsesToChatStream(upstream.body) : upstream.body
+    if (PROXY_DEBUG && !responsesApi) {
       const [a, b] = upstream.body.tee()
       translateBody = a
       void (async () => {
@@ -350,6 +353,7 @@ async function handleMessages(
     payload = JSON.parse(rawBody) as Parameters<
       typeof openAiCompletionToAnthropic
     >[0]
+    if (responsesApi) payload = responseToChat(payload) as typeof payload
   } catch {
     const preview = rawBody.trim().slice(0, 200)
     if (preview.startsWith('<')) {

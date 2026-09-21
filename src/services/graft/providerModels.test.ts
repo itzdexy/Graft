@@ -89,7 +89,7 @@ describe('native provider model metadata', () => {
       maxOutputTokens: 32_000,
       supportsReasoning: true,
       supportsVision: true,
-      supportsTools: true,
+      supportsTools: null,
       source: 'provider',
     })
   })

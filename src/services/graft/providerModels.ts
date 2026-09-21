@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { fetchPagedModelPayload } from './models/modelDiscovery.js'
 import { openAiModelsUrl } from '../../../scripts/graft-provider-upstream.js'
 import {
   getProvider,
@@ -38,6 +39,13 @@ import {
 const inFlight = new Map<string, Promise<ModelDescriptor[] | null>>()
 const requestVersions = new Map<string, symbol>()
 const requestSources = new Map<string, string>()
+const refreshStates = new Map<string, { fingerprint: string; state: 'live' | 'cached' | 'fallback' | 'failed'; checkedAt: number }>()
+
+export function getProviderModelRefreshState(providerId: string) {
+  const selection = resolveProviderSelection(providerId, '__catalog__')
+  const result = refreshStates.get(providerId)
+  return selection && result?.fingerprint === selectionFingerprint(selection) ? result : null
+}
 
 function selectionFingerprint(selection: NonNullable<ReturnType<typeof resolveProviderSelection>>): string {
   return createHash('sha256').update(JSON.stringify([
@@ -46,7 +54,7 @@ function selectionFingerprint(selection: NonNullable<ReturnType<typeof resolvePr
 }
 
 function matchingCache(providerId: string) {
-  const selection = resolveProviderSelection(providerId, undefined)
+  const selection = resolveProviderSelection(providerId, '__catalog__')
   const entry = getProviderModelEntry(providerId)
   return selection && entry?.sourceFingerprint === selectionFingerprint(selection) ? entry : null
 }
@@ -209,10 +217,7 @@ export function parseAnthropicModelDescriptors(payload: unknown): ModelDescripto
           : null,
       maxOutputTokens:
         typeof model.max_tokens === 'number' ? model.max_tokens : null,
-      supportsTools:
-        typeof model.capabilities?.structured_outputs?.supported === 'boolean'
-          ? model.capabilities.structured_outputs.supported
-          : null,
+      supportsTools: null,
       supportsVision:
         typeof model.capabilities?.image_input?.supported === 'boolean'
           ? model.capabilities.image_input.supported
@@ -331,45 +336,39 @@ function anthropicModelsUrl(baseUrl: string): string {
   return `${base}/v1/models`
 }
 
-function geminiModelsUrl(baseUrl: string, apiKey: string): string {
+function geminiModelsUrl(baseUrl: string): string {
   const base = (baseUrl || 'https://generativelanguage.googleapis.com')
     .replace(/\/+$/, '')
-    .replace(/\/v1beta$/, '')
+    .replace(/\/v1beta(?:\/openai)?$/, '')
   const url = new URL(`${base}/v1beta/models`)
   url.searchParams.set('pageSize', '1000')
-  url.searchParams.set('key', apiKey)
   return url.toString()
 }
 
 async function fetchNativeModelDescriptors(
   active: NonNullable<ReturnType<typeof resolveActive>>,
+  signal?: AbortSignal,
 ): Promise<ModelDescriptor[] | null> {
   const provider = getProvider(active.providerId)
   if (!provider) return null
   if (
     active.providerId === 'google' &&
-    (active.baseUrl.includes('generativelanguage.googleapis.com') ||
-      !active.baseUrl)
+    (!active.baseUrl || new URL(active.baseUrl).hostname === 'generativelanguage.googleapis.com')
   ) {
-    const response = await fetch(geminiModelsUrl(active.baseUrl, active.apiKey), {
-      redirect: 'error',
-      signal: AbortSignal.timeout(8_000),
-    })
-    if (!response.ok) return null
-    return parseGeminiModelDescriptors(await response.json())
+    return parseGeminiModelDescriptors(await fetchPagedModelPayload(geminiModelsUrl(active.baseUrl), {
+      headers: { 'x-goog-api-key': active.apiKey },
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8_000)]) : AbortSignal.timeout(8_000),
+    }))
   }
   if (!providerNeedsOpenAiCompat(provider)) {
     const headers = await providerModelHeaders(active)
-    const response = await fetch(anthropicModelsUrl(active.baseUrl), {
-      redirect: 'error',
+    return parseModelListPayload(await fetchPagedModelPayload(anthropicModelsUrl(active.baseUrl), {
       headers: {
         ...headers,
         'anthropic-version': '2023-06-01',
       },
-      signal: AbortSignal.timeout(8_000),
-    })
-    if (!response.ok) return null
-    return parseModelListPayload(await response.json())
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8_000)]) : AbortSignal.timeout(8_000),
+    }))
   }
   return null
 }
@@ -385,11 +384,11 @@ async function fetchNativeModelDescriptors(
  */
 export async function fetchProviderModels(
   providerId: string,
-  options: { force?: boolean } = {},
+  options: { force?: boolean; signal?: AbortSignal } = {},
 ): Promise<ModelDescriptor[] | null> {
   if (!isGraftRuntime()) return null
 
-  const selection = resolveProviderSelection(providerId, undefined)
+  const selection = resolveProviderSelection(providerId, '__catalog__')
   if (
     !selection?.baseUrl ||
     (!selection.apiKey && selection.authMode !== 'oauth')
@@ -400,6 +399,7 @@ export async function fetchProviderModels(
   const sourceFingerprint = selectionFingerprint(selection)
   const cached = matchingCache(providerId)
   if (!options.force && isEntryFresh(cached, Date.now())) {
+    refreshStates.set(providerId, { fingerprint: sourceFingerprint, state: 'cached', checkedAt: Date.now() })
     return cached!.descriptors
   }
 
@@ -410,10 +410,10 @@ export async function fetchProviderModels(
   requestVersions.set(providerId, version)
   requestSources.set(providerId, sourceFingerprint)
   const run = (async (): Promise<ModelDescriptor[] | null> => {
-    const commit = (descriptors: ModelDescriptor[]): ModelDescriptor[] | null => {
+    const commit = (descriptors: ModelDescriptor[], live = true): ModelDescriptor[] | null => {
       // A key/endpoint change must not let an older request repopulate the cache.
       if (requestVersions.get(providerId) !== version) return null
-      const current = resolveProviderSelection(providerId, undefined)
+      const current = resolveProviderSelection(providerId, '__catalog__')
       if (!current || selectionFingerprint(current) !== sourceFingerprint) return null
       putProviderModelEntry({
         providerId,
@@ -422,18 +422,19 @@ export async function fetchProviderModels(
         fetchedAt: Date.now(),
         sourceFingerprint,
       })
+      refreshStates.set(providerId, { fingerprint: sourceFingerprint, state: live ? 'live' : 'fallback', checkedAt: Date.now() })
       return descriptors
     }
 
     const provider = getProvider(providerId)
     if (isMetaProviderId(providerId)) {
       const descriptors = metaCatalogDescriptors()
-      if (descriptors.length > 0) return commit(descriptors)
+      if (descriptors.length > 0) return commit(descriptors, false)
     }
-    if (!providerNeedsOpenAiCompat(provider)) {
+    if (!providerNeedsOpenAiCompat(provider) || (providerId === 'google' && selection.baseUrl.includes('generativelanguage.googleapis.com'))) {
       try {
-        const descriptors = await fetchNativeModelDescriptors(selection)
-        if (descriptors?.length) return commit(descriptors)
+        const descriptors = await fetchNativeModelDescriptors(selection, options.signal)
+        if (descriptors) return commit(descriptors)
       } catch {
         // Continue to OpenAI-compatible discovery and the signed registry.
       }
@@ -449,27 +450,27 @@ export async function fetchProviderModels(
     ])
 
     for (const url of candidateUrls) {
+      if (options.signal?.aborted) break
       try {
-        const response = await fetch(url, {
+        const payload = await fetchPagedModelPayload(url, {
           method: 'GET',
           redirect: 'error',
           headers,
-          signal: AbortSignal.timeout(8_000),
+          signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(8_000)]) : AbortSignal.timeout(8_000),
         })
-        if (!response.ok) continue
-        const descriptors = parseOpenAiModelDescriptors(await response.json())
-        if (descriptors.length === 0) continue
+        const descriptors = parseOpenAiModelDescriptors(payload)
         return commit(descriptors)
       } catch {
         // try next url shape
       }
     }
 
-    const registry = await refreshSignedProviderRegistry()
+    const registry = options.signal?.aborted ? null : await refreshSignedProviderRegistry()
     const descriptors = registryModelsForProvider(registry, providerId)
-    if (descriptors.length > 0) return commit(descriptors)
+    if (descriptors.length > 0) return commit(descriptors, false)
 
     // Nothing live. A stale entry still beats a hand-written catalog.
+    if (requestVersions.get(providerId) === version) refreshStates.set(providerId, { fingerprint: sourceFingerprint, state: 'failed', checkedAt: Date.now() })
     return requestVersions.get(providerId) === version ? cached?.descriptors ?? null : null
   })()
 
@@ -530,6 +531,7 @@ export function isModelVerifiedForActiveProvider(modelId: string): boolean | nul
 }
 
 export function resetProviderModelCache(): void {
+  refreshStates.clear()
   inFlight.clear()
   requestVersions.clear()
   requestSources.clear()
@@ -570,7 +572,7 @@ export function prefetchActiveProviderModelIds(): void {
 export function prefetchConnectedProviderModels(providerIds: string[]): void {
   if (!isGraftRuntime()) return
   for (const providerId of providerIds) {
-    if (isEntryFresh(getProviderModelEntry(providerId), Date.now())) continue
+    if (hasWarmProviderModelCache(providerId)) continue
     void fetchProviderModels(providerId).catch(() => {
       // Best effort; the picker retries on view.
     })

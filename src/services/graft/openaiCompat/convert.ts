@@ -1,4 +1,5 @@
 import { capAnthropicMaxTokensForGraftModel } from '../modelContext.js'
+import { completionBudget, usesOpenAiReasoningParameters } from './requestOptions.js'
 import { resolveModelCapabilities } from '../modelCapabilities.js'
 import { getActiveProviderId } from '../../../../scripts/graft-providers.js'
 import { modelUsesOpenAiThinkingKwargs } from '../openAiModelSuitability.js'
@@ -231,7 +232,8 @@ export function anthropicRequestToOpenAi(
   providerId = getActiveProviderId(),
 ): {
   model: string
-  max_tokens: number
+  max_tokens?: number
+  max_completion_tokens?: number
   messages: OpenAiMessage[]
   stream: boolean
   temperature?: number
@@ -344,12 +346,14 @@ export function anthropicRequestToOpenAi(
 
   return {
     model: body.model,
-    max_tokens: maxTokens,
+    ...completionBudget(providerId, body.model, maxTokens),
     messages,
     stream: !!body.stream,
-    ...(body.temperature !== undefined ? { temperature: body.temperature } : {}),
-    ...(body.top_p !== undefined ? { top_p: body.top_p } : {}),
-    ...(body.stop_sequences?.length ? { stop: body.stop_sequences } : {}),
+    ...(!usesOpenAiReasoningParameters(providerId, body.model) ? {
+      ...(body.temperature !== undefined ? { temperature: body.temperature } : {}),
+      ...(body.top_p !== undefined ? { top_p: body.top_p } : {}),
+      ...(body.stop_sequences?.length ? { stop: body.stop_sequences } : {}),
+    } : {}),
     ...(forceThinkingOff
       ? {
           chat_template_kwargs: {
